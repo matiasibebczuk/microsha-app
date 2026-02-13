@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { IconLogout } from "./ui/icons";
 import { apiUrl } from "./api";
+import LoadingState from "./ui/LoadingState";
+import SkeletonCards from "./ui/SkeletonCards";
 
 export default function Encargado() {
   const [trips, setTrips] = useState([]);
@@ -324,7 +326,10 @@ export default function Encargado() {
             )}
 
             {loadingList ? (
-              <p className="empty">Cargando lista...</p>
+              <>
+                <LoadingState compact label="Cargando lista..." />
+                <SkeletonCards count={2} />
+              </>
             ) : groups.length === 0 ? (
               <p className="empty">No hay pasajeros confirmados.</p>
             ) : (

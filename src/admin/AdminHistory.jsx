@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { apiUrl } from "../api";
+import LoadingState from "../ui/LoadingState";
+import SkeletonCards from "../ui/SkeletonCards";
 
 export default function AdminHistory({ onBack }) {
   const [runs, setRuns] = useState([]);
@@ -171,7 +173,10 @@ export default function AdminHistory({ onBack }) {
         </div>
 
         {loading ? (
-          <p className="empty">Cargando historial...</p>
+          <>
+            <LoadingState label="Cargando historial..." compact />
+            <SkeletonCards count={3} />
+          </>
         ) : runs.length === 0 ? (
           <p className="empty">No hay recorridos finalizados.</p>
         ) : (

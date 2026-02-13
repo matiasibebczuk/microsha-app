@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { IconEdit, IconTrash } from "../ui/icons";
 import { apiUrl } from "../api";
+import LoadingState from "../ui/LoadingState";
+import SkeletonCards from "../ui/SkeletonCards";
 
 export default function AdminTrips() {
   const [trips, setTrips] = useState([]);
@@ -495,8 +497,9 @@ export default function AdminTrips() {
 
   if (loading) {
     return (
-      <div className="card">
-        <p className="empty">Cargando viajes...</p>
+      <div className="card stack">
+        <LoadingState label="Cargando viajes..." compact />
+        <SkeletonCards count={4} />
       </div>
     );
   }
@@ -552,7 +555,7 @@ export default function AdminTrips() {
               <div className="card card-soft stack-sm">
                 <h4 className="section-title">Editar traslado</h4>
                 {editLoading ? (
-                  <p className="empty">Cargando datos del traslado...</p>
+                  <LoadingState compact label="Cargando datos del traslado..." />
                 ) : (
                   <>
                     <input
@@ -669,7 +672,7 @@ export default function AdminTrips() {
           </p>
 
           {passengersLoading ? (
-            <p className="empty">Cargando pasajeros...</p>
+            <LoadingState compact label="Cargando pasajeros..." />
           ) : filteredPassengers.length === 0 ? (
             <p className="empty">Sin pasajeros para este filtro.</p>
           ) : (

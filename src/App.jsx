@@ -7,6 +7,7 @@ import Passenger from "./Passenger";
 import PassengerLogin from "./PassengerLogin";
 import GroupSetup from "./GroupSetup";
 import { apiUrl } from "./api";
+import LoadingState from "./ui/LoadingState";
 
 function App() {
   const [authReady, setAuthReady] = useState(false);
@@ -74,6 +75,19 @@ function App() {
     return () => {
       active = false;
       listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(apiUrl("/ping"), {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    }).catch(() => {});
+
+    return () => {
+      controller.abort();
     };
   }, []);
 
@@ -161,8 +175,10 @@ function App() {
   // ========================
   if (!authReady) {
     return (
-      <div className="page-narrow">
-        <div className="card empty">Cargando sesión…</div>
+      <div className="loading-screen">
+        <div className="card">
+          <LoadingState label="Cargando sesión..." />
+        </div>
       </div>
     );
   }
@@ -194,7 +210,13 @@ function App() {
   // ========================
   if (["admin", "encargado"].includes(profile.role)) {
     if (groupLoading) {
-      return <div>Cargando grupo…</div>;
+      return (
+        <div className="loading-screen">
+          <div className="card">
+            <LoadingState label="Cargando grupo..." />
+          </div>
+        </div>
+      );
     }
 
     if (!hasGroup) {
