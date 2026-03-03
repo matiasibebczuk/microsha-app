@@ -507,6 +507,128 @@ export default function AdminTrips() {
     URL.revokeObjectURL(url);
   };
 
+  const idaTrips = trips.filter((trip) => trip.type === "ida");
+  const vueltaTrips = trips.filter((trip) => trip.type === "vuelta");
+
+  const renderTripCard = (trip) => (
+    <div key={trip.id} className="list-item stack-sm">
+      <b>{trip.name || `Viaje ${trip.id}`}</b>
+      <div className="muted">
+        Tipo: {trip.type || "-"} | Estado: {formatTripStatus(trip.status)}
+      </div>
+      <div className="muted">Hora: {formatDateTime(trip.time)}</div>
+      <div className="muted">Inicio recorrido: {formatDateTime(trip.active_started_at)}</div>
+      <div className="muted">Última finalización: {formatDateTime(trip.last_finished_at)}</div>
+      <div className="muted">Confirmados: {trip.confirmed ?? 0} / Capacidad: {trip.capacity ?? 0}</div>
+      <div className="muted">Lista de espera: {trip.waiting ?? 0}</div>
+      <div className="muted">Ocupación: {formatOccupancy(trip.confirmed, trip.capacity)}%</div>
+      <div className="row">
+        <button onClick={() => changeTripStatus(trip.id, "open")}>Abrir inscripción</button>
+        <button className="btn-secondary" onClick={() => changeTripStatus(trip.id, "closed")}>Cerrar inscripción</button>
+        <button className="btn-secondary" onClick={() => loadPassengers(trip.id)}>Ver anotados</button>
+        <button className="btn-secondary btn-with-icon" onClick={() => startEditTrip(trip)}>
+          <IconEdit />
+          Editar
+        </button>
+        <button className="btn-danger btn-with-icon" onClick={() => deleteTrip(trip.id)}>
+          <IconTrash />
+          Eliminar
+        </button>
+      </div>
+
+      {editingTripId === trip.id && (
+        <div className="card card-soft stack-sm">
+          <h4 className="section-title">Editar traslado</h4>
+          {editLoading ? (
+            <LoadingState compact label="Cargando datos del traslado..." />
+          ) : (
+            <>
+              <input
+                placeholder="Nombre"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              <select value={editType} onChange={(e) => setEditType(e.target.value)}>
+                <option value="ida">Ida</option>
+                <option value="vuelta">Vuelta</option>
+              </select>
+              <input
+                type="datetime-local"
+                value={editDeparture}
+                onChange={(e) => setEditDeparture(e.target.value)}
+              />
+
+              <hr className="divider" />
+              <h4 className="section-title">Vehículos</h4>
+              <div className="grid">
+                {editBuses.map((bus, index) => (
+                  <div key={`${bus.id || "new"}-${index}`} className="list-item row">
+                    <input
+                      placeholder="Nombre vehículo"
+                      value={bus.name}
+                      onChange={(e) => updateEditBus(index, "name", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Capacidad"
+                      value={bus.capacity}
+                      onChange={(e) => updateEditBus(index, "capacity", e.target.value)}
+                    />
+                    <button className="btn-danger btn-with-icon" onClick={() => removeEditBus(index)}>
+                      <IconTrash />
+                      Eliminar
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="btn-secondary" onClick={addEditBus}>+ Agregar vehículo</button>
+
+              <hr className="divider" />
+              <h4 className="section-title">Paradas</h4>
+              <div className="grid">
+                {editStops.map((stop, index) => (
+                  <div key={`${stop.id || "new"}-${index}`} className="list-item row">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Orden"
+                      value={stop.order}
+                      onChange={(e) => updateEditStop(index, "order", e.target.value)}
+                    />
+                    <input
+                      placeholder="Nombre parada"
+                      value={stop.name}
+                      onChange={(e) => updateEditStop(index, "name", e.target.value)}
+                    />
+                    <input
+                      type="time"
+                      value={stop.time}
+                      onChange={(e) => updateEditStop(index, "time", e.target.value)}
+                    />
+                    <button className="btn-danger btn-with-icon" onClick={() => removeEditStop(index)}>
+                      <IconTrash />
+                      Eliminar
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="row">
+                <button className="btn-secondary" onClick={addEditStop}>+ Agregar parada</button>
+                <button className="btn-secondary" onClick={normalizeStopOrders}>Reordenar automáticamente</button>
+              </div>
+
+              <div className="row">
+                <button onClick={saveEditTrip}>Guardar</button>
+                <button className="btn-secondary" onClick={() => setEditingTripId(null)}>Cancelar</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="card stack">
@@ -541,125 +663,34 @@ export default function AdminTrips() {
       <h3 className="section-title">Viajes</h3>
       <MessageBanner message={notice} />
 
-      <div className="trip-grid">
-        {trips.map((trip) => (
-          <div key={trip.id} className="list-item stack-sm">
-            <b>{trip.name || `Viaje ${trip.id}`}</b>
-            <div className="muted">
-              Tipo: {trip.type || "-"} | Estado: {formatTripStatus(trip.status)}
+      <div className="stack">
+        <div className="card card-soft stack-sm">
+          <h4 className="section-title">Traslados de ida</h4>
+          {idaTrips.length === 0 ? (
+            <EmptyState
+              title="No hay traslados de ida"
+              subtitle="Creá uno nuevo para empezar a gestionar este tramo."
+            />
+          ) : (
+            <div className="trip-grid">
+              {idaTrips.map((trip) => renderTripCard(trip))}
             </div>
-            <div className="muted">Hora: {formatDateTime(trip.time)}</div>
-            <div className="muted">Inicio recorrido: {formatDateTime(trip.active_started_at)}</div>
-            <div className="muted">Última finalización: {formatDateTime(trip.last_finished_at)}</div>
-            <div className="muted">Confirmados: {trip.confirmed ?? 0} / Capacidad: {trip.capacity ?? 0}</div>
-            <div className="muted">Lista de espera: {trip.waiting ?? 0}</div>
-            <div className="muted">Ocupación: {formatOccupancy(trip.confirmed, trip.capacity)}%</div>
-            <div className="row">
-              <button onClick={() => changeTripStatus(trip.id, "open")}>Abrir inscripción</button>
-              <button className="btn-secondary" onClick={() => changeTripStatus(trip.id, "closed")}>Cerrar inscripción</button>
-              <button className="btn-secondary" onClick={() => loadPassengers(trip.id)}>Ver anotados</button>
-              <button className="btn-secondary btn-with-icon" onClick={() => startEditTrip(trip)}>
-                <IconEdit />
-                Editar
-              </button>
-              <button className="btn-danger btn-with-icon" onClick={() => deleteTrip(trip.id)}>
-                <IconTrash />
-                Eliminar
-              </button>
+          )}
+        </div>
+
+        <div className="card card-soft stack-sm">
+          <h4 className="section-title">Traslados de vuelta</h4>
+          {vueltaTrips.length === 0 ? (
+            <EmptyState
+              title="No hay traslados de vuelta"
+              subtitle="Creá uno nuevo para empezar a gestionar este tramo."
+            />
+          ) : (
+            <div className="trip-grid">
+              {vueltaTrips.map((trip) => renderTripCard(trip))}
             </div>
-
-            {editingTripId === trip.id && (
-              <div className="card card-soft stack-sm">
-                <h4 className="section-title">Editar traslado</h4>
-                {editLoading ? (
-                  <LoadingState compact label="Cargando datos del traslado..." />
-                ) : (
-                  <>
-                    <input
-                      placeholder="Nombre"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                    />
-                    <select value={editType} onChange={(e) => setEditType(e.target.value)}>
-                      <option value="ida">Ida</option>
-                      <option value="vuelta">Vuelta</option>
-                    </select>
-                    <input
-                      type="datetime-local"
-                      value={editDeparture}
-                      onChange={(e) => setEditDeparture(e.target.value)}
-                    />
-
-                    <hr className="divider" />
-                    <h4 className="section-title">Vehículos</h4>
-                    <div className="grid">
-                      {editBuses.map((bus, index) => (
-                        <div key={`${bus.id || "new"}-${index}`} className="list-item row">
-                          <input
-                            placeholder="Nombre vehículo"
-                            value={bus.name}
-                            onChange={(e) => updateEditBus(index, "name", e.target.value)}
-                          />
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="Capacidad"
-                            value={bus.capacity}
-                            onChange={(e) => updateEditBus(index, "capacity", e.target.value)}
-                          />
-                          <button className="btn-danger btn-with-icon" onClick={() => removeEditBus(index)}>
-                            <IconTrash />
-                            Eliminar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button className="btn-secondary" onClick={addEditBus}>+ Agregar vehículo</button>
-
-                    <hr className="divider" />
-                    <h4 className="section-title">Paradas</h4>
-                    <div className="grid">
-                      {editStops.map((stop, index) => (
-                        <div key={`${stop.id || "new"}-${index}`} className="list-item row">
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="Orden"
-                            value={stop.order}
-                            onChange={(e) => updateEditStop(index, "order", e.target.value)}
-                          />
-                          <input
-                            placeholder="Nombre parada"
-                            value={stop.name}
-                            onChange={(e) => updateEditStop(index, "name", e.target.value)}
-                          />
-                          <input
-                            type="time"
-                            value={stop.time}
-                            onChange={(e) => updateEditStop(index, "time", e.target.value)}
-                          />
-                          <button className="btn-danger btn-with-icon" onClick={() => removeEditStop(index)}>
-                            <IconTrash />
-                            Eliminar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="row">
-                      <button className="btn-secondary" onClick={addEditStop}>+ Agregar parada</button>
-                      <button className="btn-secondary" onClick={normalizeStopOrders}>Reordenar automáticamente</button>
-                    </div>
-
-                    <div className="row">
-                      <button onClick={saveEditTrip}>Guardar</button>
-                      <button className="btn-secondary" onClick={() => setEditingTripId(null)}>Cancelar</button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+          )}
+        </div>
       </div>
 
       {selectedTripId && (
