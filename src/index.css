@@ -316,6 +316,29 @@ button:disabled {
   color: #9eb0cf;
 }
 
+.global-brand {
+  position: fixed;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.global-brand-card {
+  border: 1px solid rgba(149, 175, 219, 0.24);
+  border-radius: 12px;
+  background: rgba(18, 28, 48, 0.88);
+  box-shadow: 0 10px 24px rgba(1, 7, 20, 0.28);
+  backdrop-filter: blur(6px);
+  padding: 0.42rem 0.55rem;
+}
+
+.global-brand-logo {
+  width: clamp(92px, 10vw, 128px);
+  height: auto;
+  display: block;
+}
+
 .web-alert-stack {
   position: fixed;
   right: 1rem;
@@ -527,6 +550,20 @@ button:disabled {
     right: 0.5rem;
     bottom: 0.5rem;
     width: calc(100% - 1rem);
+  }
+
+  .global-brand {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+
+  .global-brand-card {
+    border-radius: 10px;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .global-brand-logo {
+    width: clamp(76px, 24vw, 98px);
   }
 }
 
