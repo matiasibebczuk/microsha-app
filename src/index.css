@@ -328,8 +328,8 @@ button:disabled {
   content: "";
   display: block;
   margin: 0 auto 0.4rem;
-  width: clamp(136px, 20vw, 196px);
-  height: clamp(44px, 7vw, 62px);
+  width: clamp(176px, 26vw, 280px);
+  height: clamp(58px, 9vw, 92px);
   background:
     url("./assets/MicroSHA_LOGO.png") center / contain no-repeat,
     rgba(18, 28, 48, 0.6);
