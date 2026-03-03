@@ -113,7 +113,8 @@ p {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   background: rgba(8, 15, 29, 0.8);
   border: 1px solid rgba(152, 178, 223, 0.25);
@@ -125,10 +126,16 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: rgba(137, 172, 255, 0.8);
   box-shadow: 0 0 0 3px rgba(121, 159, 245, 0.24);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 84px;
 }
 
 button {

@@ -352,7 +352,9 @@ export default function Encargado() {
 
                     {group.passengers.map((p) => (
                       <div key={p.reservationId} className="row-between">
-                        <span>{p.name} - {p.phone || "Sin teléfono"} - {p.boarded ? "✅ Presente" : "❌ Ausente"}</span>
+                        <span>
+                          {p.name} - {p.phone || "Sin teléfono"} - {p.description || "Sin descripción"} - {p.boarded ? "✅ Presente" : "❌ Ausente"}
+                        </span>
                         <div className="row">
                           <button onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage}>Marcar presente</button>
                           <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage}>Marcar ausente</button>

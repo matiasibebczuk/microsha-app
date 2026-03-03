@@ -5,6 +5,7 @@ import Admin from "./Admin";
 import Encargado from "./Encargado";
 import Passenger from "./Passenger";
 import PassengerLogin from "./PassengerLogin";
+import PassengerProfileSetup from "./PassengerProfileSetup";
 import GroupSetup from "./GroupSetup";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
@@ -175,6 +176,19 @@ function App() {
   // PASAJERO SIN SUPABASE
   // ========================
   if (passengerUser) {
+    if (passengerUser.needsProfileCompletion) {
+      return (
+        <PassengerProfileSetup
+          user={passengerUser}
+          onCompleted={setPassengerUser}
+          onSessionExpired={() => {
+            setPassengerUser(null);
+            setView("passenger-login");
+          }}
+        />
+      );
+    }
+
     return (
       <Passenger
         user={passengerUser}
