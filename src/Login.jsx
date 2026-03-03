@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 
 export default function Login({ onPassenger }) {
   const [mode, setMode] = useState("login");
+  const [staffOpen, setStaffOpen] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,7 +161,7 @@ export default function Login({ onPassenger }) {
       alert("Te enviamos un correo de confirmación. Confirmá tu cuenta para ingresar.");
       setResendCooldown(60);
       setMode("login");
-
+      setStaffOpen(true);
     } catch (err) {
       alert(err.message || "Error al registrar");
     } finally {
@@ -217,141 +218,157 @@ export default function Login({ onPassenger }) {
       <div className="card stack login-card">
         <div>
           <h1 className="title">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</h1>
-          <p className="subtitle">{mode === "login" ? "Accedé con tu cuenta de staff." : "Completá tus datos para crear la cuenta."}</p>
+          <p className="subtitle">Acceso principal para socios y staff.</p>
         </div>
 
         <button className="cta-passenger" onClick={onPassenger}>
           Quiero anotarme
         </button>
 
-        <p className="subtitle">Si sos admin o encargado, usá las opciones de staff debajo.</p>
+        <button
+          className="btn-secondary"
+          onClick={() => setStaffOpen((prev) => !prev)}
+          type="button"
+        >
+          {staffOpen ? "Ocultar opciones staff" : "Soy staff"}
+        </button>
 
-        <hr className="divider" />
+        <div className={`staff-panel ${staffOpen ? "staff-panel-open" : ""}`}>
+          <div className="stack staff-panel-inner">
+            <p className="subtitle">Si sos admin o encargado, iniciá sesión o registrate acá.</p>
 
-        <div className="stack-sm">
-          {mode === "register" && (
-            <>
-              <input
-                placeholder="Nombre"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                placeholder="Apellido"
-                value={lastname}
-                onChange={(e) => setLastname(e.target.value)}
-              />
-            </>
-          )}
+            <hr className="divider" />
 
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          {mode === "register" && (
-            <select
-              value={role}
-              onChange={(e) => {
-                const nextRole = e.target.value;
-                setRole(nextRole);
-                if (nextRole !== "admin") {
-                  setAdminClubMode("choose");
-                  setAdminClubId("");
-                  setAdminClubName("");
-                  setAdminClubPassword("");
-                }
-              }}
-            >
-              <option value="encargado">Encargado</option>
-              <option value="admin">Admin</option>
-            </select>
-          )}
-
-          {mode === "register" && role === "admin" && (
             <div className="stack-sm">
-              <p className="muted">Configuración inicial de club</p>
-
-              {adminClubMode === "choose" ? (
-                <div className="row">
-                  <button type="button" onClick={() => setAdminClubMode("create")}>Crear club</button>
-                  <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("join")}>Unirme a club</button>
-                </div>
-              ) : (
+              {mode === "register" && (
                 <>
-                  {adminClubMode === "create" && (
-                    <input
-                      placeholder="ID de club"
-                      value={adminClubId}
-                      onChange={(e) => setAdminClubId(e.target.value)}
-                    />
-                  )}
-
                   <input
-                    placeholder="Nombre del club"
-                    value={adminClubName}
-                    onChange={(e) => setAdminClubName(e.target.value)}
+                    placeholder="Nombre"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
-
                   <input
-                    type="password"
-                    placeholder="Contraseña del club"
-                    value={adminClubPassword}
-                    onChange={(e) => setAdminClubPassword(e.target.value)}
+                    placeholder="Apellido"
+                    value={lastname}
+                    onChange={(e) => setLastname(e.target.value)}
                   />
-
-                  <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("choose")}>Cambiar opción</button>
                 </>
               )}
+
+              <input
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              {mode === "register" && (
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    const nextRole = e.target.value;
+                    setRole(nextRole);
+                    if (nextRole !== "admin") {
+                      setAdminClubMode("choose");
+                      setAdminClubId("");
+                      setAdminClubName("");
+                      setAdminClubPassword("");
+                    }
+                  }}
+                >
+                  <option value="encargado">Encargado</option>
+                  <option value="admin">Admin</option>
+                </select>
+              )}
+
+              {mode === "register" && role === "admin" && (
+                <div className="stack-sm">
+                  <p className="muted">Configuración inicial de club</p>
+
+                  {adminClubMode === "choose" ? (
+                    <div className="row">
+                      <button type="button" onClick={() => setAdminClubMode("create")}>Crear club</button>
+                      <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("join")}>Unirme a club</button>
+                    </div>
+                  ) : (
+                    <>
+                      {adminClubMode === "create" && (
+                        <input
+                          placeholder="ID de club"
+                          value={adminClubId}
+                          onChange={(e) => setAdminClubId(e.target.value)}
+                        />
+                      )}
+
+                      <input
+                        placeholder="Nombre del club"
+                        value={adminClubName}
+                        onChange={(e) => setAdminClubName(e.target.value)}
+                      />
+
+                      <input
+                        type="password"
+                        placeholder="Contraseña del club"
+                        value={adminClubPassword}
+                        onChange={(e) => setAdminClubPassword(e.target.value)}
+                      />
+
+                      <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("choose")}>Cambiar opción</button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+
+            {mode === "login" ? (
+              <button onClick={signIn} disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
+              </button>
+            ) : (
+              <button onClick={registerStaff} disabled={loading}>
+                {loading ? "Registrando..." : "Registrar y entrar"}
+              </button>
+            )}
+
+            <hr className="divider" />
+
+            {mode === "login" ? (
+              <div className="row-between">
+                <p className="muted">¿No tenés cuenta staff?</p>
+                <button className="btn-secondary" onClick={() => { setMode("register"); setStaffOpen(true); }}>
+                  Crear cuenta staff
+                </button>
+              </div>
+            ) : (
+              <div className="row-between">
+                <p className="muted">¿Ya tenés cuenta?</p>
+                <button className="btn-secondary" onClick={() => { setMode("login"); setStaffOpen(true); }}>
+                  Volver a iniciar sesión
+                </button>
+              </div>
+            )}
+
+            {mode === "login" && (
+              <button
+                className="btn-secondary"
+                onClick={resendConfirmation}
+                disabled={loading || resendCooldown > 0 || !email.trim()}
+              >
+                {loading
+                  ? "Reenviando..."
+                  : resendCooldown > 0
+                    ? `Reenviar en ${resendCooldown}s`
+                    : "Reenviar email de confirmación"}
+              </button>
+            )}
+          </div>
         </div>
-
-        {mode === "login" ? (
-          <button onClick={signIn} disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
-          </button>
-        ) : (
-          <button onClick={registerStaff} disabled={loading}>
-            {loading ? "Registrando..." : "Registrar y entrar"}
-          </button>
-        )}
-
-        <hr className="divider" />
-
-        {mode === "login" ? (
-          <div className="row-between">
-            <p className="muted">¿No tenés cuenta staff?</p>
-            <button className="btn-secondary" onClick={() => setMode("register")}>Crear cuenta staff</button>
-          </div>
-        ) : (
-          <div className="row-between">
-            <p className="muted">¿Ya tenés cuenta?</p>
-            <button className="btn-secondary" onClick={() => setMode("login")}>Volver a iniciar sesión</button>
-          </div>
-        )}
-
-        {mode === "login" && (
-          <button
-            className="btn-secondary"
-            onClick={resendConfirmation}
-            disabled={loading || resendCooldown > 0 || !email.trim()}
-          >
-            {loading
-              ? "Reenviando..."
-              : resendCooldown > 0
-                ? `Reenviar en ${resendCooldown}s`
-                : "Reenviar email de confirmación"}
-          </button>
-        )}
       </div>
     </div>
   );
