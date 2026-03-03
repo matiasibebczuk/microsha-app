@@ -214,11 +214,19 @@ export default function Login({ onPassenger }) {
 
   return (
     <div className="page-narrow stack">
-      <div className="card stack">
+      <div className="card stack login-card">
         <div>
           <h1 className="title">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</h1>
           <p className="subtitle">{mode === "login" ? "Accedé con tu cuenta de staff." : "Completá tus datos para crear la cuenta."}</p>
         </div>
+
+        <button className="cta-passenger" onClick={onPassenger}>
+          Quiero anotarme
+        </button>
+
+        <p className="subtitle">Si sos admin o encargado, usá las opciones de staff debajo.</p>
+
+        <hr className="divider" />
 
         <div className="stack-sm">
           {mode === "register" && (
@@ -344,13 +352,6 @@ export default function Login({ onPassenger }) {
                 : "Reenviar email de confirmación"}
           </button>
         )}
-
-        <hr className="divider" />
-
-        <div className="row-between">
-          <p className="muted">¿Sos socio?</p>
-          <button className="btn-secondary" onClick={onPassenger}>Quiero anotarme</button>
-        </div>
       </div>
     </div>
   );

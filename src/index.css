@@ -337,6 +337,22 @@ button:disabled {
   box-shadow: none;
 }
 
+.page-narrow > .card.stack.login-card:first-child::before {
+  width: clamp(220px, 34vw, 360px);
+  height: clamp(74px, 12vw, 130px);
+  margin-bottom: 0.55rem;
+}
+
+.cta-passenger {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(180deg, rgba(83, 165, 255, 0.56), rgba(59, 107, 194, 0.52));
+  border-color: rgba(176, 209, 255, 0.7);
+  box-shadow: 0 12px 24px rgba(20, 46, 94, 0.32);
+}
+
 .web-alert-stack {
   position: fixed;
   right: 1rem;
@@ -556,6 +572,11 @@ button:disabled {
     margin-bottom: 0.3rem;
     width: clamp(122px, 40vw, 168px);
     height: clamp(40px, 12vw, 56px);
+  }
+
+  .page-narrow > .card.stack.login-card:first-child::before {
+    width: clamp(160px, 56vw, 220px);
+    height: clamp(56px, 18vw, 84px);
   }
 }
 
