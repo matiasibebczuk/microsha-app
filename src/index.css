@@ -327,12 +327,12 @@ button:disabled {
 .loading-screen .card.stack:first-child::before {
   content: "";
   display: block;
-  margin: 0 auto 0.7rem;
-  width: clamp(148px, 24vw, 230px);
-  height: clamp(52px, 8vw, 84px);
+  margin: 0 auto 0.4rem;
+  width: clamp(136px, 20vw, 196px);
+  height: clamp(44px, 7vw, 62px);
   background:
     url("./assets/MicroSHA_LOGO.png") center / contain no-repeat,
-    rgba(18, 28, 48, 0.78);
+    rgba(18, 28, 48, 0.6);
   border-radius: 0;
   box-shadow: none;
 }
@@ -553,8 +553,9 @@ button:disabled {
   .page > .card.stack:first-child::before,
   .page-narrow > .card.stack:first-child::before,
   .loading-screen .card.stack:first-child::before {
-    width: clamp(136px, 44vw, 190px);
-    height: clamp(48px, 14vw, 70px);
+    margin-bottom: 0.3rem;
+    width: clamp(122px, 40vw, 168px);
+    height: clamp(40px, 12vw, 56px);
   }
 }
 

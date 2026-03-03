@@ -217,7 +217,6 @@ function App() {
       <div className="loading-screen">
         <div className="card stack">
           <div className="onboarding-hero">
-            <p className="onboarding-kicker">MicroSHA</p>
             <h2 className="title">Preparando tu sesión</h2>
           </div>
           <LoadingState label="Cargando sesión..." />
@@ -257,7 +256,6 @@ function App() {
         <div className="loading-screen">
           <div className="card stack">
             <div className="onboarding-hero">
-              <p className="onboarding-kicker">MicroSHA</p>
               <h2 className="title">Entrando al panel</h2>
             </div>
             <LoadingState label="Cargando grupo..." />

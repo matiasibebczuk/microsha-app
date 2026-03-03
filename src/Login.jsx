@@ -216,8 +216,8 @@ export default function Login({ onPassenger }) {
     <div className="page-narrow stack">
       <div className="card stack">
         <div>
-          <h1 className="title">MicroSHA</h1>
-          <p className="subtitle">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</p>
+          <h1 className="title">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</h1>
+          <p className="subtitle">{mode === "login" ? "Accedé con tu cuenta de staff." : "Completá tus datos para crear la cuenta."}</p>
         </div>
 
         <div className="stack-sm">
