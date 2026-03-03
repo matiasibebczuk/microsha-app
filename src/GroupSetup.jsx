@@ -101,7 +101,12 @@ export default function GroupSetup({ role, onDone }) {
     return (
       <div className="page-narrow stack">
         <div className="card stack">
-          <h2 className="title">Configuración inicial de grupo</h2>
+          <div className="row-between">
+            <h2 className="title">Configuración inicial de grupo</h2>
+            <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
+              Cerrar sesión
+            </button>
+          </div>
           <p className="subtitle">¿Querés crear un grupo nuevo o unirte a uno existente?</p>
           <div className="row">
             <button onClick={() => setMode("create")}>Crear grupo</button>
@@ -115,7 +120,12 @@ export default function GroupSetup({ role, onDone }) {
   return (
     <div className="page-narrow stack">
       <div className="card stack">
-        <h2 className="title">{mode === "create" ? "Crear grupo" : "Unirse a grupo"}</h2>
+        <div className="row-between">
+          <h2 className="title">{mode === "create" ? "Crear grupo" : "Unirse a grupo"}</h2>
+          <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
+            Cerrar sesión
+          </button>
+        </div>
 
         <div className="stack-sm">
           {mode === "create" && (
