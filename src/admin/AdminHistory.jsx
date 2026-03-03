@@ -66,7 +66,7 @@ export default function AdminHistory({ onBack }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [getToken]);
 
   const openRun = async (runId) => {
     setDetailLoading(true);

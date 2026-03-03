@@ -25,7 +25,7 @@ export default function Encargado() {
   const [lastFinishedAt, setLastFinishedAt] = useState(null);
   const [notice, setNotice] = useState("");
 
-  const getAuthHeader = async () => {
+  const getAuthHeader = useCallback(async () => {
     const token = await getAuthToken();
 
     if (!token) {
@@ -33,7 +33,7 @@ export default function Encargado() {
     }
 
     return { Authorization: `Bearer ${token}` };
-  };
+  }, [getAuthToken]);
 
   const loadTrips = useCallback(async () => {
     try {
@@ -54,7 +54,7 @@ export default function Encargado() {
       setNotice(err.message || "No se pudieron cargar los viajes");
       setTrips([]);
     }
-  }, [getAuthToken]);
+  }, [getAuthHeader]);
 
   useEffect(() => {
     loadTrips();

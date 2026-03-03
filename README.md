@@ -1,16 +1,49 @@
-# React + Vite
+# MicroSHA Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación React + Vite para la gestión de traslados de pasajeros con roles:
 
-Currently, two official plugins are available:
+- Admin
+- Encargado
+- Pasajero
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Requisitos
 
-## React Compiler
+- Node.js 18+
+- Variables de entorno configuradas (obligatorias)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Variables de entorno
 
-## Expanding the ESLint configuration
+Copiá `.env.example` a `.env` y completá:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```dotenv
+VITE_API_BASE_URL=https://your-backend-domain.com
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_public_anon_key
+```
+
+`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` son obligatorias. Si faltan, la app corta arranque por seguridad.
+
+## Scripts
+
+- `npm run dev`: entorno local
+- `npm run build`: build de producción
+- `npm run lint`: validación ESLint
+- `npm run preview`: preview del build
+
+## Flujo de performance implementado
+
+- Prewarm del backend al abrir la app (`/ping`)
+- Prefetch por rol después de autenticación
+- Caché en memoria corta para listas frecuentes
+- Skeleton loaders y estados vacíos reutilizables
+- Paginación en listados largos (historial y pasajeros)
+
+## Deploy (Vercel)
+
+Configurar estas variables en el proyecto de Vercel:
+
+- `VITE_API_BASE_URL`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Después de setear variables, ejecutar redeploy.
