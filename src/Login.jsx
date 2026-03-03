@@ -9,6 +9,10 @@ export default function Login({ onPassenger }) {
   const [name, setName] = useState("");
   const [lastname, setLastname] = useState("");
   const [role, setRole] = useState("encargado");
+  const [adminClubMode, setAdminClubMode] = useState("choose");
+  const [adminClubId, setAdminClubId] = useState("");
+  const [adminClubName, setAdminClubName] = useState("");
+  const [adminClubPassword, setAdminClubPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -90,6 +94,23 @@ export default function Login({ onPassenger }) {
       return;
     }
 
+    if (role === "admin") {
+      if (adminClubMode !== "create" && adminClubMode !== "join") {
+        alert("Elegí si querés crear un club nuevo o unirte a uno existente.");
+        return;
+      }
+
+      if (!adminClubName.trim() || !adminClubPassword.trim()) {
+        alert("Completá nombre y contraseña del club.");
+        return;
+      }
+
+      if (adminClubMode === "create" && !adminClubId.trim()) {
+        alert("Completá el ID del club para crearlo.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -121,6 +142,19 @@ export default function Login({ onPassenger }) {
       if (!data?.user) {
         alert("No se pudo crear el usuario");
         return;
+      }
+
+      if (role === "admin") {
+        const payload = {
+          mode: adminClubMode,
+          groupId: adminClubMode === "create" ? adminClubId.trim() : "",
+          name: adminClubName.trim(),
+          password: adminClubPassword,
+        };
+
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("pendingAdminGroupSetup", JSON.stringify(payload));
+        }
       }
 
       alert("Te enviamos un correo de confirmación. Confirmá tu cuenta para ingresar.");
@@ -218,11 +252,58 @@ export default function Login({ onPassenger }) {
           {mode === "register" && (
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => {
+                const nextRole = e.target.value;
+                setRole(nextRole);
+                if (nextRole !== "admin") {
+                  setAdminClubMode("choose");
+                  setAdminClubId("");
+                  setAdminClubName("");
+                  setAdminClubPassword("");
+                }
+              }}
             >
               <option value="encargado">Encargado</option>
               <option value="admin">Admin</option>
             </select>
+          )}
+
+          {mode === "register" && role === "admin" && (
+            <div className="stack-sm">
+              <p className="muted">Configuración inicial de club</p>
+
+              {adminClubMode === "choose" ? (
+                <div className="row">
+                  <button type="button" onClick={() => setAdminClubMode("create")}>Crear club</button>
+                  <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("join")}>Unirme a club</button>
+                </div>
+              ) : (
+                <>
+                  {adminClubMode === "create" && (
+                    <input
+                      placeholder="ID de club"
+                      value={adminClubId}
+                      onChange={(e) => setAdminClubId(e.target.value)}
+                    />
+                  )}
+
+                  <input
+                    placeholder="Nombre del club"
+                    value={adminClubName}
+                    onChange={(e) => setAdminClubName(e.target.value)}
+                  />
+
+                  <input
+                    type="password"
+                    placeholder="Contraseña del club"
+                    value={adminClubPassword}
+                    onChange={(e) => setAdminClubPassword(e.target.value)}
+                  />
+
+                  <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("choose")}>Cambiar opción</button>
+                </>
+              )}
+            </div>
           )}
         </div>
 

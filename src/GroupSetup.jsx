@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { API_BASE_URL, apiUrl } from "./api";
 
@@ -8,6 +8,39 @@ export default function GroupSetup({ role, onDone }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (role !== "admin" || typeof window === "undefined") {
+      return;
+    }
+
+    const raw = window.localStorage.getItem("pendingAdminGroupSetup");
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const pending = JSON.parse(raw);
+
+      if (pending?.mode === "create" || pending?.mode === "join") {
+        setMode(pending.mode);
+      }
+
+      if (pending?.groupId) {
+        setGroupId(String(pending.groupId));
+      }
+
+      if (pending?.name) {
+        setName(String(pending.name));
+      }
+
+      if (pending?.password) {
+        setPassword(String(pending.password));
+      }
+    } catch {
+      window.localStorage.removeItem("pendingAdminGroupSetup");
+    }
+  }, [role]);
 
   const getToken = async () => {
     const { data } = await supabase.auth.getSession();
@@ -49,6 +82,9 @@ export default function GroupSetup({ role, onDone }) {
       }
 
       alert(`Grupo activo: ${json.groupName}`);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("pendingAdminGroupSetup");
+      }
       onDone?.();
     } catch (err) {
       alert(
