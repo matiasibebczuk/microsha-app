@@ -327,16 +327,14 @@ button:disabled {
 .loading-screen .card.stack:first-child::before {
   content: "";
   display: block;
-  margin-left: auto;
-  margin-bottom: 0.5rem;
-  width: clamp(96px, 14vw, 134px);
-  height: clamp(34px, 5vw, 48px);
-  border: 1px solid rgba(149, 175, 219, 0.24);
-  border-radius: 10px;
+  margin: 0 auto 0.7rem;
+  width: clamp(148px, 24vw, 230px);
+  height: clamp(52px, 8vw, 84px);
   background:
     url("./assets/MicroSHA_LOGO.png") center / contain no-repeat,
-    rgba(18, 28, 48, 0.9);
-  box-shadow: 0 8px 18px rgba(1, 7, 20, 0.26);
+    rgba(18, 28, 48, 0.78);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .web-alert-stack {
@@ -555,8 +553,8 @@ button:disabled {
   .page > .card.stack:first-child::before,
   .page-narrow > .card.stack:first-child::before,
   .loading-screen .card.stack:first-child::before {
-    width: clamp(82px, 22vw, 104px);
-    height: clamp(30px, 8vw, 40px);
+    width: clamp(136px, 44vw, 190px);
+    height: clamp(48px, 14vw, 70px);
   }
 }
 
