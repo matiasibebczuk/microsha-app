@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "../supabase";
 import { IconEdit, IconTrash } from "../ui/icons";
 import { apiUrl } from "../api";
 import LoadingState from "../ui/LoadingState";
 import SkeletonCards from "../ui/SkeletonCards";
+import MessageBanner from "../ui/MessageBanner";
+import EmptyState from "../ui/EmptyState";
+import Pager from "../ui/Pager";
+import { useSessionToken } from "../hooks/useSessionToken";
+import { formatDateTime, formatOccupancy, formatTripStatus } from "../utils/format";
 
 export default function AdminTrips() {
+  const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,16 +27,15 @@ export default function AdminTrips() {
   const [editStops, setEditStops] = useState([]);
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
-
-  const getAccessToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token;
-  };
+  const [notice, setNotice] = useState("");
+  const [passengerPage, setPassengerPage] = useState(1);
+  const passengerPageSize = 20;
 
   const loadTrips = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setNotice("");
 
       const token = await getAccessToken();
       if (!token) {
@@ -50,6 +54,7 @@ export default function AdminTrips() {
 
       if (!res.ok) {
         setError(json?.error || "No se pudieron cargar los viajes");
+        setNotice(json?.error || "No se pudieron cargar los viajes");
         setTrips([]);
         return;
       }
@@ -57,11 +62,12 @@ export default function AdminTrips() {
       setTrips(Array.isArray(json) ? json : []);
     } catch {
       setError("Error de red al cargar viajes");
+      setNotice("Error de red al cargar viajes");
       setTrips([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getAccessToken]);
 
   const startEditTrip = async (trip) => {
     setEditingTripId(trip.id);
@@ -84,7 +90,7 @@ export default function AdminTrips() {
     try {
       const token = await getAccessToken();
       if (!token) {
-        alert("Sesión expirada");
+        setNotice("Sesión expirada");
         return;
       }
 
@@ -107,12 +113,12 @@ export default function AdminTrips() {
       ]);
 
       if (!stopsRes.ok) {
-        alert(stopsJson?.error || "No se pudieron cargar las paradas");
+        setNotice(stopsJson?.error || "No se pudieron cargar las paradas");
         return;
       }
 
       if (!busesRes.ok) {
-        alert(busesJson?.error || "No se pudieron cargar los vehículos");
+        setNotice(busesJson?.error || "No se pudieron cargar los vehículos");
         return;
       }
 
@@ -368,7 +374,7 @@ export default function AdminTrips() {
     const token = await getAccessToken();
 
     if (!token) {
-      alert("Sesión expirada");
+      setNotice("Sesión expirada");
       return;
     }
 
@@ -390,13 +396,14 @@ export default function AdminTrips() {
       const json = await res.json();
 
       if (!res.ok) {
-        alert(json?.error || "No se pudo cargar pasajeros");
+        setNotice(json?.error || "No se pudo cargar pasajeros");
         setPassengers([]);
         return;
       }
 
       setPassengers(Array.isArray(json) ? json : []);
       setSelectedTripId(tripId);
+      setPassengerPage(1);
     } finally {
       setPassengersLoading(false);
     }
@@ -448,7 +455,12 @@ export default function AdminTrips() {
     return name.includes(value) || phone.includes(value) || stop.includes(value);
   });
 
-  const groupedByStop = filteredPassengers.reduce((acc, row) => {
+  const pagedPassengers = filteredPassengers.slice(
+    (passengerPage - 1) * passengerPageSize,
+    passengerPage * passengerPageSize
+  );
+
+  const groupedByStop = pagedPassengers.reduce((acc, row) => {
     const key = row.stops?.name || "Sin parada";
     if (!acc[key]) acc[key] = [];
     acc[key].push(row);
@@ -498,6 +510,7 @@ export default function AdminTrips() {
   if (loading) {
     return (
       <div className="card stack">
+        <MessageBanner message={notice} variant="info" />
         <LoadingState label="Cargando viajes..." compact />
         <SkeletonCards count={4} />
       </div>
@@ -507,7 +520,7 @@ export default function AdminTrips() {
   if (error) {
     return (
       <div className="card">
-        <p className="empty">{error}</p>
+        <MessageBanner message={error} />
       </div>
     );
   }
@@ -515,7 +528,10 @@ export default function AdminTrips() {
   if (trips.length === 0) {
     return (
       <div className="card">
-        <p className="empty">No hay viajes disponibles.</p>
+        <EmptyState
+          title="No hay viajes disponibles"
+          subtitle="Creá un traslado nuevo para comenzar a gestionar reservas."
+        />
       </div>
     );
   }
@@ -523,20 +539,21 @@ export default function AdminTrips() {
   return (
     <div className="card stack">
       <h3 className="section-title">Viajes</h3>
+      <MessageBanner message={notice} />
 
       <div className="trip-grid">
         {trips.map((trip) => (
           <div key={trip.id} className="list-item stack-sm">
             <b>{trip.name || `Viaje ${trip.id}`}</b>
             <div className="muted">
-              Tipo: {trip.type || "-"} | Estado: {trip.status === "open" ? "🟢 Abierto" : "🔴 Cerrado"}
+              Tipo: {trip.type || "-"} | Estado: {formatTripStatus(trip.status)}
             </div>
-            <div className="muted">Hora: {trip.time ? new Date(trip.time).toLocaleString() : "-"}</div>
-            <div className="muted">Inicio recorrido: {trip.active_started_at ? new Date(trip.active_started_at).toLocaleString() : "-"}</div>
-            <div className="muted">Última finalización: {trip.last_finished_at ? new Date(trip.last_finished_at).toLocaleString() : "-"}</div>
+            <div className="muted">Hora: {formatDateTime(trip.time)}</div>
+            <div className="muted">Inicio recorrido: {formatDateTime(trip.active_started_at)}</div>
+            <div className="muted">Última finalización: {formatDateTime(trip.last_finished_at)}</div>
             <div className="muted">Confirmados: {trip.confirmed ?? 0} / Capacidad: {trip.capacity ?? 0}</div>
             <div className="muted">Lista de espera: {trip.waiting ?? 0}</div>
-            <div className="muted">Ocupación: {trip.capacity > 0 ? Math.round(((trip.confirmed || 0) / trip.capacity) * 100) : 0}%</div>
+            <div className="muted">Ocupación: {formatOccupancy(trip.confirmed, trip.capacity)}%</div>
             <div className="row">
               <button onClick={() => changeTripStatus(trip.id, "open")}>Abrir inscripción</button>
               <button className="btn-secondary" onClick={() => changeTripStatus(trip.id, "closed")}>Cerrar inscripción</button>
@@ -674,26 +691,42 @@ export default function AdminTrips() {
           {passengersLoading ? (
             <LoadingState compact label="Cargando pasajeros..." />
           ) : filteredPassengers.length === 0 ? (
-            <p className="empty">Sin pasajeros para este filtro.</p>
+            <EmptyState
+              title="Sin pasajeros para este filtro"
+              subtitle="Probá cambiando el estado o el texto de búsqueda."
+            />
           ) : (
-            Object.entries(groupedByStop).map(([stopName, rows]) => (
-              <div key={stopName} className="list-item stack-sm">
-                <b>Parada: {stopName}</b>
-                {rows.map((row) => (
-                  <div key={row.id} className="row-between">
-                    <span>{row.users?.name || "Sin nombre"} - {row.status}</span>
-                    {row.status === "waiting" && (
-                      <button
-                        onClick={() => promoteWaiting(selectedTripId, row.id)}
-                        disabled={promotingId === row.id}
-                      >
-                        {promotingId === row.id ? "Promoviendo..." : "Promover"}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))
+            <>
+              {Object.entries(groupedByStop).map(([stopName, rows]) => (
+                <div key={stopName} className="list-item stack-sm">
+                  <b>Parada: {stopName}</b>
+                  {rows.map((row) => (
+                    <div key={row.id} className="row-between">
+                      <span>{row.users?.name || "Sin nombre"} - {row.status}</span>
+                      {row.status === "waiting" && (
+                        <button
+                          onClick={() => promoteWaiting(selectedTripId, row.id)}
+                          disabled={promotingId === row.id}
+                        >
+                          {promotingId === row.id ? "Promoviendo..." : "Promover"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <Pager
+                page={passengerPage}
+                totalPages={Math.max(1, Math.ceil(filteredPassengers.length / passengerPageSize))}
+                onPrev={() => setPassengerPage((prev) => Math.max(1, prev - 1))}
+                onNext={() =>
+                  setPassengerPage((prev) =>
+                    Math.min(Math.ceil(filteredPassengers.length / passengerPageSize), prev + 1)
+                  )
+                }
+              />
+            </>
           )}
         </div>
       )}

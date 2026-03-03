@@ -1,26 +1,35 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
 import { apiUrl } from "../api";
 import LoadingState from "../ui/LoadingState";
 import SkeletonCards from "../ui/SkeletonCards";
+import MessageBanner from "../ui/MessageBanner";
+import EmptyState from "../ui/EmptyState";
+import Pager from "../ui/Pager";
+import { useSessionToken } from "../hooks/useSessionToken";
+import { formatDateTime } from "../utils/format";
 
 export default function AdminHistory({ onBack }) {
+  const getToken = useSessionToken();
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   useEffect(() => {
     let alive = true;
 
     void (async () => {
       setLoading(true);
+      setError("");
 
       try {
         const token = await getToken();
         if (!token) {
-          alert("Sesión expirada");
           if (alive) setRuns([]);
+          if (alive) setError("Sesión expirada");
           return;
         }
 
@@ -33,13 +42,19 @@ export default function AdminHistory({ onBack }) {
         const json = await res.json();
 
         if (!res.ok) {
-          alert(json?.error || "No se pudo cargar historial");
           if (alive) setRuns([]);
+          if (alive) setError(json?.error || "No se pudo cargar historial");
           return;
         }
 
         if (alive) {
           setRuns(Array.isArray(json) ? json : []);
+          setPage(1);
+        }
+      } catch {
+        if (alive) {
+          setRuns([]);
+          setError("No se pudo conectar para cargar historial");
         }
       } finally {
         if (alive) {
@@ -53,18 +68,13 @@ export default function AdminHistory({ onBack }) {
     };
   }, []);
 
-  const getToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token;
-  };
-
   const openRun = async (runId) => {
     setDetailLoading(true);
 
     try {
       const token = await getToken();
       if (!token) {
-        alert("Sesión expirada");
+        setError("Sesión expirada");
         return;
       }
 
@@ -77,10 +87,11 @@ export default function AdminHistory({ onBack }) {
       const json = await res.json();
 
       if (!res.ok) {
-        alert(json?.error || "No se pudo cargar el detalle");
+        setError(json?.error || "No se pudo cargar el detalle");
         return;
       }
 
+      setError("");
       setSelected(json);
     } finally {
       setDetailLoading(false);
@@ -90,7 +101,7 @@ export default function AdminHistory({ onBack }) {
   const downloadExcel = async (runId) => {
     const token = await getToken();
     if (!token) {
-      alert("Sesión expirada");
+      setError("Sesión expirada");
       return;
     }
 
@@ -102,7 +113,7 @@ export default function AdminHistory({ onBack }) {
 
     if (!res.ok) {
       const text = await res.text();
-      alert(text || "No se pudo descargar Excel");
+      setError(text || "No se pudo descargar Excel");
       return;
     }
 
@@ -128,16 +139,18 @@ export default function AdminHistory({ onBack }) {
             <p>
               <b>Fecha del traslado:</b>{" "}
               {selected.run?.trip_departure_datetime
-                ? new Date(selected.run.trip_departure_datetime).toLocaleString()
+                ? formatDateTime(selected.run.trip_departure_datetime)
                 : "-"}
             </p>
             <p>
               <b>Finalizado:</b>{" "}
               {selected.run?.finished_at
-                ? new Date(selected.run.finished_at).toLocaleString()
+                ? formatDateTime(selected.run.finished_at)
                 : "-"}
             </p>
           </div>
+
+          <MessageBanner message={error} />
 
           <p>
             <span className="badge">Total: {selected.summary?.total || 0}</span>{" "}
@@ -172,29 +185,45 @@ export default function AdminHistory({ onBack }) {
           {onBack && <button className="btn-secondary" onClick={onBack}>Volver</button>}
         </div>
 
+        <MessageBanner message={error} />
+
         {loading ? (
           <>
             <LoadingState label="Cargando historial..." compact />
             <SkeletonCards count={3} />
           </>
         ) : runs.length === 0 ? (
-          <p className="empty">No hay recorridos finalizados.</p>
+          <EmptyState
+            title="No hay recorridos finalizados"
+            subtitle="Cuando finalices recorridos aparecerán aquí."
+          />
         ) : (
           <div className="grid">
-            {runs.map((run) => (
+            {runs
+              .slice((page - 1) * pageSize, page * pageSize)
+              .map((run) => (
               <div key={run.id} className="list-item stack-sm">
                 <div><b>{run.trip_name || `Trip ${run.trip_id}`}</b></div>
                 <div className="muted">
-                  Fecha traslado: {run.trip_departure_datetime ? new Date(run.trip_departure_datetime).toLocaleString() : "-"}
+                  Fecha traslado: {run.trip_departure_datetime ? formatDateTime(run.trip_departure_datetime) : "-"}
                 </div>
                 <div className="muted">
-                  Finalizado: {run.finished_at ? new Date(run.finished_at).toLocaleString() : "-"}
+                  Finalizado: {run.finished_at ? formatDateTime(run.finished_at) : "-"}
                 </div>
                 <button onClick={() => openRun(run.id)} disabled={detailLoading}>
                   {detailLoading ? "Cargando..." : "Ver detalle"}
                 </button>
               </div>
             ))}
+
+            <Pager
+              page={page}
+              totalPages={Math.max(1, Math.ceil(runs.length / pageSize))}
+              onPrev={() => setPage((prev) => Math.max(1, prev - 1))}
+              onNext={() =>
+                setPage((prev) => Math.min(Math.ceil(runs.length / pageSize), prev + 1))
+              }
+            />
           </div>
         )}
       </div>

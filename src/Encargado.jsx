@@ -4,8 +4,13 @@ import { IconLogout } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
+import MessageBanner from "./ui/MessageBanner";
+import EmptyState from "./ui/EmptyState";
+import { useSessionToken } from "./hooks/useSessionToken";
+import { formatDateTime, formatTripStatus } from "./utils/format";
 
 export default function Encargado() {
+  const getAuthToken = useSessionToken();
   const [trips, setTrips] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [started, setStarted] = useState(false);
@@ -18,10 +23,10 @@ export default function Encargado() {
   const [activeController, setActiveController] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
   const [lastFinishedAt, setLastFinishedAt] = useState(null);
+  const [notice, setNotice] = useState("");
 
   const getAuthHeader = async () => {
-    const { data } = await supabase.auth.getSession();
-    const token = data?.session?.access_token;
+    const token = await getAuthToken();
 
     if (!token) {
       throw new Error("Sesión expirada");
@@ -39,17 +44,17 @@ export default function Encargado() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data?.error || "No se pudieron cargar los viajes");
+        setNotice(data?.error || "No se pudieron cargar los viajes");
         setTrips([]);
         return;
       }
 
       setTrips(Array.isArray(data) ? data : []);
     } catch (err) {
-      alert(err.message || "No se pudieron cargar los viajes");
+      setNotice(err.message || "No se pudieron cargar los viajes");
       setTrips([]);
     }
-  }, []);
+  }, [getAuthToken]);
 
   useEffect(() => {
     loadTrips();
@@ -235,12 +240,12 @@ export default function Encargado() {
           <h3 className="section-title">Traslados de ida</h3>
           <div className="trip-grid">
             {idaTrips.length === 0 ? (
-              <p className="empty">No hay traslados de ida.</p>
+              <EmptyState title="No hay traslados de ida" subtitle="Aún no se publicaron viajes de este tipo." />
             ) : (
               idaTrips.map((trip) => (
                 <div key={trip.id} className="list-item">
                   <button onClick={() => selectTrip(trip)}>
-                    {trip.name || `Viaje ${trip.id}`} - {trip.status}
+                    {trip.name || `Viaje ${trip.id}`} - {formatTripStatus(trip.status)}
                   </button>
                 </div>
               ))
@@ -252,17 +257,19 @@ export default function Encargado() {
           <h3 className="section-title">Traslados de vuelta</h3>
           <div className="trip-grid">
             {vueltaTrips.length === 0 ? (
-              <p className="empty">No hay traslados de vuelta.</p>
+              <EmptyState title="No hay traslados de vuelta" subtitle="Aún no se publicaron viajes de este tipo." />
             ) : (
               vueltaTrips.map((trip) => (
                 <div key={trip.id} className="list-item">
                   <button onClick={() => selectTrip(trip)}>
-                    {trip.name || `Viaje ${trip.id}`} - {trip.status}
+                    {trip.name || `Viaje ${trip.id}`} - {formatTripStatus(trip.status)}
                   </button>
                 </div>
               ))
             )}
           </div>
+
+          <MessageBanner message={notice} />
         </div>
       </div>
     );
@@ -289,12 +296,14 @@ export default function Encargado() {
         </div>
 
         {startedAt && (
-          <p className="muted">Hora de inicio: {new Date(startedAt).toLocaleString()}</p>
+          <p className="muted">Hora de inicio: {formatDateTime(startedAt)}</p>
         )}
 
         {lastFinishedAt && (
-          <p className="muted">Última finalización: {new Date(lastFinishedAt).toLocaleString()}</p>
+          <p className="muted">Última finalización: {formatDateTime(lastFinishedAt)}</p>
         )}
+
+        <MessageBanner message={notice} />
 
         {!started ? (
           <button onClick={startTrip} disabled={tripClosed || finished || !canManage}>
@@ -331,7 +340,10 @@ export default function Encargado() {
                 <SkeletonCards count={2} />
               </>
             ) : groups.length === 0 ? (
-              <p className="empty">No hay pasajeros confirmados.</p>
+              <EmptyState
+                title="No hay pasajeros confirmados"
+                subtitle="Cuando haya confirmados aparecerán agrupados por parada."
+              />
             ) : (
               <div className="grid">
                 {groups.map((group) => (

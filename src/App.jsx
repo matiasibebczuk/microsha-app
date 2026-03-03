@@ -8,6 +8,7 @@ import PassengerLogin from "./PassengerLogin";
 import GroupSetup from "./GroupSetup";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
+import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
 
 function App() {
   const [authReady, setAuthReady] = useState(false);
@@ -80,16 +81,40 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetch(apiUrl("/ping"), {
-      method: "GET",
-      cache: "no-store",
-      signal: controller.signal,
-    }).catch(() => {});
+    void prewarmApi(controller.signal);
 
     return () => {
       controller.abort();
     };
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void (async () => {
+      if (!session?.user) return;
+      const profile = buildSessionProfile(session);
+      if (!profile || !["admin", "encargado"].includes(profile.role)) return;
+
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) return;
+
+      await prefetchStaffData(profile.role, token, controller.signal);
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [session]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void prefetchPassengerData(passengerUser?.passengerToken, controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [passengerUser]);
 
   useEffect(() => {
     const checkGroup = async () => {
@@ -176,7 +201,11 @@ function App() {
   if (!authReady) {
     return (
       <div className="loading-screen">
-        <div className="card">
+        <div className="card stack">
+          <div className="onboarding-hero">
+            <p className="onboarding-kicker">MicroSHA</p>
+            <h2 className="title">Preparando tu sesión</h2>
+          </div>
           <LoadingState label="Cargando sesión..." />
         </div>
       </div>
@@ -212,7 +241,11 @@ function App() {
     if (groupLoading) {
       return (
         <div className="loading-screen">
-          <div className="card">
+          <div className="card stack">
+            <div className="onboarding-hero">
+              <p className="onboarding-kicker">MicroSHA</p>
+              <h2 className="title">Entrando al panel</h2>
+            </div>
             <LoadingState label="Cargando grupo..." />
           </div>
         </div>

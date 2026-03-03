@@ -253,6 +253,62 @@ button:disabled {
   color: #aebed8;
 }
 
+.message-banner {
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(140, 164, 207, 0.34);
+  background: rgba(11, 19, 34, 0.75);
+}
+
+.message-error {
+  border-color: rgba(232, 140, 159, 0.5);
+  background: rgba(74, 23, 36, 0.44);
+  color: #ffd3dc;
+}
+
+.message-info {
+  border-color: rgba(137, 173, 252, 0.42);
+  background: rgba(21, 40, 76, 0.4);
+  color: #dbe8ff;
+}
+
+.empty-state {
+  border: 1px dashed rgba(149, 175, 219, 0.3);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: rgba(9, 16, 29, 0.56);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.empty-state-title {
+  color: #d8e5fc;
+  font-weight: 700;
+}
+
+.empty-state-subtitle {
+  color: #aebed8;
+  font-size: 0.94rem;
+}
+
+.pager-row {
+  justify-content: center;
+}
+
+.onboarding-hero {
+  text-align: center;
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+
+.onboarding-kicker {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9eb0cf;
+}
+
 .loading-screen {
   min-height: 100vh;
   display: flex;

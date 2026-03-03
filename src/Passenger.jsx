@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { IconLogout } from "./ui/icons";
 import { apiUrl } from "./api";
+import LoadingState from "./ui/LoadingState";
+import SkeletonCards from "./ui/SkeletonCards";
+import MessageBanner from "./ui/MessageBanner";
+import EmptyState from "./ui/EmptyState";
+import { clearCached, getOrSetCached } from "./lib/cache";
 
 export default function Passenger({ user, onSessionExpired }) {
   const [trips, setTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
+  const [tripsError, setTripsError] = useState("");
   const [step, setStep] = useState("ida");
   const [selectedTrip, setSelectedTrip] = useState(null);
 
@@ -21,21 +28,45 @@ export default function Passenger({ user, onSessionExpired }) {
     let alive = true;
 
     void (async () => {
-      const res = await fetch(apiUrl("/trips"), {
-        headers: {
-          "x-passenger-token": user.passengerToken,
-        },
-      });
+      setTripsLoading(true);
+      setTripsError("");
 
-      if (res.status === 401) {
-        alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
-        onSessionExpired?.();
-        return;
-      }
+      try {
+        const json = await getOrSetCached(
+          `passenger:trips:${user.passengerToken}`,
+          async () => {
+            const res = await fetch(apiUrl("/trips"), {
+              headers: {
+                "x-passenger-token": user.passengerToken,
+              },
+            });
 
-      const json = await res.json();
-      if (alive) {
-        setTrips(Array.isArray(json) ? json : []);
+            if (res.status === 401) {
+              throw new Error("SESSION_EXPIRED");
+            }
+
+            return res.json();
+          },
+          20_000
+        );
+
+        if (alive) {
+          setTrips(Array.isArray(json) ? json : []);
+        }
+      } catch (err) {
+        if (!alive) return;
+
+        if (err?.message === "SESSION_EXPIRED") {
+          onSessionExpired?.();
+          return;
+        }
+
+        setTrips([]);
+        setTripsError("No se pudo cargar la lista de traslados.");
+      } finally {
+        if (alive) {
+          setTripsLoading(false);
+        }
       }
     })();
 
@@ -82,26 +113,40 @@ export default function Passenger({ user, onSessionExpired }) {
 
           <h2 className="section-title">Traslados de ida</h2>
 
+          <MessageBanner message={tripsError} />
+
           <div className="grid">
-            {trips
-              .filter((t) => t.type === "ida")
-              .map((t) => (
-                <div key={t.id} className="list-item row-between">
-                  <span>
-                    <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                  </span>
-                  <button
-                    className={t.status === "closed" ? "btn-secondary" : ""}
-                    disabled={t.status === "closed"}
-                    onClick={() => {
-                      if (t.status === "closed") return;
-                      setSelectedTrip(t);
-                    }}
-                  >
-                    Ver paradas
-                  </button>
-                </div>
-              ))}
+            {tripsLoading ? (
+              <>
+                <LoadingState compact label="Cargando traslados..." />
+                <SkeletonCards count={3} />
+              </>
+            ) : trips.filter((t) => t.type === "ida").length === 0 ? (
+              <EmptyState
+                title="No hay traslados de ida disponibles"
+                subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
+              />
+            ) : (
+              trips
+                .filter((t) => t.type === "ida")
+                .map((t) => (
+                  <div key={t.id} className="list-item row-between">
+                    <span>
+                      <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
+                    </span>
+                    <button
+                      className={t.status === "closed" ? "btn-secondary" : ""}
+                      disabled={t.status === "closed"}
+                      onClick={() => {
+                        if (t.status === "closed") return;
+                        setSelectedTrip(t);
+                      }}
+                    >
+                      Ver paradas
+                    </button>
+                  </div>
+                ))
+            )}
           </div>
 
           <hr className="divider" />
@@ -131,26 +176,40 @@ export default function Passenger({ user, onSessionExpired }) {
 
           <h2 className="section-title">Traslados de vuelta</h2>
 
+          <MessageBanner message={tripsError} />
+
           <div className="grid">
-            {trips
-              .filter((t) => t.type === "vuelta")
-              .map((t) => (
-                <div key={t.id} className="list-item row-between">
-                  <span>
-                    <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                  </span>
-                  <button
-                    className={t.status === "closed" ? "btn-secondary" : ""}
-                    disabled={t.status === "closed"}
-                    onClick={() => {
-                      if (t.status === "closed") return;
-                      setSelectedTrip(t);
-                    }}
-                  >
-                    Ver paradas
-                  </button>
-                </div>
-              ))}
+            {tripsLoading ? (
+              <>
+                <LoadingState compact label="Cargando traslados..." />
+                <SkeletonCards count={3} />
+              </>
+            ) : trips.filter((t) => t.type === "vuelta").length === 0 ? (
+              <EmptyState
+                title="No hay traslados de vuelta disponibles"
+                subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
+              />
+            ) : (
+              trips
+                .filter((t) => t.type === "vuelta")
+                .map((t) => (
+                  <div key={t.id} className="list-item row-between">
+                    <span>
+                      <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
+                    </span>
+                    <button
+                      className={t.status === "closed" ? "btn-secondary" : ""}
+                      disabled={t.status === "closed"}
+                      onClick={() => {
+                        if (t.status === "closed") return;
+                        setSelectedTrip(t);
+                      }}
+                    >
+                      Ver paradas
+                    </button>
+                  </div>
+                ))
+            )}
           </div>
 
           <hr className="divider" />
@@ -210,6 +269,8 @@ export default function Passenger({ user, onSessionExpired }) {
 function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
   const [stops, setStops] = useState([]);
   const [existing, setExisting] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const handleSessionExpired = () => {
     alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
@@ -237,44 +298,51 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
     let alive = true;
 
     void (async () => {
-      const stopsRes = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
-        headers: {
-          "x-passenger-token": user.passengerToken,
-        },
-      });
-      if (stopsRes.status === 401) {
-        alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
-        onSessionExpired?.();
-        return;
-      }
+      setLoading(true);
+      setError("");
 
-      const existingRes = await fetch(
-        apiUrl(`/reservations/me?tripId=${trip.id}`),
-        {
+      try {
+        const stopsRes = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
           headers: {
             "x-passenger-token": user.passengerToken,
           },
+        });
+        if (stopsRes.status === 401) {
+          onSessionExpired?.();
+          return;
         }
-      );
 
-      if (existingRes.status === 401) {
-        alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
-        onSessionExpired?.();
-        return;
-      }
+        const existingRes = await fetch(
+          apiUrl(`/reservations/me?tripId=${trip.id}`),
+          {
+            headers: {
+              "x-passenger-token": user.passengerToken,
+            },
+          }
+        );
 
-      if (!existingRes) {
-        return;
-      }
+        if (existingRes.status === 401) {
+          onSessionExpired?.();
+          return;
+        }
 
-      const [stopsJson, existingJson] = await Promise.all([
-        stopsRes.json(),
-        existingRes.json(),
-      ]);
+        const [stopsJson, existingJson] = await Promise.all([
+          stopsRes.json(),
+          existingRes.json(),
+        ]);
 
-      if (alive) {
-        setStops(stopsJson);
-        setExisting(existingJson);
+        if (alive) {
+          setStops(Array.isArray(stopsJson) ? stopsJson : []);
+          setExisting(existingJson);
+        }
+      } catch {
+        if (alive) {
+          setError("No se pudieron cargar las paradas.");
+        }
+      } finally {
+        if (alive) {
+          setLoading(false);
+        }
       }
     })();
 
@@ -330,6 +398,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
       return;
     }
 
+    clearCached(`passenger:trips:${user.passengerToken}`);
     alert("Estado: " + json.status);
     onReserved(json.status);
   };
@@ -358,6 +427,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
         return;
       }
 
+      clearCached(`passenger:trips:${user.passengerToken}`);
       alert("Inscripción cancelada");
       setExisting(null);
     };
@@ -397,13 +467,29 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
       <div className="card stack">
         <h2 className="title">{trip.name}</h2>
 
+        <MessageBanner message={error} />
+
+        {loading ? (
+          <>
+            <LoadingState compact label="Cargando paradas..." />
+            <SkeletonCards count={2} />
+          </>
+        ) : null}
+
         <div className="grid">
-          {stops.map((s) => (
-            <div key={s.id} className="list-item row-between">
-              <span>{s.name} – {s.time}</span>
-              <button onClick={() => reserve(s.id)}>Elegir</button>
-            </div>
-          ))}
+          {!loading && stops.length === 0 ? (
+            <EmptyState
+              title="Este traslado no tiene paradas cargadas"
+              subtitle="Contactá al staff para más información."
+            />
+          ) : (
+            stops.map((s) => (
+              <div key={s.id} className="list-item row-between">
+                <span>{s.name} – {s.time}</span>
+                <button onClick={() => reserve(s.id)}>Elegir</button>
+              </div>
+            ))
+          )}
         </div>
 
         <hr className="divider" />
