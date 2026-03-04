@@ -7,6 +7,17 @@ import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
 import { clearCached, getOrSetCached } from "./lib/cache";
 
+function toSpanishStatus(status) {
+  if (status === "confirmed") return "Confirmado";
+  if (status === "waiting") return "En espera";
+  return "No solicitado";
+}
+
+function formatSummaryItem(value) {
+  if (!value) return "-";
+  return value;
+}
+
 export default function Passenger({ user, onSessionExpired }) {
   const [trips, setTrips] = useState([]);
   const [tripsLoading, setTripsLoading] = useState(true);
@@ -85,15 +96,15 @@ export default function Passenger({ user, onSessionExpired }) {
         trip={selectedTrip}
         onSessionExpired={onSessionExpired}
         onBack={() => setSelectedTrip(null)}
-        onReserved={(status) => {
-          if (!status) return;
+        onReserved={(reservationInfo) => {
+          if (!reservationInfo) return;
 
           if (step === "ida") {
-            setIdaReservation(status);
+            setIdaReservation(reservationInfo);
             setSelectedTrip(null);
             setStep("vuelta");
           } else {
-            setVueltaReservation(status);
+            setVueltaReservation(reservationInfo);
             setSelectedTrip(null);
             setStep("resumen");
           }
@@ -154,7 +165,11 @@ export default function Passenger({ user, onSessionExpired }) {
           <button
             className="btn-secondary"
             onClick={() => {
-              setIdaReservation("no");
+              setIdaReservation({
+                status: "no",
+                stopName: null,
+                stopTime: null,
+              });
               setStep("vuelta");
             }}
           >
@@ -217,7 +232,11 @@ export default function Passenger({ user, onSessionExpired }) {
           <button
             className="btn-secondary"
             onClick={() => {
-              setVueltaReservation("no");
+              setVueltaReservation({
+                status: "no",
+                stopName: null,
+                stopTime: null,
+              });
               setStep("resumen");
             }}
           >
@@ -236,19 +255,19 @@ export default function Passenger({ user, onSessionExpired }) {
       <div className="card stack">
         <h2 className="title">Resumen</h2>
 
-        <p>
-          <span className="badge">Ida</span>{" "}
-          {idaReservation === "no"
-            ? "No solicitada"
-            : idaReservation || "No seleccionada"}
-        </p>
+        <div className="list-item stack-sm">
+          <p><span className="badge">Ida</span></p>
+          <p><b>Parada:</b> {formatSummaryItem(idaReservation?.stopName)}</p>
+          <p><b>Horario:</b> {formatSummaryItem(idaReservation?.stopTime)}</p>
+          <p><b>Estado:</b> {toSpanishStatus(idaReservation?.status)}</p>
+        </div>
 
-        <p>
-          <span className="badge">Vuelta</span>{" "}
-          {vueltaReservation === "no"
-            ? "No solicitada"
-            : vueltaReservation || "No seleccionada"}
-        </p>
+        <div className="list-item stack-sm">
+          <p><span className="badge">Vuelta</span></p>
+          <p><b>Parada:</b> {formatSummaryItem(vueltaReservation?.stopName)}</p>
+          <p><b>Horario:</b> {formatSummaryItem(vueltaReservation?.stopTime)}</p>
+          <p><b>Estado:</b> {toSpanishStatus(vueltaReservation?.status)}</p>
+        </div>
 
         <hr className="divider" />
 
@@ -398,9 +417,15 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
       return;
     }
 
+    const selectedStop = stops.find((stop) => String(stop.id) === String(stopId));
+
     clearCached(`passenger:trips:${user.passengerToken}`);
     alert("Estado: " + json.status);
-    onReserved(json.status);
+    onReserved({
+      status: json.status,
+      stopName: selectedStop?.name || null,
+      stopTime: selectedStop?.time || null,
+    });
   };
 
   // ========================
