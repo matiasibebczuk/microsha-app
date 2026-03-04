@@ -12,7 +12,11 @@ function toSpanishMessage(rawMessage) {
     return "Credenciales inválidas. Revisá email y contraseña.";
   }
 
-  if (normalized.includes("email not confirmed") || normalized.includes("confirm")) {
+  if (
+    normalized.includes("email not confirmed") ||
+    normalized.includes("confirm your email") ||
+    normalized.includes("correo no confirmado")
+  ) {
     return "Tenés que confirmar tu correo para continuar.";
   }
 
