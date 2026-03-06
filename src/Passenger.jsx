@@ -24,6 +24,12 @@ function toSpanishTripType(type) {
   return "Traslado";
 }
 
+function normalizeTripType(type) {
+  return String(type || "")
+    .trim()
+    .toLowerCase();
+}
+
 function buildPromotionMessage(notification) {
   const typeLabel = toSpanishTripType(notification?.tripType);
   const stopLabel = notification?.stopName || "-";
@@ -33,7 +39,7 @@ function buildPromotionMessage(notification) {
 
 function getConsolidatedReservation(myReservationsByTrip, type) {
   const values = Object.values(myReservationsByTrip || {});
-  const found = values.find((item) => item?.tripType === type);
+  const found = values.find((item) => normalizeTripType(item?.tripType) === normalizeTripType(type));
   if (!found) return null;
 
   return {
@@ -83,6 +89,7 @@ export default function Passenger({ user, onSessionExpired }) {
   const [step, setStep] = useState("ida");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const notificationPermissionRequested = useRef(false);
+  const initialStepResolved = useRef(false);
 
   const [idaReservation, setIdaReservation] = useState(null);
   const [vueltaReservation, setVueltaReservation] = useState(null);
@@ -174,6 +181,30 @@ export default function Passenger({ user, onSessionExpired }) {
       alive = false;
     };
   }, [onSessionExpired, user.passengerToken]);
+
+  useEffect(() => {
+    if (tripsLoading) return;
+    if (initialStepResolved.current) return;
+
+    const ida = getConsolidatedReservation(myReservationsByTrip, "ida");
+    const vuelta = getConsolidatedReservation(myReservationsByTrip, "vuelta");
+
+    if (ida) {
+      setIdaReservation(ida);
+    }
+
+    if (vuelta) {
+      setVueltaReservation(vuelta);
+    }
+
+    if (ida && vuelta) {
+      setStep("resumen");
+    } else if (ida && !vuelta) {
+      setStep("vuelta");
+    }
+
+    initialStepResolved.current = true;
+  }, [tripsLoading, myReservationsByTrip]);
 
   useEffect(() => {
     if (!("Notification" in window)) return;
@@ -305,7 +336,7 @@ export default function Passenger({ user, onSessionExpired }) {
               />
             ) : (
               trips
-                .filter((t) => t.type === "ida")
+                .filter((t) => normalizeTripType(t.type) === "ida")
                 .map((t) => {
                   const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
                   const action = getTripActionConfig(t, hasReservation);
@@ -377,7 +408,7 @@ export default function Passenger({ user, onSessionExpired }) {
               />
             ) : (
               trips
-                .filter((t) => t.type === "vuelta")
+                .filter((t) => normalizeTripType(t.type) === "vuelta")
                 .map((t) => {
                   const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
                   const action = getTripActionConfig(t, hasReservation);
