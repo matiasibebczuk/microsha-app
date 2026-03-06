@@ -5,7 +5,10 @@ import { apiUrl } from "../api";
 export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
+  const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistStartAt, setWaitlistStartAt] = useState("");
+  const [waitlistHasEnd, setWaitlistHasEnd] = useState(false);
+  const [waitlistEndAt, setWaitlistEndAt] = useState("");
 
   const [stops, setStops] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -151,6 +154,25 @@ export default function AdminCreateTrip({ onCreated }) {
       return;
     }
 
+    if (waitlistEnabled && !waitlistStartAt) {
+      alert("Si activás lista de espera, tenés que indicar fecha y hora de inicio.");
+      return;
+    }
+
+    if (waitlistEnabled && waitlistHasEnd && !waitlistEndAt) {
+      alert("Si cargás fin de lista de espera, completá fecha y hora de fin.");
+      return;
+    }
+
+    if (waitlistEnabled && waitlistHasEnd && waitlistStartAt && waitlistEndAt) {
+      const start = new Date(waitlistStartAt).getTime();
+      const end = new Date(waitlistEndAt).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && end <= start) {
+        alert("La fecha de fin de lista de espera debe ser posterior al inicio.");
+        return;
+      }
+    }
+
     const { data: sessionData } = await supabase.auth.getSession();
 
     const tripRes = await fetch(apiUrl("/trips"), {
@@ -162,7 +184,12 @@ export default function AdminCreateTrip({ onCreated }) {
       body: JSON.stringify({
         name,
         type,
-        waitlist_start_at: waitlistStartAt ? new Date(waitlistStartAt).toISOString() : null,
+        waitlist_start_at:
+          waitlistEnabled && waitlistStartAt ? new Date(waitlistStartAt).toISOString() : null,
+        waitlist_end_at:
+          waitlistEnabled && waitlistHasEnd && waitlistEndAt
+            ? new Date(waitlistEndAt).toISOString()
+            : null,
       }),
     });
 
@@ -243,14 +270,63 @@ export default function AdminCreateTrip({ onCreated }) {
             <option value="vuelta">Vuelta</option>
           </select>
 
-          <label className="muted">Activar lista de espera desde (fecha y hora)</label>
-          <input
-            type="datetime-local"
-            value={waitlistStartAt}
-            onChange={(e) => setWaitlistStartAt(e.target.value)}
-            aria-label="Activar lista de espera desde"
-          />
-          <div className="muted">Si lo dejás vacío, el traslado usa el modo normal.</div>
+          <div className="list-item stack-sm">
+            <label className="row" style={{ alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={waitlistEnabled}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setWaitlistEnabled(checked);
+                  if (!checked) {
+                    setWaitlistStartAt("");
+                    setWaitlistHasEnd(false);
+                    setWaitlistEndAt("");
+                  }
+                }}
+              />
+              Activar lista de espera
+            </label>
+
+            {waitlistEnabled ? (
+              <>
+                <label className="muted">Día y hora de inicio</label>
+                <input
+                  type="datetime-local"
+                  value={waitlistStartAt}
+                  onChange={(e) => setWaitlistStartAt(e.target.value)}
+                  aria-label="Inicio de lista de espera"
+                />
+
+                <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={waitlistHasEnd}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setWaitlistHasEnd(checked);
+                      if (!checked) {
+                        setWaitlistEndAt("");
+                      }
+                    }}
+                  />
+                  Programar desactivación
+                </label>
+
+                {waitlistHasEnd ? (
+                  <>
+                    <label className="muted">Día y hora de fin</label>
+                    <input
+                      type="datetime-local"
+                      value={waitlistEndAt}
+                      onChange={(e) => setWaitlistEndAt(e.target.value)}
+                      aria-label="Fin de lista de espera"
+                    />
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
 
         <hr className="divider" />

@@ -24,7 +24,10 @@ export default function AdminTrips() {
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState("ida");
   const [editDeparture, setEditDeparture] = useState("");
+  const [editWaitlistEnabled, setEditWaitlistEnabled] = useState(false);
   const [editWaitlistStartAt, setEditWaitlistStartAt] = useState("");
+  const [editWaitlistHasEnd, setEditWaitlistHasEnd] = useState(false);
+  const [editWaitlistEndAt, setEditWaitlistEndAt] = useState("");
   const [editStops, setEditStops] = useState([]);
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
@@ -101,8 +104,22 @@ export default function AdminTrips() {
         .toISOString()
         .slice(0, 16);
       setEditWaitlistStartAt(local);
+      setEditWaitlistEnabled(true);
     } else {
       setEditWaitlistStartAt("");
+      setEditWaitlistEnabled(false);
+    }
+
+    if (trip.waitlist_end_at) {
+      const dt = new Date(trip.waitlist_end_at);
+      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+      setEditWaitlistEndAt(local);
+      setEditWaitlistHasEnd(true);
+    } else {
+      setEditWaitlistEndAt("");
+      setEditWaitlistHasEnd(false);
     }
 
     try {
@@ -233,13 +250,38 @@ export default function AdminTrips() {
       type: editType,
     };
 
+    if (editWaitlistEnabled && !editWaitlistStartAt) {
+      alert("Si activás lista de espera, tenés que indicar fecha y hora de inicio.");
+      return;
+    }
+
+    if (editWaitlistEnabled && editWaitlistHasEnd && !editWaitlistEndAt) {
+      alert("Si cargás fin de lista de espera, completá fecha y hora de fin.");
+      return;
+    }
+
+    if (editWaitlistEnabled && editWaitlistHasEnd && editWaitlistStartAt && editWaitlistEndAt) {
+      const start = new Date(editWaitlistStartAt).getTime();
+      const end = new Date(editWaitlistEndAt).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && end <= start) {
+        alert("La fecha de fin de lista de espera debe ser posterior al inicio.");
+        return;
+      }
+    }
+
     if (editDeparture) {
       body.departure_datetime = new Date(editDeparture).toISOString();
     }
 
-    body.waitlist_start_at = editWaitlistStartAt
-      ? new Date(editWaitlistStartAt).toISOString()
-      : null;
+    body.waitlist_start_at =
+      editWaitlistEnabled && editWaitlistStartAt
+        ? new Date(editWaitlistStartAt).toISOString()
+        : null;
+
+    body.waitlist_end_at =
+      editWaitlistEnabled && editWaitlistHasEnd && editWaitlistEndAt
+        ? new Date(editWaitlistEndAt).toISOString()
+        : null;
 
     const res = await fetch(apiUrl(`/trips/${editingTripId}`), {
       method: "PUT",
@@ -362,6 +404,12 @@ export default function AdminTrips() {
   useEffect(() => {
     loadTrips();
   }, [loadTrips]);
+
+  useEffect(() => {
+    if (!selectedTripId) return;
+    if (passengersLoading) return;
+    passengersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedTripId, passengersLoading]);
 
   const changeTripStatus = async (tripId, status) => {
     const token = await getAccessToken();
@@ -546,6 +594,7 @@ export default function AdminTrips() {
       <div className="muted">Inicio recorrido: {formatDateTime(trip.active_started_at)}</div>
       <div className="muted">Última finalización: {formatDateTime(trip.last_finished_at)}</div>
       <div className="muted">Inicio lista de espera: {formatDateTime(trip.waitlist_start_at)}</div>
+      <div className="muted">Fin lista de espera: {formatDateTime(trip.waitlist_end_at)}</div>
       <div className="muted">Confirmados: {trip.confirmed ?? 0} / Capacidad: {trip.capacity ?? 0}</div>
       <div className="muted">Lista de espera: {trip.waiting ?? 0}</div>
       <div className="muted">Ocupación: {formatOccupancy(trip.confirmed, trip.capacity)}%</div>
@@ -584,13 +633,63 @@ export default function AdminTrips() {
                 value={editDeparture}
                 onChange={(e) => setEditDeparture(e.target.value)}
               />
-              <label className="muted">Inicio de lista de espera</label>
-              <input
-                type="datetime-local"
-                value={editWaitlistStartAt}
-                onChange={(e) => setEditWaitlistStartAt(e.target.value)}
-                aria-label="Inicio de lista de espera"
-              />
+              <div className="list-item stack-sm">
+                <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={editWaitlistEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditWaitlistEnabled(checked);
+                      if (!checked) {
+                        setEditWaitlistStartAt("");
+                        setEditWaitlistHasEnd(false);
+                        setEditWaitlistEndAt("");
+                      }
+                    }}
+                  />
+                  Activar lista de espera
+                </label>
+
+                {editWaitlistEnabled ? (
+                  <>
+                    <label className="muted">Día y hora de inicio</label>
+                    <input
+                      type="datetime-local"
+                      value={editWaitlistStartAt}
+                      onChange={(e) => setEditWaitlistStartAt(e.target.value)}
+                      aria-label="Inicio de lista de espera"
+                    />
+
+                    <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={editWaitlistHasEnd}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditWaitlistHasEnd(checked);
+                          if (!checked) {
+                            setEditWaitlistEndAt("");
+                          }
+                        }}
+                      />
+                      Programar desactivación
+                    </label>
+
+                    {editWaitlistHasEnd ? (
+                      <>
+                        <label className="muted">Día y hora de fin</label>
+                        <input
+                          type="datetime-local"
+                          value={editWaitlistEndAt}
+                          onChange={(e) => setEditWaitlistEndAt(e.target.value)}
+                          aria-label="Fin de lista de espera"
+                        />
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
 
               <hr className="divider" />
               <h4 className="section-title">Vehículos</h4>
