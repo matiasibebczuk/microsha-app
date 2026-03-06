@@ -89,7 +89,6 @@ export default function Passenger({ user, onSessionExpired }) {
   const [step, setStep] = useState("ida");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const notificationPermissionRequested = useRef(false);
-  const initialStepResolved = useRef(false);
 
   const [idaReservation, setIdaReservation] = useState(null);
   const [vueltaReservation, setVueltaReservation] = useState(null);
@@ -181,30 +180,6 @@ export default function Passenger({ user, onSessionExpired }) {
       alive = false;
     };
   }, [onSessionExpired, user.passengerToken]);
-
-  useEffect(() => {
-    if (tripsLoading) return;
-    if (initialStepResolved.current) return;
-
-    const ida = getConsolidatedReservation(myReservationsByTrip, "ida");
-    const vuelta = getConsolidatedReservation(myReservationsByTrip, "vuelta");
-
-    if (ida) {
-      setIdaReservation(ida);
-    }
-
-    if (vuelta) {
-      setVueltaReservation(vuelta);
-    }
-
-    if (ida && vuelta) {
-      setStep("resumen");
-    } else if (ida && !vuelta) {
-      setStep("vuelta");
-    }
-
-    initialStepResolved.current = true;
-  }, [tripsLoading, myReservationsByTrip]);
 
   useEffect(() => {
     if (!("Notification" in window)) return;
