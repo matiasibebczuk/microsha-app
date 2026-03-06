@@ -31,6 +31,18 @@ function buildPromotionMessage(notification) {
   return `${typeLabel} · Parada: ${stopLabel} · Horario: ${timeLabel} · Estado: Confirmado`;
 }
 
+function getConsolidatedReservation(myReservationsByTrip, type) {
+  const values = Object.values(myReservationsByTrip || {});
+  const found = values.find((item) => item?.tripType === type);
+  if (!found) return null;
+
+  return {
+    status: found.status || null,
+    stopName: found.stopName || null,
+    stopTime: found.stopTime || null,
+  };
+}
+
 function getTripActionConfig(trip, hasReservation) {
   if (hasReservation) {
     return {
@@ -123,7 +135,14 @@ export default function Passenger({ user, onSessionExpired }) {
         const reservationsMap = (Array.isArray(reservationsJson) ? reservationsJson : []).reduce(
           (acc, item) => {
             if (!item?.trip_id) return acc;
-            acc[String(item.trip_id)] = item;
+            acc[String(item.trip_id)] = {
+              tripId: item.trip_id,
+              stopId: item.stop_id,
+              status: item.status,
+              tripType: item.trip_type || null,
+              stopName: item.stop_name || null,
+              stopTime: item.stop_time || null,
+            };
             return acc;
           },
           {}
@@ -240,6 +259,9 @@ export default function Passenger({ user, onSessionExpired }) {
             [String(selectedTrip.id)]: {
               trip_id: selectedTrip.id,
               status: reservationInfo.status,
+              tripType: selectedTrip.type,
+              stopName: reservationInfo.stopName || null,
+              stopTime: reservationInfo.stopTime || null,
             },
           }));
 
@@ -404,6 +426,11 @@ export default function Passenger({ user, onSessionExpired }) {
   // ========================
   // RESUMEN
   // ========================
+  const consolidatedIda = getConsolidatedReservation(myReservationsByTrip, "ida");
+  const consolidatedVuelta = getConsolidatedReservation(myReservationsByTrip, "vuelta");
+  const effectiveIdaReservation = consolidatedIda || idaReservation;
+  const effectiveVueltaReservation = consolidatedVuelta || vueltaReservation;
+
   return (
     <div className="page stack">
       <div className="card stack">
@@ -411,16 +438,16 @@ export default function Passenger({ user, onSessionExpired }) {
 
         <div className="list-item stack-sm">
           <p><span className="badge">Ida</span></p>
-          <p><b>Parada:</b> {formatSummaryItem(idaReservation?.stopName)}</p>
-          <p><b>Horario:</b> {formatSummaryItem(idaReservation?.stopTime)}</p>
-          <p><b>Estado:</b> {toSpanishStatus(idaReservation?.status)}</p>
+          <p><b>Parada:</b> {formatSummaryItem(effectiveIdaReservation?.stopName)}</p>
+          <p><b>Horario:</b> {formatSummaryItem(effectiveIdaReservation?.stopTime)}</p>
+          <p><b>Estado:</b> {toSpanishStatus(effectiveIdaReservation?.status)}</p>
         </div>
 
         <div className="list-item stack-sm">
           <p><span className="badge">Vuelta</span></p>
-          <p><b>Parada:</b> {formatSummaryItem(vueltaReservation?.stopName)}</p>
-          <p><b>Horario:</b> {formatSummaryItem(vueltaReservation?.stopTime)}</p>
-          <p><b>Estado:</b> {toSpanishStatus(vueltaReservation?.status)}</p>
+          <p><b>Parada:</b> {formatSummaryItem(effectiveVueltaReservation?.stopName)}</p>
+          <p><b>Horario:</b> {formatSummaryItem(effectiveVueltaReservation?.stopTime)}</p>
+          <p><b>Estado:</b> {toSpanishStatus(effectiveVueltaReservation?.status)}</p>
         </div>
 
         <hr className="divider" />
