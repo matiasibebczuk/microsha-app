@@ -304,7 +304,7 @@ export default function Passenger({ user, onSessionExpired }) {
                 <LoadingState compact label="Cargando traslados..." />
                 <SkeletonCards count={3} />
               </>
-            ) : trips.filter((t) => t.type === "ida").length === 0 ? (
+            ) : trips.filter((t) => normalizeTripType(t.type) === "ida").length === 0 ? (
               <EmptyState
                 title="No hay traslados de ida disponibles"
                 subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
@@ -376,7 +376,7 @@ export default function Passenger({ user, onSessionExpired }) {
                 <LoadingState compact label="Cargando traslados..." />
                 <SkeletonCards count={3} />
               </>
-            ) : trips.filter((t) => t.type === "vuelta").length === 0 ? (
+            ) : trips.filter((t) => normalizeTripType(t.type) === "vuelta").length === 0 ? (
               <EmptyState
                 title="No hay traslados de vuelta disponibles"
                 subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
