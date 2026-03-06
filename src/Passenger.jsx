@@ -31,7 +31,15 @@ function buildPromotionMessage(notification) {
   return `${typeLabel} · Parada: ${stopLabel} · Horario: ${timeLabel} · Estado: Confirmado`;
 }
 
-function getTripActionConfig(trip) {
+function getTripActionConfig(trip, hasReservation) {
+  if (hasReservation) {
+    return {
+      disabled: false,
+      label: "Ver paradas",
+      className: "btn-success",
+    };
+  }
+
   if (trip.status === "closed") {
     return {
       disabled: true,
@@ -43,14 +51,14 @@ function getTripActionConfig(trip) {
   if (trip.mode === "waiting") {
     return {
       disabled: false,
-      label: "Anotarme (lista de espera)",
+      label: "Ver paradas",
       className: "btn-warning",
     };
   }
 
   return {
     disabled: false,
-    label: "Anotarme",
+    label: "Ver paradas",
     className: "",
   };
 }
@@ -59,6 +67,7 @@ export default function Passenger({ user, onSessionExpired }) {
   const [trips, setTrips] = useState([]);
   const [tripsLoading, setTripsLoading] = useState(true);
   const [tripsError, setTripsError] = useState("");
+  const [myReservationsByTrip, setMyReservationsByTrip] = useState({});
   const [step, setStep] = useState("ida");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const notificationPermissionRequested = useRef(false);
@@ -81,26 +90,48 @@ export default function Passenger({ user, onSessionExpired }) {
       setTripsError("");
 
       try {
-        const json = await getOrSetCached(
-          `passenger:trips:${user.passengerToken}`,
-          async () => {
-            const res = await fetch(apiUrl("/trips"), {
-              headers: {
-                "x-passenger-token": user.passengerToken,
-              },
-            });
+        const [json, reservationsRes] = await Promise.all([
+          getOrSetCached(
+            `passenger:trips:${user.passengerToken}`,
+            async () => {
+              const res = await fetch(apiUrl("/trips"), {
+                headers: {
+                  "x-passenger-token": user.passengerToken,
+                },
+              });
 
-            if (res.status === 401) {
-              throw new Error("SESSION_EXPIRED");
-            }
+              if (res.status === 401) {
+                throw new Error("SESSION_EXPIRED");
+              }
 
-            return res.json();
+              return res.json();
+            },
+            20_000
+          ),
+          fetch(apiUrl("/reservations/mine"), {
+            headers: {
+              "x-passenger-token": user.passengerToken,
+            },
+          }),
+        ]);
+
+        if (reservationsRes.status === 401) {
+          throw new Error("SESSION_EXPIRED");
+        }
+
+        const reservationsJson = reservationsRes.ok ? await reservationsRes.json() : [];
+        const reservationsMap = (Array.isArray(reservationsJson) ? reservationsJson : []).reduce(
+          (acc, item) => {
+            if (!item?.trip_id) return acc;
+            acc[String(item.trip_id)] = item;
+            return acc;
           },
-          20_000
+          {}
         );
 
         if (alive) {
           setTrips(Array.isArray(json) ? json : []);
+          setMyReservationsByTrip(reservationsMap);
         }
       } catch (err) {
         if (!alive) return;
@@ -111,6 +142,7 @@ export default function Passenger({ user, onSessionExpired }) {
         }
 
         setTrips([]);
+        setMyReservationsByTrip({});
         setTripsError("No se pudo cargar la lista de traslados.");
       } finally {
         if (alive) {
@@ -193,8 +225,23 @@ export default function Passenger({ user, onSessionExpired }) {
         trip={selectedTrip}
         onSessionExpired={onSessionExpired}
         onBack={() => setSelectedTrip(null)}
+        onReservationCancelled={(tripId) => {
+          setMyReservationsByTrip((prev) => {
+            const copy = { ...prev };
+            delete copy[String(tripId)];
+            return copy;
+          });
+        }}
         onReserved={(reservationInfo) => {
           if (!reservationInfo) return;
+
+          setMyReservationsByTrip((prev) => ({
+            ...prev,
+            [String(selectedTrip.id)]: {
+              trip_id: selectedTrip.id,
+              status: reservationInfo.status,
+            },
+          }));
 
           if (step === "ida") {
             setIdaReservation(reservationInfo);
@@ -238,7 +285,8 @@ export default function Passenger({ user, onSessionExpired }) {
               trips
                 .filter((t) => t.type === "ida")
                 .map((t) => {
-                  const action = getTripActionConfig(t);
+                  const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
+                  const action = getTripActionConfig(t, hasReservation);
 
                   return (
                     <div key={t.id} className="list-item row-between">
@@ -309,7 +357,8 @@ export default function Passenger({ user, onSessionExpired }) {
               trips
                 .filter((t) => t.type === "vuelta")
                 .map((t) => {
-                  const action = getTripActionConfig(t);
+                  const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
+                  const action = getTripActionConfig(t, hasReservation);
 
                   return (
                     <div key={t.id} className="list-item row-between">
@@ -390,7 +439,7 @@ export default function Passenger({ user, onSessionExpired }) {
 // ========================
 // COMPONENTE PARADAS
 // ========================
-function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
+function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReservationCancelled }) {
   const [stops, setStops] = useState([]);
   const [existing, setExisting] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -560,6 +609,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired }) {
       clearCached(`passenger:trips:${user.passengerToken}`);
       alert("Inscripción cancelada");
       setExisting(null);
+      onReservationCancelled?.(trip.id);
     };
 
     const change = () => setExisting(null);

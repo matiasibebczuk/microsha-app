@@ -209,6 +209,12 @@ button:disabled {
   color: #fff7dc;
 }
 
+.btn-success {
+  background: linear-gradient(180deg, rgba(77, 186, 129, 0.56), rgba(45, 132, 86, 0.52));
+  border-color: rgba(136, 226, 173, 0.72);
+  color: #edfff4;
+}
+
 .grid {
   display: grid;
   gap: 0.75rem;
