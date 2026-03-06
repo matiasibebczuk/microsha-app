@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconLogout } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
@@ -16,6 +16,19 @@ function toSpanishStatus(status) {
 function formatSummaryItem(value) {
   if (!value) return "-";
   return value;
+}
+
+function toSpanishTripType(type) {
+  if (type === "ida") return "Ida";
+  if (type === "vuelta") return "Vuelta";
+  return "Traslado";
+}
+
+function buildPromotionMessage(notification) {
+  const typeLabel = toSpanishTripType(notification?.tripType);
+  const stopLabel = notification?.stopName || "-";
+  const timeLabel = notification?.stopTime || "-";
+  return `${typeLabel} · Parada: ${stopLabel} · Horario: ${timeLabel} · Estado: Confirmado`;
 }
 
 function getTripActionConfig(trip) {
@@ -48,6 +61,7 @@ export default function Passenger({ user, onSessionExpired }) {
   const [tripsError, setTripsError] = useState("");
   const [step, setStep] = useState("ida");
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const notificationPermissionRequested = useRef(false);
 
   const [idaReservation, setIdaReservation] = useState(null);
   const [vueltaReservation, setVueltaReservation] = useState(null);
@@ -107,6 +121,65 @@ export default function Passenger({ user, onSessionExpired }) {
 
     return () => {
       alive = false;
+    };
+  }, [onSessionExpired, user.passengerToken]);
+
+  useEffect(() => {
+    if (!("Notification" in window)) return;
+    if (notificationPermissionRequested.current) return;
+    notificationPermissionRequested.current = true;
+
+    if (window.Notification.permission === "default") {
+      void window.Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    const pollNotifications = async () => {
+      try {
+        const res = await fetch(apiUrl("/reservations/notifications"), {
+          headers: {
+            "x-passenger-token": user.passengerToken,
+          },
+        });
+
+        if (res.status === 401) {
+          onSessionExpired?.();
+          return;
+        }
+
+        if (!res.ok) return;
+
+        const json = await res.json();
+        if (!alive || !Array.isArray(json) || json.length === 0) return;
+
+        json.forEach((notification) => {
+          const message = buildPromotionMessage(notification);
+          alert(`¡Te confirmamos tu lugar! ${message}`);
+
+          if ("Notification" in window && window.Notification.permission === "granted") {
+            const title = notification?.tripName
+              ? `MicroSHA · ${notification.tripName}`
+              : "MicroSHA · Reserva confirmada";
+            new window.Notification(title, {
+              body: message,
+            });
+          }
+        });
+      } catch {
+      }
+    };
+
+    void pollNotifications();
+    const timerId = window.setInterval(() => {
+      void pollNotifications();
+    }, 30000);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timerId);
     };
   }, [onSessionExpired, user.passengerToken]);
 

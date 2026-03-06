@@ -24,6 +24,7 @@ export default function AdminTrips() {
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState("ida");
   const [editDeparture, setEditDeparture] = useState("");
+  const [editWaitlistStartAt, setEditWaitlistStartAt] = useState("");
   const [editStops, setEditStops] = useState([]);
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
@@ -85,6 +86,16 @@ export default function AdminTrips() {
       setEditDeparture(local);
     } else {
       setEditDeparture("");
+    }
+
+    if (trip.waitlist_start_at) {
+      const dt = new Date(trip.waitlist_start_at);
+      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+      setEditWaitlistStartAt(local);
+    } else {
+      setEditWaitlistStartAt("");
     }
 
     try {
@@ -218,6 +229,10 @@ export default function AdminTrips() {
     if (editDeparture) {
       body.departure_datetime = new Date(editDeparture).toISOString();
     }
+
+    body.waitlist_start_at = editWaitlistStartAt
+      ? new Date(editWaitlistStartAt).toISOString()
+      : null;
 
     const res = await fetch(apiUrl(`/trips/${editingTripId}`), {
       method: "PUT",
@@ -556,6 +571,12 @@ export default function AdminTrips() {
                 type="datetime-local"
                 value={editDeparture}
                 onChange={(e) => setEditDeparture(e.target.value)}
+              />
+              <input
+                type="datetime-local"
+                value={editWaitlistStartAt}
+                onChange={(e) => setEditWaitlistStartAt(e.target.value)}
+                placeholder="Inicio lista de espera"
               />
 
               <hr className="divider" />

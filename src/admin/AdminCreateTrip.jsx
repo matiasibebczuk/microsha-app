@@ -5,6 +5,7 @@ import { apiUrl } from "../api";
 export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
+  const [waitlistStartAt, setWaitlistStartAt] = useState("");
 
   const [stops, setStops] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -158,7 +159,11 @@ export default function AdminCreateTrip({ onCreated }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${sessionData.session.access_token}`,
       },
-      body: JSON.stringify({ name, type }),
+      body: JSON.stringify({
+        name,
+        type,
+        waitlist_start_at: waitlistStartAt ? new Date(waitlistStartAt).toISOString() : null,
+      }),
     });
 
     const trip = await tripRes.json();
@@ -237,6 +242,13 @@ export default function AdminCreateTrip({ onCreated }) {
             <option value="ida">Ida</option>
             <option value="vuelta">Vuelta</option>
           </select>
+
+          <input
+            type="datetime-local"
+            value={waitlistStartAt}
+            onChange={(e) => setWaitlistStartAt(e.target.value)}
+            placeholder="Inicio lista de espera"
+          />
         </div>
 
         <hr className="divider" />
