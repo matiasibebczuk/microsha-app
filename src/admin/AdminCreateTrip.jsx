@@ -243,12 +243,14 @@ export default function AdminCreateTrip({ onCreated }) {
             <option value="vuelta">Vuelta</option>
           </select>
 
+          <label className="muted">Activar lista de espera desde (fecha y hora)</label>
           <input
             type="datetime-local"
             value={waitlistStartAt}
             onChange={(e) => setWaitlistStartAt(e.target.value)}
-            placeholder="Inicio lista de espera"
+            aria-label="Activar lista de espera desde"
           />
+          <div className="muted">Si lo dejás vacío, el traslado usa el modo normal.</div>
         </div>
 
         <hr className="divider" />

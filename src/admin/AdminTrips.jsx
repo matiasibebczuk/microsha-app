@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IconEdit, IconTrash } from "../ui/icons";
 import { apiUrl } from "../api";
 import LoadingState from "../ui/LoadingState";
@@ -31,6 +31,7 @@ export default function AdminTrips() {
   const [notice, setNotice] = useState("");
   const [passengerPage, setPassengerPage] = useState(1);
   const passengerPageSize = 20;
+  const passengersSectionRef = useRef(null);
 
   const loadTrips = useCallback(async () => {
     try {
@@ -71,6 +72,12 @@ export default function AdminTrips() {
   }, [getAccessToken]);
 
   const startEditTrip = async (trip) => {
+    if (editingTripId === trip.id) {
+      setEditingTripId(null);
+      setEditLoading(false);
+      return;
+    }
+
     setEditingTripId(trip.id);
     setEditName(trip.name || "");
     setEditType(trip.type || "ida");
@@ -419,6 +426,10 @@ export default function AdminTrips() {
       setPassengers(Array.isArray(json) ? json : []);
       setSelectedTripId(tripId);
       setPassengerPage(1);
+
+      window.setTimeout(() => {
+        passengersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
     } finally {
       setPassengersLoading(false);
     }
@@ -534,6 +545,7 @@ export default function AdminTrips() {
       <div className="muted">Hora: {formatDateTime(trip.time)}</div>
       <div className="muted">Inicio recorrido: {formatDateTime(trip.active_started_at)}</div>
       <div className="muted">Última finalización: {formatDateTime(trip.last_finished_at)}</div>
+      <div className="muted">Inicio lista de espera: {formatDateTime(trip.waitlist_start_at)}</div>
       <div className="muted">Confirmados: {trip.confirmed ?? 0} / Capacidad: {trip.capacity ?? 0}</div>
       <div className="muted">Lista de espera: {trip.waiting ?? 0}</div>
       <div className="muted">Ocupación: {formatOccupancy(trip.confirmed, trip.capacity)}%</div>
@@ -543,7 +555,7 @@ export default function AdminTrips() {
         <button className="btn-secondary" onClick={() => loadPassengers(trip.id)}>Ver anotados</button>
         <button className="btn-secondary btn-with-icon" onClick={() => startEditTrip(trip)}>
           <IconEdit />
-          Editar
+          {editingTripId === trip.id ? "Cancelar edición" : "Editar"}
         </button>
         <button className="btn-danger btn-with-icon" onClick={() => deleteTrip(trip.id)}>
           <IconTrash />
@@ -572,11 +584,12 @@ export default function AdminTrips() {
                 value={editDeparture}
                 onChange={(e) => setEditDeparture(e.target.value)}
               />
+              <label className="muted">Inicio de lista de espera</label>
               <input
                 type="datetime-local"
                 value={editWaitlistStartAt}
                 onChange={(e) => setEditWaitlistStartAt(e.target.value)}
-                placeholder="Inicio lista de espera"
+                aria-label="Inicio de lista de espera"
               />
 
               <hr className="divider" />
@@ -715,7 +728,7 @@ export default function AdminTrips() {
       </div>
 
       {selectedTripId && (
-        <div className="card card-soft stack">
+        <div ref={passengersSectionRef} className="card card-soft stack">
           <h4 className="section-title">Pasajeros viaje {selectedTripId}</h4>
           <div className="row">
             <select
