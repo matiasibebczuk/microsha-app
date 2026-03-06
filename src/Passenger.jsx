@@ -18,6 +18,30 @@ function formatSummaryItem(value) {
   return value;
 }
 
+function getTripActionConfig(trip) {
+  if (trip.status === "closed") {
+    return {
+      disabled: true,
+      label: "Inscripción cerrada",
+      className: "btn-secondary",
+    };
+  }
+
+  if (trip.mode === "waiting") {
+    return {
+      disabled: false,
+      label: "Anotarme (lista de espera)",
+      className: "btn-warning",
+    };
+  }
+
+  return {
+    disabled: false,
+    label: "Anotarme",
+    className: "",
+  };
+}
+
 export default function Passenger({ user, onSessionExpired }) {
   const [trips, setTrips] = useState([]);
   const [tripsLoading, setTripsLoading] = useState(true);
@@ -140,23 +164,27 @@ export default function Passenger({ user, onSessionExpired }) {
             ) : (
               trips
                 .filter((t) => t.type === "ida")
-                .map((t) => (
-                  <div key={t.id} className="list-item row-between">
-                    <span>
-                      <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                    </span>
-                    <button
-                      className={t.status === "closed" ? "btn-secondary" : ""}
-                      disabled={t.status === "closed"}
-                      onClick={() => {
-                        if (t.status === "closed") return;
-                        setSelectedTrip(t);
-                      }}
-                    >
-                      Ver paradas
-                    </button>
-                  </div>
-                ))
+                .map((t) => {
+                  const action = getTripActionConfig(t);
+
+                  return (
+                    <div key={t.id} className="list-item row-between">
+                      <span>
+                        <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
+                      </span>
+                      <button
+                        className={action.className}
+                        disabled={action.disabled}
+                        onClick={() => {
+                          if (action.disabled) return;
+                          setSelectedTrip(t);
+                        }}
+                      >
+                        {action.label}
+                      </button>
+                    </div>
+                  );
+                })
             )}
           </div>
 
@@ -207,23 +235,27 @@ export default function Passenger({ user, onSessionExpired }) {
             ) : (
               trips
                 .filter((t) => t.type === "vuelta")
-                .map((t) => (
-                  <div key={t.id} className="list-item row-between">
-                    <span>
-                      <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                    </span>
-                    <button
-                      className={t.status === "closed" ? "btn-secondary" : ""}
-                      disabled={t.status === "closed"}
-                      onClick={() => {
-                        if (t.status === "closed") return;
-                        setSelectedTrip(t);
-                      }}
-                    >
-                      Ver paradas
-                    </button>
-                  </div>
-                ))
+                .map((t) => {
+                  const action = getTripActionConfig(t);
+
+                  return (
+                    <div key={t.id} className="list-item row-between">
+                      <span>
+                        <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
+                      </span>
+                      <button
+                        className={action.className}
+                        disabled={action.disabled}
+                        onClick={() => {
+                          if (action.disabled) return;
+                          setSelectedTrip(t);
+                        }}
+                      >
+                        {action.label}
+                      </button>
+                    </div>
+                  );
+                })
             )}
           </div>
 
