@@ -3,13 +3,25 @@ import { supabase } from "../supabase";
 import { apiUrl } from "../api";
 import { IconTrash } from "../ui/icons";
 
+const WEEK_DAYS = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Lunes" },
+  { value: 2, label: "Martes" },
+  { value: 3, label: "Miércoles" },
+  { value: 4, label: "Jueves" },
+  { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+];
+
 export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
-  const [waitlistStartAt, setWaitlistStartAt] = useState("");
+  const [waitlistStartDay, setWaitlistStartDay] = useState("1");
+  const [waitlistStartTime, setWaitlistStartTime] = useState("08:00");
   const [waitlistHasEnd, setWaitlistHasEnd] = useState(false);
-  const [waitlistEndAt, setWaitlistEndAt] = useState("");
+  const [waitlistEndDay, setWaitlistEndDay] = useState("1");
+  const [waitlistEndTime, setWaitlistEndTime] = useState("09:00");
 
   const [stops, setStops] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -79,8 +91,12 @@ export default function AdminCreateTrip({ onCreated }) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
       body: JSON.stringify({
         name, type,
-        waitlist_start_at: waitlistEnabled && waitlistStartAt ? new Date(waitlistStartAt).toISOString() : null,
-        waitlist_end_at: waitlistEnabled && waitlistHasEnd && waitlistEndAt ? new Date(waitlistEndAt).toISOString() : null,
+        waitlist_start_day: waitlistEnabled ? Number(waitlistStartDay) : null,
+        waitlist_start_time: waitlistEnabled ? waitlistStartTime : null,
+        waitlist_end_day: waitlistEnabled && waitlistHasEnd ? Number(waitlistEndDay) : null,
+        waitlist_end_time: waitlistEnabled && waitlistHasEnd ? waitlistEndTime : null,
+        waitlist_start_at: null,
+        waitlist_end_at: null,
       }),
     });
     const trip = await tripRes.json();
@@ -138,13 +154,25 @@ export default function AdminCreateTrip({ onCreated }) {
             </label>
             {waitlistEnabled && (
               <div className="stack-sm fade-up" style={{ marginTop: 8 }}>
-                <p className="caption">Inicio inscripción:</p>
-                <input type="datetime-local" value={waitlistStartAt} onChange={e => setWaitlistStartAt(e.target.value)} />
+                <p className="caption">Inicio lista de espera (día y hora):</p>
+                <div className="row">
+                  <select value={waitlistStartDay} onChange={e => setWaitlistStartDay(e.target.value)}>
+                    {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
+                  </select>
+                  <input type="time" value={waitlistStartTime} onChange={e => setWaitlistStartTime(e.target.value)} />
+                </div>
                 <label className="row" style={{ alignItems: "center", gap: 8 }}>
                   <input style={{ width: 'auto', marginBottom: 0 }} type="checkbox" checked={waitlistHasEnd} onChange={e => setWaitlistHasEnd(e.target.checked)} />
                   <span className="body">Programar fin</span>
                 </label>
-                {waitlistHasEnd && <input type="datetime-local" value={waitlistEndAt} onChange={e => setWaitlistEndAt(e.target.value)} />}
+                {waitlistHasEnd && (
+                  <div className="row">
+                    <select value={waitlistEndDay} onChange={e => setWaitlistEndDay(e.target.value)}>
+                      {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
+                    </select>
+                    <input type="time" value={waitlistEndTime} onChange={e => setWaitlistEndTime(e.target.value)} />
+                  </div>
+                )}
               </div>
             )}
           </div>

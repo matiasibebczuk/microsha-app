@@ -9,6 +9,16 @@ import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
 import { formatDateTime, formatOccupancy, formatTripStatus } from "../utils/format";
 
+const WEEK_DAYS = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Lunes" },
+  { value: 2, label: "Martes" },
+  { value: 3, label: "Miércoles" },
+  { value: 4, label: "Jueves" },
+  { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+];
+
 function normalizeTripType(type) {
   return String(type || "").trim().toLowerCase();
 }
@@ -58,9 +68,11 @@ export default function AdminTrips() {
   const [editType, setEditType] = useState("ida");
   const [editDeparture, setEditDeparture] = useState("");
   const [editWaitlistEnabled, setEditWaitlistEnabled] = useState(false);
-  const [editWaitlistStartAt, setEditWaitlistStartAt] = useState("");
+  const [editWaitlistStartDay, setEditWaitlistStartDay] = useState("1");
+  const [editWaitlistStartTime, setEditWaitlistStartTime] = useState("08:00");
   const [editWaitlistHasEnd, setEditWaitlistHasEnd] = useState(false);
-  const [editWaitlistEndAt, setEditWaitlistEndAt] = useState("");
+  const [editWaitlistEndDay, setEditWaitlistEndDay] = useState("1");
+  const [editWaitlistEndTime, setEditWaitlistEndTime] = useState("09:00");
   const [editStops, setEditStops] = useState([]);
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
@@ -146,19 +158,35 @@ export default function AdminTrips() {
       setEditDeparture(local);
     } else { setEditDeparture(""); }
 
-    if (trip.waitlist_start_at) {
-      const dt = new Date(trip.waitlist_start_at);
-      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      setEditWaitlistStartAt(local);
+    if (trip.waitlist_start_day !== null && trip.waitlist_start_day !== undefined && trip.waitlist_start_time) {
+      setEditWaitlistStartDay(String(trip.waitlist_start_day));
+      setEditWaitlistStartTime(String(trip.waitlist_start_time).slice(0, 5));
       setEditWaitlistEnabled(true);
-    } else { setEditWaitlistStartAt(""); setEditWaitlistEnabled(false); }
+    } else if (trip.waitlist_start_at) {
+      const dt = new Date(trip.waitlist_start_at);
+      setEditWaitlistStartDay(String(dt.getDay()));
+      setEditWaitlistStartTime(`${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`);
+      setEditWaitlistEnabled(true);
+    } else {
+      setEditWaitlistStartDay("1");
+      setEditWaitlistStartTime("08:00");
+      setEditWaitlistEnabled(false);
+    }
 
-    if (trip.waitlist_end_at) {
-      const dt = new Date(trip.waitlist_end_at);
-      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      setEditWaitlistEndAt(local);
+    if (trip.waitlist_end_day !== null && trip.waitlist_end_day !== undefined && trip.waitlist_end_time) {
+      setEditWaitlistEndDay(String(trip.waitlist_end_day));
+      setEditWaitlistEndTime(String(trip.waitlist_end_time).slice(0, 5));
       setEditWaitlistHasEnd(true);
-    } else { setEditWaitlistEndAt(""); setEditWaitlistHasEnd(false); }
+    } else if (trip.waitlist_end_at) {
+      const dt = new Date(trip.waitlist_end_at);
+      setEditWaitlistEndDay(String(dt.getDay()));
+      setEditWaitlistEndTime(`${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`);
+      setEditWaitlistHasEnd(true);
+    } else {
+      setEditWaitlistEndDay("1");
+      setEditWaitlistEndTime("09:00");
+      setEditWaitlistHasEnd(false);
+    }
 
     try {
       const token = await getAccessToken();
@@ -187,8 +215,12 @@ export default function AdminTrips() {
     if (!token) return;
     const body = { name: editName, type: editType };
     if (editDeparture) body.departure_datetime = new Date(editDeparture).toISOString();
-    body.waitlist_start_at = editWaitlistEnabled && editWaitlistStartAt ? new Date(editWaitlistStartAt).toISOString() : null;
-    body.waitlist_end_at = editWaitlistEnabled && editWaitlistHasEnd && editWaitlistEndAt ? new Date(editWaitlistEndAt).toISOString() : null;
+    body.waitlist_start_day = editWaitlistEnabled ? Number(editWaitlistStartDay) : null;
+    body.waitlist_start_time = editWaitlistEnabled ? editWaitlistStartTime : null;
+    body.waitlist_end_day = editWaitlistEnabled && editWaitlistHasEnd ? Number(editWaitlistEndDay) : null;
+    body.waitlist_end_time = editWaitlistEnabled && editWaitlistHasEnd ? editWaitlistEndTime : null;
+    body.waitlist_start_at = null;
+    body.waitlist_end_at = null;
     const res = await fetch(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
     if (!res.ok) { alert("Error guardando traslado"); return; }
     await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ buses: editBuses }) });
@@ -286,6 +318,35 @@ export default function AdminTrips() {
                 </select>
                 <input style={{ flex: 2 }} type="datetime-local" value={editDeparture} onChange={e => setEditDeparture(e.target.value)} />
               </div>
+
+              <div className="divider" />
+              <h4 className="caption" style={{fontWeight: 'bold'}}>Lista de espera</h4>
+              <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                <input style={{ width: 'auto', marginBottom: 0 }} type="checkbox" checked={editWaitlistEnabled} onChange={e => setEditWaitlistEnabled(e.target.checked)} />
+                <span className="body">Activar lista de espera</span>
+              </label>
+              {editWaitlistEnabled && (
+                <div className="stack-sm">
+                  <div className="row">
+                    <select style={{ flex: 1 }} value={editWaitlistStartDay} onChange={e => setEditWaitlistStartDay(e.target.value)}>
+                      {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
+                    </select>
+                    <input style={{ flex: 1 }} type="time" value={editWaitlistStartTime} onChange={e => setEditWaitlistStartTime(e.target.value)} />
+                  </div>
+                  <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                    <input style={{ width: 'auto', marginBottom: 0 }} type="checkbox" checked={editWaitlistHasEnd} onChange={e => setEditWaitlistHasEnd(e.target.checked)} />
+                    <span className="body">Programar cierre</span>
+                  </label>
+                  {editWaitlistHasEnd && (
+                    <div className="row">
+                      <select style={{ flex: 1 }} value={editWaitlistEndDay} onChange={e => setEditWaitlistEndDay(e.target.value)}>
+                        {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
+                      </select>
+                      <input style={{ flex: 1 }} type="time" value={editWaitlistEndTime} onChange={e => setEditWaitlistEndTime(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="divider" />
               <h4 className="caption" style={{fontWeight: 'bold'}}>Vehículos</h4>
