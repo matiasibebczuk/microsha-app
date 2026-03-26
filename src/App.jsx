@@ -134,16 +134,18 @@ function App() {
     };
   }, [passengerUser]);
 
+  const sessionUserId = session?.user?.id || null;
+  const sessionRole = buildSessionProfile(session)?.role || null;
+
   useEffect(() => {
     const checkGroup = async () => {
-      if (!session?.user) {
+      if (!sessionUserId) {
         setHasGroup(true);
         setGroupLoading(false);
         return;
       }
 
-      const profile = buildSessionProfile(session);
-      if (!profile || !["admin", "encargado"].includes(profile.role)) {
+      if (!sessionRole || !["admin", "encargado"].includes(sessionRole)) {
         setHasGroup(true);
         setGroupLoading(false);
         return;
@@ -187,7 +189,7 @@ function App() {
     };
 
     checkGroup();
-  }, [session, groupCheckVersion]);
+  }, [sessionUserId, sessionRole, groupCheckVersion]);
 
   // ========================
   // PASAJERO SIN SUPABASE
