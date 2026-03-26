@@ -22,7 +22,6 @@ export default function Encargado() {
   const [canManage, setCanManage] = useState(true);
   const [activeController, setActiveController] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
-  const [lastFinishedAt, setLastFinishedAt] = useState(null);
   const [notice, setNotice] = useState("");
 
   const getAuthHeader = useCallback(async () => {
@@ -70,7 +69,6 @@ export default function Encargado() {
         setCanManage(Boolean(stateJson.canManage));
         setActiveController(stateJson.activeController || null);
         setStartedAt(stateJson.activeRunStartedAt || null);
-        setLastFinishedAt(stateJson.lastFinishedAt || null);
       }
       setGroups(Array.isArray(passengersJson) ? passengersJson : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
@@ -117,7 +115,6 @@ export default function Encargado() {
     if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
     alert(`Recorrido finalizado. Historial run #${json.runId}`);
     setFinished(true);
-    setLastFinishedAt(json.finishedAt || new Date().toISOString());
     setSelectedTrip(null);
     setStarted(false);
     setTripClosed(false);
@@ -134,7 +131,6 @@ export default function Encargado() {
     setCanManage(true);
     setActiveController(null);
     setStartedAt(null);
-    setLastFinishedAt(null);
     await loadTripData(trip.id);
   };
 

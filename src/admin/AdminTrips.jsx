@@ -24,7 +24,6 @@ export default function AdminTrips() {
   const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [passengers, setPassengers] = useState([]);
   const [passengersLoading, setPassengersLoading] = useState(false);
@@ -50,16 +49,19 @@ export default function AdminTrips() {
   const loadTrips = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       setNotice("");
       const token = await getAccessToken();
-      if (!token) { setError("Sesión expirada"); setTrips([]); return; }
+      if (!token) { setTrips([]); setNotice("Sesión expirada"); return; }
       const res = await fetch(apiUrl("/trips"), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
-      if (!res.ok) { setError(json?.error || "Error"); setNotice(json?.error || "Error"); setTrips([]); return; }
+      if (!res.ok) { setNotice(json?.error || "Error"); setTrips([]); return; }
       setTrips(Array.isArray(json) ? json : []);
-    } catch { setError("Error de red"); setNotice("Error de red"); setTrips([]); } finally { setLoading(false); }
+    } catch { setNotice("Error de red"); setTrips([]); } finally { setLoading(false); }
   }, [getAccessToken]);
+
+  useEffect(() => {
+    void loadTrips();
+  }, [loadTrips]);
 
   const startEditTrip = async (trip) => {
     if (editingTripId === trip.id) { setEditingTripId(null); setEditLoading(false); return; }
@@ -110,7 +112,6 @@ export default function AdminTrips() {
   const addEditStop = () => setEditStops(p => [...p, { id: null, name: "", time: "", order: p.length + 1 }]);
   const updateEditStop = (i, f, v) => setEditStops(p => { const c = [...p]; c[i] = { ...c[i], [f]: f === "order" ? Number(v || 0) : v }; return c; });
   const removeEditStop = (i) => setEditStops(p => p.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, order: idx + 1 })));
-  const normalizeStopOrders = () => setEditStops(p => [...p].sort((a,b) => a.order - b.order).map((s, i) => ({ ...s, order: i + 1 })));
 
   const saveEditTrip = async () => {
     if (!editingTripId) return;
@@ -174,8 +175,6 @@ export default function AdminTrips() {
   const groupedByStop = pagedPassengers.reduce((a, r) => { const k = r.stops?.name || "Sin parada"; if (!a[k]) a[k] = []; a[k].push(r); return a; }, {});
   const confirmedCount = filteredPassengers.filter(p => p.status === "confirmed").length;
   const waitingCount = filteredPassengers.filter(p => p.status === "waiting").length;
-
-  const exportCsv = () => { /* ... simplified for brev ... */ };
 
   const renderTripCard = (trip) => (
     <div key={trip.id} className="card glass-card stack-sm" style={{ padding: '20px', marginBottom: '16px' }}>

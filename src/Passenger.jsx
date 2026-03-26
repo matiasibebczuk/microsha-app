@@ -245,6 +245,7 @@ export default function Passenger({ user, onSessionExpired }) {
           }
         });
       } catch {
+        return;
       }
     };
 
