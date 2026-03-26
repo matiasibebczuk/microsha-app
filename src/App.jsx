@@ -214,12 +214,17 @@ function App() {
   // ========================
   if (!authReady) {
     return (
-      <div className="loading-screen">
-        <div className="card stack">
-          <div className="onboarding-hero">
-            <h2 className="title">Preparando tu sesión</h2>
+      <div className="loading-screen fade-up">
+        <div className="stack" style={{ textAlign: 'center' }}>
+          <div className="ios-logo-container">
+            <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
           </div>
-          <LoadingState label="Cargando sesión..." />
+          <div className="spinner">
+            <div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div><div></div>
+          </div>
+          <p className="caption" style={{ marginTop: 16 }}>Iniciando sesión...</p>
         </div>
       </div>
     );
@@ -236,9 +241,11 @@ function App() {
   // ========================
   if (!profile) {
     return (
-      <div className="page-narrow">
-        <div className="card stack">
-          <p className="empty">No se encontró rol en la sesión</p>
+      <div className="page-narrow fade-up">
+        <div className="card glass-card stack" style={{ textAlign: 'center', padding: '32px' }}>
+          <h2 className="headline">Error de Perfil</h2>
+          <p className="caption">No se encontró un rol válido en tu sesión.</p>
+          <div className="divider" />
           <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
             Volver al login
           </button>
@@ -253,12 +260,15 @@ function App() {
   if (["admin", "encargado"].includes(profile.role)) {
     if (groupLoading) {
       return (
-        <div className="loading-screen">
-          <div className="card stack">
-            <div className="onboarding-hero">
-              <h2 className="title">Entrando al panel</h2>
+        <div className="loading-screen fade-up">
+          <div className="stack" style={{ textAlign: 'center' }}>
+            <h2 className="large-title">MicroSHA</h2>
+            <div className="spinner">
+              <div></div><div></div><div></div><div></div>
+              <div></div><div></div><div></div><div></div>
+              <div></div><div></div><div></div><div></div>
             </div>
-            <LoadingState label="Cargando grupo..." />
+            <p className="caption" style={{ marginTop: 16 }}>Cargando grupo...</p>
           </div>
         </div>
       );
@@ -278,8 +288,14 @@ function App() {
   if (profile.role === "encargado") return <Encargado />;
 
   return (
-    <div className="page-narrow">
-      <div className="card empty">Rol desconocido</div>
+    <div className="page-narrow fade-up">
+      <div className="card glass-card" style={{ textAlign: 'center', padding: '32px' }}>
+        <h2 className="headline">Rol desconocido</h2>
+        <p className="caption">Tu cuenta no tiene permisos suficientes.</p>
+        <button className="btn-secondary" onClick={() => supabase.auth.signOut()} style={{ marginTop: 16 }}>
+          Cerrar sesión
+        </button>
+      </div>
     </div>
   );
 }

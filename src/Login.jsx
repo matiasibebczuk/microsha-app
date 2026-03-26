@@ -214,11 +214,15 @@ export default function Login({ onPassenger }) {
   };
 
   return (
-    <div className="page-narrow stack">
-      <div className="card stack login-card">
+    <div className="page-narrow fade-up">
+      <div className="ios-logo-container">
+        <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
+      </div>
+
+      <div className="card glass-card stack">
         <div>
-          <h1 className="title">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</h1>
-          <p className="subtitle">Acceso principal para socios y staff.</p>
+          <h1 className="large-title">{mode === "login" ? "Iniciar sesión" : "Registro staff"}</h1>
+          <p className="caption">Acceso principal para socios y staff.</p>
         </div>
 
         <button className="cta-passenger" onClick={onPassenger}>
@@ -235,9 +239,9 @@ export default function Login({ onPassenger }) {
 
         <div className={`staff-panel ${staffOpen ? "staff-panel-open" : ""}`}>
           <div className="stack staff-panel-inner">
-            <p className="subtitle">Si sos admin o encargado, iniciá sesión o registrate acá.</p>
+            <p className="caption">Si sos admin o encargado, iniciá sesión o registrate acá.</p>
 
-            <hr className="divider" />
+            <div className="divider" />
 
             <div className="stack-sm">
               {mode === "register" && (
@@ -259,6 +263,7 @@ export default function Login({ onPassenger }) {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                type="email"
               />
 
               <input
@@ -289,11 +294,11 @@ export default function Login({ onPassenger }) {
 
               {mode === "register" && role === "admin" && (
                 <div className="stack-sm">
-                  <p className="muted">Configuración inicial de club</p>
+                  <p className="caption">Configuración inicial de club</p>
 
                   {adminClubMode === "choose" ? (
                     <div className="row">
-                      <button type="button" onClick={() => setAdminClubMode("create")}>Crear club</button>
+                      <button type="button" className="btn-primary" onClick={() => setAdminClubMode("create")}>Crear club</button>
                       <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("join")}>Unirme a club</button>
                     </div>
                   ) : (
@@ -319,7 +324,7 @@ export default function Login({ onPassenger }) {
                         onChange={(e) => setAdminClubPassword(e.target.value)}
                       />
 
-                      <button type="button" className="btn-secondary" onClick={() => setAdminClubMode("choose")}>Cambiar opción</button>
+                      <button type="button" className="btn-plain" onClick={() => setAdminClubMode("choose")}>Cambiar opción</button>
                     </>
                   )}
                 </div>
@@ -327,29 +332,29 @@ export default function Login({ onPassenger }) {
             </div>
 
             {mode === "login" ? (
-              <button onClick={signIn} disabled={loading}>
+              <button className="btn-primary" onClick={signIn} disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </button>
             ) : (
-              <button onClick={registerStaff} disabled={loading}>
+              <button className="btn-primary" onClick={registerStaff} disabled={loading}>
                 {loading ? "Registrando..." : "Registrar y entrar"}
               </button>
             )}
 
-            <hr className="divider" />
+            <div className="divider" />
 
             {mode === "login" ? (
               <div className="row-between">
-                <p className="muted">¿No tenés cuenta staff?</p>
-                <button className="btn-secondary" onClick={() => { setMode("register"); setStaffOpen(true); }}>
-                  Crear cuenta staff
+                <p className="caption">¿No tenés cuenta staff?</p>
+                <button className="btn-plain" onClick={() => { setMode("register"); setStaffOpen(true); }}>
+                  Crear cuenta
                 </button>
               </div>
             ) : (
               <div className="row-between">
-                <p className="muted">¿Ya tenés cuenta?</p>
-                <button className="btn-secondary" onClick={() => { setMode("login"); setStaffOpen(true); }}>
-                  Volver a iniciar sesión
+                <p className="caption">¿Ya tenés cuenta?</p>
+                <button className="btn-plain" onClick={() => { setMode("login"); setStaffOpen(true); }}>
+                  Entrar
                 </button>
               </div>
             )}
@@ -364,7 +369,7 @@ export default function Login({ onPassenger }) {
                   ? "Reenviando..."
                   : resendCooldown > 0
                     ? `Reenviar en ${resendCooldown}s`
-                    : "Reenviar email de confirmación"}
+                    : "Reenviar confirmación"}
               </button>
             )}
           </div>

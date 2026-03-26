@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IconLogout } from "./ui/icons";
+import { IconLogout, IconChevronRight } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
@@ -53,15 +53,15 @@ function getTripActionConfig(trip, hasReservation) {
   if (hasReservation) {
     return {
       disabled: false,
-      label: "Ver paradas",
-      className: "btn-success",
+      label: "Mis paradas",
+      className: "btn-secondary",
     };
   }
 
   if (trip.status === "closed") {
     return {
       disabled: true,
-      label: "Inscripción cerrada",
+      label: "Cerrado",
       className: "btn-secondary",
     };
   }
@@ -69,15 +69,15 @@ function getTripActionConfig(trip, hasReservation) {
   if (trip.mode === "waiting") {
     return {
       disabled: false,
-      label: "Ver paradas",
-      className: "btn-warning",
+      label: "Inscribirse",
+      className: "btn-primary",
     };
   }
 
   return {
     disabled: false,
-    label: "Ver paradas",
-    className: "",
+    label: "Elegir parada",
+    className: "btn-primary",
   };
 }
 
@@ -290,55 +290,54 @@ export default function Passenger({ user, onSessionExpired }) {
   // ========================
   if (step === "ida") {
     return (
-      <div className="page stack">
-        <div className="card stack">
-          <h1 className="title">Hola {user.name} 👋</h1>
+      <div className="page fade-up">
+        <header className="stack-sm" style={{ marginBottom: 32 }}>
+          <h1 className="large-title">Hola {user.name.split(" ")[0]} 👋</h1>
+          <p className="caption">Elegí tu traslado de ida</p>
+        </header>
 
-          <h2 className="section-title">Traslados de ida</h2>
+        <MessageBanner message={tripsError} />
 
-          <MessageBanner message={tripsError} />
+        <div className="stack">
+          {tripsLoading ? (
+            <div className="inset-group">
+              <LoadingState compact label="Cargando traslados..." />
+              <SkeletonCards count={3} />
+            </div>
+          ) : trips.filter((t) => normalizeTripType(t.type) === "ida").length === 0 ? (
+            <EmptyState
+              title="No hay traslados de ida"
+              subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
+            />
+          ) : (
+            <div className="inset-group">
+              <h3 className="subheadline">Disponibles ahora</h3>
+              <div className="inset-list">
+                {trips
+                  .filter((t) => normalizeTripType(t.type) === "ida")
+                  .map((t) => {
+                    const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
+                    const action = getTripActionConfig(t, hasReservation);
 
-          <div className="grid">
-            {tripsLoading ? (
-              <>
-                <LoadingState compact label="Cargando traslados..." />
-                <SkeletonCards count={3} />
-              </>
-            ) : trips.filter((t) => normalizeTripType(t.type) === "ida").length === 0 ? (
-              <EmptyState
-                title="No hay traslados de ida disponibles"
-                subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
-              />
-            ) : (
-              trips
-                .filter((t) => normalizeTripType(t.type) === "ida")
-                .map((t) => {
-                  const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
-                  const action = getTripActionConfig(t, hasReservation);
+                    return (
+                      <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                        <div className="stack-sm">
+                          <span className="body"><b>{t.name}</b></span>
+                          <span className="caption">Inicia {t.first_time} {t.status === "closed" ? "· Cerrado" : ""}</span>
+                        </div>
+                        <div className="row">
+                          {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          <IconChevronRight />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
 
-                  return (
-                    <div key={t.id} className="list-item row-between">
-                      <span>
-                        <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                      </span>
-                      <button
-                        className={action.className}
-                        disabled={action.disabled}
-                        onClick={() => {
-                          if (action.disabled) return;
-                          setSelectedTrip(t);
-                        }}
-                      >
-                        {action.label}
-                      </button>
-                    </div>
-                  );
-                })
-            )}
-          </div>
-
-          <hr className="divider" />
-
+        <div className="inset-group" style={{ marginTop: 24 }}>
           <button
             className="btn-secondary"
             onClick={() => {
@@ -362,55 +361,54 @@ export default function Passenger({ user, onSessionExpired }) {
   // ========================
   if (step === "vuelta") {
     return (
-      <div className="page stack">
-        <div className="card stack">
-          <h1 className="title">Hola {user.name} 👋</h1>
+      <div className="page fade-up">
+        <header className="stack-sm" style={{ marginBottom: 32 }}>
+          <h1 className="large-title">Vuelta</h1>
+          <p className="caption">¿Cómo querés volver?</p>
+        </header>
 
-          <h2 className="section-title">Traslados de vuelta</h2>
+        <MessageBanner message={tripsError} />
 
-          <MessageBanner message={tripsError} />
+        <div className="stack">
+          {tripsLoading ? (
+            <div className="inset-group">
+              <LoadingState compact label="..." />
+              <SkeletonCards count={3} />
+            </div>
+          ) : trips.filter((t) => normalizeTripType(t.type) === "vuelta").length === 0 ? (
+            <EmptyState
+              title="No hay vueltas cargadas"
+              subtitle="Consultá con el staff por traslados excepcionales."
+            />
+          ) : (
+            <div className="inset-group">
+              <h3 className="subheadline">Opciones de regreso</h3>
+              <div className="inset-list">
+                {trips
+                  .filter((t) => normalizeTripType(t.type) === "vuelta")
+                  .map((t) => {
+                    const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
+                    const action = getTripActionConfig(t, hasReservation);
 
-          <div className="grid">
-            {tripsLoading ? (
-              <>
-                <LoadingState compact label="Cargando traslados..." />
-                <SkeletonCards count={3} />
-              </>
-            ) : trips.filter((t) => normalizeTripType(t.type) === "vuelta").length === 0 ? (
-              <EmptyState
-                title="No hay traslados de vuelta disponibles"
-                subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
-              />
-            ) : (
-              trips
-                .filter((t) => normalizeTripType(t.type) === "vuelta")
-                .map((t) => {
-                  const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
-                  const action = getTripActionConfig(t, hasReservation);
+                    return (
+                      <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                        <div className="stack-sm">
+                          <span className="body"><b>{t.name}</b></span>
+                          <span className="caption">Inicia {t.first_time}</span>
+                        </div>
+                        <div className="row">
+                          {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          <IconChevronRight />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
 
-                  return (
-                    <div key={t.id} className="list-item row-between">
-                      <span>
-                        <b>{t.name}</b> – comienza {t.first_time} {t.status === "closed" ? "(cerrado)" : ""}
-                      </span>
-                      <button
-                        className={action.className}
-                        disabled={action.disabled}
-                        onClick={() => {
-                          if (action.disabled) return;
-                          setSelectedTrip(t);
-                        }}
-                      >
-                        {action.label}
-                      </button>
-                    </div>
-                  );
-                })
-            )}
-          </div>
-
-          <hr className="divider" />
-
+        <div className="inset-group" style={{ marginTop: 24 }}>
           <button
             className="btn-secondary"
             onClick={() => {
@@ -438,29 +436,44 @@ export default function Passenger({ user, onSessionExpired }) {
   const effectiveVueltaReservation = consolidatedVuelta || vueltaReservation;
 
   return (
-    <div className="page stack">
-      <div className="card stack">
-        <h2 className="title">Resumen</h2>
+    <div className="page fade-up">
+      <header className="stack-sm" style={{ marginBottom: 32 }}>
+        <h1 className="large-title">Resumen</h1>
+        <p className="caption">Repasá tus inscripciones</p>
+      </header>
 
-        <div className="list-item stack-sm">
-          <p><span className="badge">Ida</span></p>
-          <p><b>Parada:</b> {formatSummaryItem(effectiveIdaReservation?.stopName)}</p>
-          <p><b>Horario:</b> {formatSummaryItem(effectiveIdaReservation?.stopTime)}</p>
-          <p><b>Estado:</b> {toSpanishStatus(effectiveIdaReservation?.status)}</p>
+      <div className="inset-group">
+        <h3 className="subheadline">Detalles del viaje</h3>
+        <div className="inset-list">
+          <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+            <div className="row-between">
+              <span className="body"><b>Ida</b></span>
+              <span className={`badge ${effectiveIdaReservation?.status === 'confirmed' ? 'badge-success' : 'badge-warning'}`}>
+                {toSpanishStatus(effectiveIdaReservation?.status)}
+              </span>
+            </div>
+            <p className="caption">Parada: {formatSummaryItem(effectiveIdaReservation?.stopName)} · {formatSummaryItem(effectiveIdaReservation?.stopTime)}</p>
+          </div>
+
+          <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none' }}>
+            <div className="row-between">
+              <span className="body"><b>Vuelta</b></span>
+              <span className={`badge ${effectiveVueltaReservation?.status === 'confirmed' ? 'badge-success' : 'badge-warning'}`}>
+                {toSpanishStatus(effectiveVueltaReservation?.status)}
+              </span>
+            </div>
+            <p className="caption">Parada: {formatSummaryItem(effectiveVueltaReservation?.stopName)} · {formatSummaryItem(effectiveVueltaReservation?.stopTime)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="inset-group stack" style={{ marginTop: 40 }}>
+        <div className="card glass-card" style={{ textAlign: 'center', padding: '24px' }}>
+          <h2 className="headline">¡Todo listo! 🙌</h2>
+          <p className="caption" style={{ marginTop: 8 }}>Ya estás anotado. Te avisaremos cuando confirmemos tu lugar.</p>
         </div>
 
-        <div className="list-item stack-sm">
-          <p><span className="badge">Vuelta</span></p>
-          <p><b>Parada:</b> {formatSummaryItem(effectiveVueltaReservation?.stopName)}</p>
-          <p><b>Horario:</b> {formatSummaryItem(effectiveVueltaReservation?.stopTime)}</p>
-          <p><b>Estado:</b> {toSpanishStatus(effectiveVueltaReservation?.status)}</p>
-        </div>
-
-        <hr className="divider" />
-
-        <h3 className="section-title">¡Gracias por anotarte! 🙌</h3>
-
-        <button className="btn-secondary btn-with-icon" onClick={() => onSessionExpired?.()}>
+        <button className="btn-secondary" onClick={() => onSessionExpired?.()} style={{ marginTop: 12 }}>
           <IconLogout />
           Cerrar sesión
         </button>
@@ -560,7 +573,6 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
   const reserve = async (stopId) => {
     console.log("ENVIANDO RESERVA:", { userId: user.id, tripId: trip.id, stopId });
 
-    // primero intentamos CREAR
     let res = await passengerFetch(apiUrl("/reservations"), {
       method: "POST",
       headers: {
@@ -574,7 +586,6 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
     if (!res) return;
 
-    // si falla por duplicado → hacemos CHANGE
     if (!res.ok) {
       const err = await res.json();
 
@@ -607,7 +618,6 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     const selectedStop = stops.find((stop) => String(stop.id) === String(stopId));
 
     clearCached(`passenger:trips:${user.passengerToken}`);
-    alert("Estado: " + json.status);
     onReserved({
       status: json.status,
       stopName: selectedStop?.name || null,
@@ -615,9 +625,6 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     });
   };
 
-  // ========================
-  // SI YA ESTÁ ANOTADO
-  // ========================
   if (existing) {
     const cancel = async () => {
       const res = await passengerFetch(apiUrl("/reservations"), {
@@ -640,7 +647,6 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
       }
 
       clearCached(`passenger:trips:${user.passengerToken}`);
-      alert("Inscripción cancelada");
       setExisting(null);
       onReservationCancelled?.(trip.id);
     };
@@ -648,65 +654,81 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     const change = () => setExisting(null);
 
     return (
-      <div className="page stack">
-        <div className="card stack">
-          <h2 className="title">{trip.name}</h2>
+      <div className="page fade-up">
+        <header className="stack-sm" style={{ marginBottom: 32 }}>
+          <h1 className="large-title">{trip.name}</h1>
+          <p className="caption">Información de tu viaje</p>
+        </header>
 
-          <h3 className="section-title">Ya estás anotado</h3>
+        <div className="inset-group">
+          <div className="card glass-card stack" style={{ padding: '24px' }}>
+            <div className="row-between">
+              <h2 className="headline">Ya estás anotado</h2>
+              <span className="badge badge-success">{toSpanishStatus(existing.status)}</span>
+            </div>
+            
+            <div className="stack-sm">
+              <p className="body">Parada: <b>{existing.stops?.name}</b></p>
+              <p className="caption">Horario: {existing.stops?.time}</p>
+            </div>
 
-          <p>Parada: {existing.stops?.name}</p>
-          <p>Estado: {existing.status}</p>
+            <div className="divider" />
 
-          <hr className="divider" />
-
-          <div className="row">
-            <button onClick={change}>Cambiar parada</button>
-            <button className="btn-danger" onClick={cancel}>Cancelar inscripción</button>
+            <div className="stack-sm">
+              <button className="btn-primary" onClick={change}>Cambiar mi parada</button>
+              <button className="btn-plain" style={{ color: 'var(--ios-system-red)' }} onClick={cancel}>Cancelar lugar</button>
+            </div>
           </div>
+        </div>
 
-          <hr className="divider" />
-
-          <button className="btn-secondary" onClick={onBack}>Volver</button>
+        <div className="inset-group">
+          <button className="btn-secondary" onClick={onBack}>Volver atrás</button>
         </div>
       </div>
     );
   }
 
-  // ========================
-  // MOSTRAR PARADAS
-  // ========================
   return (
-    <div className="page stack">
-      <div className="card stack">
-        <h2 className="title">{trip.name}</h2>
+    <div className="page fade-up">
+      <header className="stack-sm" style={{ marginBottom: 32 }}>
+        <h1 className="large-title">{trip.name}</h1>
+        <p className="caption">Elegí el punto de encuentro</p>
+      </header>
 
-        <MessageBanner message={error} />
+      <MessageBanner message={error} />
 
+      <div className="stack">
         {loading ? (
-          <>
-            <LoadingState compact label="Cargando paradas..." />
+          <div className="inset-group">
+            <LoadingState compact label="Buscando paradas..." />
             <SkeletonCards count={2} />
-          </>
+          </div>
         ) : null}
 
-        <div className="grid">
-          {!loading && stops.length === 0 ? (
-            <EmptyState
-              title="Este traslado no tiene paradas cargadas"
-              subtitle="Contactá al staff para más información."
-            />
-          ) : (
-            stops.map((s) => (
-              <div key={s.id} className="list-item row-between">
-                <span>{s.name} – {s.time}</span>
-                <button onClick={() => reserve(s.id)}>Elegir</button>
-              </div>
-            ))
-          )}
-        </div>
+        {!loading && stops.length === 0 ? (
+          <EmptyState
+            title="Sin paradas"
+            subtitle="Este traslado no tiene puntos de encuentro."
+          />
+        ) : (
+          <div className="inset-group">
+            <h3 className="subheadline">Lista de paradas</h3>
+            <div className="inset-list">
+              {stops.map((s) => (
+                <div key={s.id} className="card glass-card row-between" onClick={() => reserve(s.id)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                  <div className="stack-sm">
+                    <span className="body"><b>{s.name}</b></span>
+                    <span className="caption">Pasa a las {s.time}</span>
+                  </div>
+                  <IconChevronRight />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-        <hr className="divider" />
-
+      <div className="inset-group" style={{ marginTop: 24 }}>
         <button className="btn-secondary" onClick={onBack}>Volver</button>
       </div>
     </div>

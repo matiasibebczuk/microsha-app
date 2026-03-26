@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
-import { IconLogout } from "./ui/icons";
+import { IconLogout, IconChevronRight } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
@@ -27,28 +27,20 @@ export default function Encargado() {
 
   const getAuthHeader = useCallback(async () => {
     const token = await getAuthToken();
-
-    if (!token) {
-      throw new Error("Sesión expirada");
-    }
-
+    if (!token) throw new Error("Sesión expirada");
     return { Authorization: `Bearer ${token}` };
   }, [getAuthToken]);
 
   const loadTrips = useCallback(async () => {
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch(apiUrl("/trips"), {
-        headers: authHeader,
-      });
+      const res = await fetch(apiUrl("/trips"), { headers: authHeader });
       const data = await res.json();
-
       if (!res.ok) {
         setNotice(data?.error || "No se pudieron cargar los viajes");
         setTrips([]);
         return;
       }
-
       setTrips(Array.isArray(data) ? data : []);
     } catch (err) {
       setNotice(err.message || "No se pudieron cargar los viajes");
@@ -62,26 +54,16 @@ export default function Encargado() {
 
   const loadTripData = async (tripId) => {
     setLoadingList(true);
-
     try {
       const authHeader = await getAuthHeader();
-
       const [stateRes, passengersRes, dashboardRes] = await Promise.all([
-        fetch(apiUrl(`/encargado/trips/${tripId}/state`), {
-          headers: authHeader,
-        }),
-        fetch(apiUrl(`/encargado/trips/${tripId}/passengers`), {
-          headers: authHeader,
-        }),
-        fetch(apiUrl(`/encargado/trips/${tripId}/dashboard`), {
-          headers: authHeader,
-        }),
+        fetch(apiUrl(`/encargado/trips/${tripId}/state`), { headers: authHeader }),
+        fetch(apiUrl(`/encargado/trips/${tripId}/passengers`), { headers: authHeader }),
+        fetch(apiUrl(`/encargado/trips/${tripId}/dashboard`), { headers: authHeader }),
       ]);
-
       const stateJson = await stateRes.json();
       const passengersJson = await passengersRes.json();
       const dashboardJson = await dashboardRes.json();
-
       if (stateRes.ok) {
         setTripClosed(stateJson.tripStatus === "closed");
         setStarted(Boolean(stateJson.hasActiveRun));
@@ -90,7 +72,6 @@ export default function Encargado() {
         setStartedAt(stateJson.activeRunStartedAt || null);
         setLastFinishedAt(stateJson.lastFinishedAt || null);
       }
-
       setGroups(Array.isArray(passengersJson) ? passengersJson : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
     } finally {
@@ -100,30 +81,11 @@ export default function Encargado() {
 
   const startTrip = async () => {
     if (!selectedTrip) return;
-
     let authHeader;
-    try {
-      authHeader = await getAuthHeader();
-    } catch (err) {
-      alert(err.message);
-      return;
-    }
-
-    const res = await fetch(
-      apiUrl(`/encargado/trips/${selectedTrip.id}/start`),
-      {
-        method: "POST",
-        headers: authHeader,
-      }
-    );
-
+    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+    const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/start`), { method: "POST", headers: authHeader });
     const json = await res.json();
-
-    if (!res.ok) {
-      alert(json?.error || "No se pudo iniciar el recorrido");
-      return;
-    }
-
+    if (!res.ok) { alert(json?.error || "No se pudo iniciar el recorrido"); return; }
     setStarted(true);
     setTripClosed(true);
     setFinished(false);
@@ -134,66 +96,25 @@ export default function Encargado() {
 
   const toggleBoarded = async (reservationId, boarded) => {
     let authHeader;
-    try {
-      authHeader = await getAuthHeader();
-    } catch (err) {
-      alert(err.message);
-      return;
-    }
-
-    const res = await fetch(
-      apiUrl(`/encargado/reservations/${reservationId}/boarded`),
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeader,
-        },
-        body: JSON.stringify({ boarded }),
-      }
-    );
-
+    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+    const res = await fetch(apiUrl(`/encargado/reservations/${reservationId}/boarded`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ boarded }),
+    });
     const json = await res.json();
-
-    if (!res.ok) {
-      alert(json?.error || "No se pudo actualizar asistencia");
-      return;
-    }
-
+    if (!res.ok) { alert(json?.error || "No se pudo actualizar asistencia"); return; }
     await loadTripData(selectedTrip.id);
   };
 
   const finishTrip = async () => {
     if (!selectedTrip) return;
-
-    if (!started && !tripClosed) {
-      alert("Primero iniciá el recorrido.");
-      return;
-    }
-
+    if (!started && !tripClosed) { alert("Primero iniciá el recorrido."); return; }
     let authHeader;
-    try {
-      authHeader = await getAuthHeader();
-    } catch (err) {
-      alert(err.message);
-      return;
-    }
-
-    const res = await fetch(
-      apiUrl(`/encargado/trips/${selectedTrip.id}/finish`),
-      {
-        method: "POST",
-        headers: authHeader,
-      }
-    );
-
+    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+    const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
     const json = await res.json();
-
-    if (!res.ok) {
-      alert(json?.error || "No se pudo finalizar el recorrido");
-      return;
-    }
-
+    if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
     alert(`Recorrido finalizado. Historial run #${json.runId}`);
     setFinished(true);
     setLastFinishedAt(json.finishedAt || new Date().toISOString());
@@ -205,9 +126,6 @@ export default function Encargado() {
     await loadTrips();
   };
 
-  const idaTrips = trips.filter((trip) => trip.type === "ida");
-  const vueltaTrips = trips.filter((trip) => trip.type === "vuelta");
-
   const selectTrip = async (trip) => {
     setSelectedTrip(trip);
     setTripClosed(trip.status === "closed");
@@ -217,157 +135,160 @@ export default function Encargado() {
     setActiveController(null);
     setStartedAt(null);
     setLastFinishedAt(null);
-
     await loadTripData(trip.id);
   };
 
-  // PASO 1: elegir viaje
+  const idaTrips = trips.filter((trip) => trip.type === "ida");
+  const vueltaTrips = trips.filter((trip) => trip.type === "vuelta");
+
   if (!selectedTrip) {
     return (
-      <div className="page stack">
-        <div className="card stack">
-          <div className="row-between">
-            <div>
-              <h1 className="title">🧑‍✈️ Panel Encargado</h1>
-              <p className="subtitle">Seleccionar viaje</p>
-            </div>
-            <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
-              <IconLogout />
-              Cerrar sesión
-            </button>
+      <div className="page fade-up">
+        <header className="row-between" style={{ marginBottom: 32 }}>
+          <div className="stack-sm">
+            <h1 className="large-title">Panel Encargado</h1>
+            <p className="caption">Seleccionar viaje</p>
           </div>
+          <button className="btn-secondary" onClick={() => supabase.auth.signOut()} style={{ padding: '8px 12px' }}>
+            <IconLogout />
+          </button>
+        </header>
 
-          <h3 className="section-title">Traslados de ida</h3>
-          <div className="trip-grid">
+        <MessageBanner message={notice} />
+
+        <div className="inset-group">
+          <h3 className="subheadline">Traslados de Ida</h3>
+          <div className="inset-list">
             {idaTrips.length === 0 ? (
-              <EmptyState title="No hay traslados de ida" subtitle="Aún no se publicaron viajes de este tipo." />
+              <div className="card glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                <p className="caption">No hay traslados de ida</p>
+              </div>
             ) : (
               idaTrips.map((trip) => (
-                <div key={trip.id} className="list-item">
-                  <button onClick={() => selectTrip(trip)}>
-                    {trip.name || `Viaje ${trip.id}`} - {formatTripStatus(trip.status)}
-                  </button>
+                <div key={trip.id} className="card glass-card row-between" onClick={() => selectTrip(trip)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                  <div className="stack-sm">
+                    <span className="body"><b>{trip.name || `Viaje ${trip.id}`}</b></span>
+                    <span className="caption">{formatTripStatus(trip.status)}</span>
+                  </div>
+                  <IconChevronRight />
                 </div>
               ))
             )}
           </div>
+        </div>
 
-          <hr className="divider" />
-
-          <h3 className="section-title">Traslados de vuelta</h3>
-          <div className="trip-grid">
+        <div className="inset-group" style={{ marginTop: 24 }}>
+          <h3 className="subheadline">Traslados de Vuelta</h3>
+          <div className="inset-list">
             {vueltaTrips.length === 0 ? (
-              <EmptyState title="No hay traslados de vuelta" subtitle="Aún no se publicaron viajes de este tipo." />
+              <div className="card glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                <p className="caption">No hay traslados de vuelta</p>
+              </div>
             ) : (
               vueltaTrips.map((trip) => (
-                <div key={trip.id} className="list-item">
-                  <button onClick={() => selectTrip(trip)}>
-                    {trip.name || `Viaje ${trip.id}`} - {formatTripStatus(trip.status)}
-                  </button>
+                <div key={trip.id} className="card glass-card row-between" onClick={() => selectTrip(trip)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                  <div className="stack-sm">
+                    <span className="body"><b>{trip.name || `Viaje ${trip.id}`}</b></span>
+                    <span className="caption">{formatTripStatus(trip.status)}</span>
+                  </div>
+                  <IconChevronRight />
                 </div>
               ))
             )}
           </div>
-
-          <MessageBanner message={notice} />
         </div>
       </div>
     );
   }
 
-  // PASO 2: control del recorrido
   return (
-    <div className="page stack">
-      <div className="card stack">
-        <div className="row-between">
-          <div>
-            <h1 className="title">Recorrido encargado</h1>
-            <p className="subtitle">
-              {selectedTrip.name || `Viaje ${selectedTrip.id}`} - {selectedTrip.type}
-            </p>
-          </div>
-          <div className="row">
-            <button className="btn-secondary" onClick={() => setSelectedTrip(null)}>Volver</button>
-            <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
-              <IconLogout />
-              Cerrar sesión
+    <div className="page fade-up">
+      <header className="row-between" style={{ marginBottom: 24 }}>
+        <button className="btn-plain" onClick={() => setSelectedTrip(null)} style={{ paddingLeft: 0 }}>
+          Atrás
+        </button>
+        <div className="spinner" style={{ opacity: loadingList ? 1 : 0 }}>
+          <div></div><div></div><div></div><div></div>
+        </div>
+      </header>
+
+      <section className="stack-sm" style={{ marginBottom: 32 }}>
+        <h1 className="large-title">{selectedTrip.name || `Viaje ${selectedTrip.id}`}</h1>
+        <p className="caption">{selectedTrip.type === "ida" ? "Ida" : "Vuelta"} · {started ? "En curso" : "Listo para iniciar"}</p>
+      </section>
+
+      <div className="inset-group stack">
+        <div className="card glass-card stack-sm" style={{ padding: '24px' }}>
+          {!started ? (
+            <button className="btn-primary" onClick={startTrip} disabled={tripClosed || finished || !canManage}>
+              Iniciar recorrido
             </button>
-          </div>
+          ) : (
+            <button className="btn-danger" onClick={finishTrip} disabled={finished || !canManage}>
+              Finalizar recorrido
+            </button>
+          )}
+
+          {!canManage && (
+            <p className="caption" style={{ color: 'var(--ios-system-orange)', textAlign: 'center', marginTop: 12 }}>
+              Otro encargado tiene el control.
+              {activeController?.name ? ` (${activeController.name})` : ""}
+            </p>
+          )}
         </div>
 
-        {startedAt && (
-          <p className="muted">Hora de inicio: {formatDateTime(startedAt)}</p>
-        )}
-
-        {lastFinishedAt && (
-          <p className="muted">Última finalización: {formatDateTime(lastFinishedAt)}</p>
-        )}
-
-        <MessageBanner message={notice} />
-
-        {!started ? (
-          <button onClick={startTrip} disabled={tripClosed || finished || !canManage}>
-            Iniciar recorrido (cierra inscripción)
-          </button>
-        ) : (
-          <button onClick={finishTrip} disabled={finished || !canManage}>
-            Finalizar recorrido y guardar historial
-          </button>
-        )}
-
-        {!canManage && (
-          <p className="empty">
-            Modo lectura: otro encargado tiene el control del recorrido.
-            {activeController?.name ? ` Encargado en control: ${activeController.name}.` : ""}
-          </p>
-        )}
-
-        {started && (
-          <>
-            <hr className="divider" />
-
-            {dashboard && (
-              <p>
-                <span className="badge">Total: {dashboard.total}</span>{" "}
-                <span className="badge badge-success">Presentes: {dashboard.boarded}</span>{" "}
-                <span className="badge badge-warning">Ausentes: {dashboard.missing}</span>
-              </p>
-            )}
-
-            {loadingList ? (
-              <>
-                <LoadingState compact label="Cargando lista..." />
-                <SkeletonCards count={2} />
-              </>
-            ) : groups.length === 0 ? (
-              <EmptyState
-                title="No hay pasajeros confirmados"
-                subtitle="Cuando haya confirmados aparecerán agrupados por parada."
-              />
-            ) : (
-              <div className="grid">
-                {groups.map((group) => (
-                  <div key={group.stopId} className="list-item stack-sm">
-                    <b>{group.stop}</b> {group.time ? `(${group.time})` : ""}
-
-                    {group.passengers.map((p) => (
-                      <div key={p.reservationId} className="row-between">
-                        <span>
-                          {p.name} - {p.phone || "Sin teléfono"} - {p.description || "Sin descripción"} - {p.boarded ? "✅ Presente" : "❌ Ausente"}
-                        </span>
-                        <div className="row">
-                          <button onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage}>Marcar presente</button>
-                          <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage}>Marcar ausente</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+        {dashboard && (
+          <div className="row" style={{ justifyContent: 'center', gap: '8px' }}>
+            <span className="badge">Total: {dashboard.total}</span>
+            <span className="badge badge-success">Presentes: {dashboard.boarded}</span>
+            <span className="badge badge-warning">Ausentes: {dashboard.missing}</span>
+          </div>
         )}
       </div>
+
+      <MessageBanner message={notice} />
+
+      {started && (
+        <div className="stack" style={{ marginTop: 32 }}>
+          {loadingList && groups.length === 0 ? (
+            <div className="inset-group">
+              <SkeletonCards count={2} />
+            </div>
+          ) : groups.length === 0 ? (
+            <EmptyState title="Sin pasajeros" subtitle="Nadie se anotó para este viaje todavía." />
+          ) : (
+            groups.map((group) => (
+              <div key={group.stopId} className="inset-group">
+                <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
+                <div className="inset-list">
+                  {group.passengers.map((p) => (
+                    <div key={p.reservationId} className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', padding: '16px' }}>
+                      <div className="row-between">
+                        <span className="body"><b>{p.name}</b></span>
+                        <span className={`badge ${p.boarded ? 'badge-success' : 'badge-warning'}`}>
+                          {p.boarded ? "Presente" : "Ausente"}
+                        </span>
+                      </div>
+                      <p className="caption">{p.phone || "Sin tel"} · {p.description || "Sin descripción"}</p>
+                      
+                      <div className="row" style={{ marginTop: 12 }}>
+                        <button className="btn-secondary" style={{ flex: 1, fontSize: '14px' }} onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded}>
+                          Marcar Presente
+                        </button>
+                        <button className="btn-plain" style={{ flex: 1, fontSize: '14px', color: 'var(--ios-system-gray)' }} onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded}>
+                          Marcar Ausente
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {startedAt && <p className="caption" style={{ textAlign: 'center', marginTop: 24, opacity: 0.5 }}>Inicio: {formatDateTime(startedAt)}</p>}
     </div>
   );
 }
