@@ -76,7 +76,17 @@ function App() {
           return;
         }
 
-        setSession(newSession);
+        setSession((prevSession) => {
+          if (
+            event === "SIGNED_IN" &&
+            prevSession?.user?.id &&
+            prevSession.user.id === newSession?.user?.id
+          ) {
+            return prevSession;
+          }
+
+          return newSession;
+        });
         setAuthReady(true);
       }
     );
