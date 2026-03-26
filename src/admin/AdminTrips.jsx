@@ -7,7 +7,7 @@ import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
-import { formatDateTime, formatOccupancy, formatTripStatus } from "../utils/format";
+import { formatOccupancy, formatTripStatus } from "../utils/format";
 
 const WEEK_DAYS = [
   { value: 0, label: "Domingo" },
@@ -338,7 +338,6 @@ export default function AdminTrips() {
       </div>
       
       <div className="stack-sm" style={{ opacity: 0.8 }}>
-        <p className="caption">Inicia: {formatDateTime(trip.time)}</p>
         <p className="caption">Ocupación: <b>{trip.confirmed || 0}/{trip.capacity || 0}</b> ({formatOccupancy(trip.confirmed, trip.capacity)}%)</p>
         {trip.waiting > 0 && <p className="caption" style={{ color: 'var(--ios-system-orange)' }}>Lista de espera: {trip.waiting}</p>}
       </div>
@@ -370,7 +369,6 @@ export default function AdminTrips() {
                 <select style={{ flex: 1 }} value={editType} onChange={e => setEditType(e.target.value)}>
                    <option value="ida">Ida</option><option value="vuelta">Vuelta</option>
                 </select>
-                <input style={{ flex: 2 }} type="datetime-local" value={editDeparture} onChange={e => setEditDeparture(e.target.value)} />
               </div>
 
               <div className="divider" />
