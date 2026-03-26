@@ -144,13 +144,14 @@ export default function Encargado() {
   if (!selectedTrip) {
     return (
       <div className="page fade-up">
-        <header className="row-between" style={{ marginBottom: 32 }}>
+        <header className="row-between">
           <div className="stack-sm">
             <h1 className="large-title">Panel Encargado</h1>
             <p className="caption">Seleccionar viaje</p>
           </div>
-          <button className="btn-secondary" onClick={() => supabase.auth.signOut()} style={{ padding: '8px 12px' }}>
+          <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
             <IconLogout />
+            Salir
           </button>
         </header>
 
@@ -158,41 +159,37 @@ export default function Encargado() {
 
         <div className="inset-group">
           <h3 className="subheadline">Traslados de Ida</h3>
-          <div className="inset-list">
+          <div className="grid">
             {idaTrips.length === 0 ? (
-              <div className="card glass-card" style={{ padding: '16px', textAlign: 'center' }}>
-                <p className="caption">No hay traslados de ida</p>
-              </div>
+              <EmptyState title="No hay traslados de ida" subtitle="Publicá un viaje para comenzar." />
             ) : (
               idaTrips.map((trip) => (
-                <div key={trip.id} className="card glass-card row-between" onClick={() => selectTrip(trip)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
                     <span className="body"><b>{trip.name || `Viaje ${trip.id}`}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
-                </div>
+                </button>
               ))
             )}
           </div>
         </div>
 
-        <div className="inset-group" style={{ marginTop: 24 }}>
+        <div className="inset-group">
           <h3 className="subheadline">Traslados de Vuelta</h3>
-          <div className="inset-list">
+          <div className="grid">
             {vueltaTrips.length === 0 ? (
-              <div className="card glass-card" style={{ padding: '16px', textAlign: 'center' }}>
-                <p className="caption">No hay traslados de vuelta</p>
-              </div>
+              <EmptyState title="No hay traslados de vuelta" subtitle="Publicá un viaje para comenzar." />
             ) : (
               vueltaTrips.map((trip) => (
-                <div key={trip.id} className="card glass-card row-between" onClick={() => selectTrip(trip)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
                     <span className="body"><b>{trip.name || `Viaje ${trip.id}`}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -203,22 +200,20 @@ export default function Encargado() {
 
   return (
     <div className="page fade-up">
-      <header className="row-between" style={{ marginBottom: 24 }}>
-        <button className="btn-plain" onClick={() => setSelectedTrip(null)} style={{ paddingLeft: 0 }}>
+      <header className="row-between">
+        <button className="btn-plain" onClick={() => setSelectedTrip(null)}>
           Atrás
         </button>
-        <div className="spinner" style={{ opacity: loadingList ? 1 : 0 }}>
-          <div></div><div></div><div></div><div></div>
-        </div>
+        {loadingList ? <span className="loader loader-sm" aria-hidden="true" /> : null}
       </header>
 
-      <section className="stack-sm" style={{ marginBottom: 32 }}>
+      <section className="stack-sm">
         <h1 className="large-title">{selectedTrip.name || `Viaje ${selectedTrip.id}`}</h1>
         <p className="caption">{selectedTrip.type === "ida" ? "Ida" : "Vuelta"} · {started ? "En curso" : "Listo para iniciar"}</p>
       </section>
 
       <div className="inset-group stack">
-        <div className="card glass-card stack-sm" style={{ padding: '24px' }}>
+        <div className="card stack-sm">
           {!started ? (
             <button className="btn-primary" onClick={startTrip} disabled={tripClosed || finished || !canManage}>
               Iniciar recorrido
@@ -230,7 +225,7 @@ export default function Encargado() {
           )}
 
           {!canManage && (
-            <p className="caption" style={{ color: 'var(--ios-system-orange)', textAlign: 'center', marginTop: 12 }}>
+            <p className="caption">
               Otro encargado tiene el control.
               {activeController?.name ? ` (${activeController.name})` : ""}
             </p>
@@ -238,7 +233,7 @@ export default function Encargado() {
         </div>
 
         {dashboard && (
-          <div className="row" style={{ justifyContent: 'center', gap: '8px' }}>
+          <div className="row">
             <span className="badge">Total: {dashboard.total}</span>
             <span className="badge badge-success">Presentes: {dashboard.boarded}</span>
             <span className="badge badge-warning">Ausentes: {dashboard.missing}</span>
@@ -249,7 +244,7 @@ export default function Encargado() {
       <MessageBanner message={notice} />
 
       {started && (
-        <div className="stack" style={{ marginTop: 32 }}>
+        <div className="stack">
           {loadingList && groups.length === 0 ? (
             <div className="inset-group">
               <SkeletonCards count={2} />
@@ -260,9 +255,9 @@ export default function Encargado() {
             groups.map((group) => (
               <div key={group.stopId} className="inset-group">
                 <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
-                <div className="inset-list">
+                <div className="grid">
                   {group.passengers.map((p) => (
-                    <div key={p.reservationId} className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', padding: '16px' }}>
+                    <div key={p.reservationId} className="list-item stack-sm">
                       <div className="row-between">
                         <span className="body"><b>{p.name}</b></span>
                         <span className={`badge ${p.boarded ? 'badge-success' : 'badge-warning'}`}>
@@ -271,11 +266,11 @@ export default function Encargado() {
                       </div>
                       <p className="caption">{p.phone || "Sin tel"} · {p.description || "Sin descripción"}</p>
                       
-                      <div className="row" style={{ marginTop: 12 }}>
-                        <button className="btn-secondary" style={{ flex: 1, fontSize: '14px' }} onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded}>
+                      <div className="row">
+                        <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded}>
                           Marcar Presente
                         </button>
-                        <button className="btn-plain" style={{ flex: 1, fontSize: '14px', color: 'var(--ios-system-gray)' }} onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded}>
+                        <button className="btn-plain" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded}>
                           Marcar Ausente
                         </button>
                       </div>
@@ -288,7 +283,7 @@ export default function Encargado() {
         </div>
       )}
 
-      {startedAt && <p className="caption" style={{ textAlign: 'center', marginTop: 24, opacity: 0.5 }}>Inicio: {formatDateTime(startedAt)}</p>}
+      {startedAt && <p className="caption">Inicio: {formatDateTime(startedAt)}</p>}
     </div>
   );
 }

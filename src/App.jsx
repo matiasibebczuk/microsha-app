@@ -215,16 +215,11 @@ function App() {
   if (!authReady) {
     return (
       <div className="loading-screen fade-up">
-        <div className="stack" style={{ textAlign: 'center' }}>
+        <div className="stack" style={{ textAlign: "center" }}>
           <div className="ios-logo-container">
             <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
           </div>
-          <div className="spinner">
-            <div></div><div></div><div></div><div></div>
-            <div></div><div></div><div></div><div></div>
-            <div></div><div></div><div></div><div></div>
-          </div>
-          <p className="caption" style={{ marginTop: 16 }}>Iniciando sesión...</p>
+          <LoadingState compact label="Iniciando sesión..." />
         </div>
       </div>
     );
@@ -242,7 +237,7 @@ function App() {
   if (!profile) {
     return (
       <div className="page-narrow fade-up">
-        <div className="card glass-card stack" style={{ textAlign: 'center', padding: '32px' }}>
+        <div className="card stack" style={{ textAlign: "center" }}>
           <h2 className="headline">Error de Perfil</h2>
           <p className="caption">No se encontró un rol válido en tu sesión.</p>
           <div className="divider" />
@@ -261,14 +256,9 @@ function App() {
     if (groupLoading) {
       return (
         <div className="loading-screen fade-up">
-          <div className="stack" style={{ textAlign: 'center' }}>
+          <div className="stack" style={{ textAlign: "center" }}>
             <h2 className="large-title">MicroSHA</h2>
-            <div className="spinner">
-              <div></div><div></div><div></div><div></div>
-              <div></div><div></div><div></div><div></div>
-              <div></div><div></div><div></div><div></div>
-            </div>
-            <p className="caption" style={{ marginTop: 16 }}>Cargando grupo...</p>
+            <LoadingState compact label="Cargando grupo..." />
           </div>
         </div>
       );
@@ -289,10 +279,10 @@ function App() {
 
   return (
     <div className="page-narrow fade-up">
-      <div className="card glass-card" style={{ textAlign: 'center', padding: '32px' }}>
+      <div className="card stack" style={{ textAlign: "center" }}>
         <h2 className="headline">Rol desconocido</h2>
         <p className="caption">Tu cuenta no tiene permisos suficientes.</p>
-        <button className="btn-secondary" onClick={() => supabase.auth.signOut()} style={{ marginTop: 16 }}>
+        <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
           Cerrar sesión
         </button>
       </div>

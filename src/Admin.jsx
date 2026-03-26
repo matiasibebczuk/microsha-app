@@ -23,35 +23,36 @@ export default function Admin() {
 
   return (
     <div className="page fade-up">
-      <header className="row-between" style={{ marginBottom: 32 }}>
+      <header className="row-between">
         <div className="stack-sm">
           <h1 className="large-title">Panel Admin</h1>
           <p className="caption">Gestioná traslados y recorridos</p>
         </div>
-        <button className="btn-secondary" onClick={() => supabase.auth.signOut()} style={{ padding: '8px 12px' }}>
+        <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
           <IconLogout />
+          Salir
         </button>
       </header>
 
       <div className="inset-group">
         <h3 className="subheadline">Acciones principales</h3>
-        <div className="inset-list">
-          <div className="card glass-card row-between" onClick={() => setView("create")} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+        <div className="grid">
+          <button className="list-item row-between" onClick={() => setView("create")}>
             <span className="body"><b>Crear nuevo traslado</b></span>
-            <span className="btn-plain">Nuevo</span>
-          </div>
-          <div className="card glass-card row-between" onClick={() => setView("templates")} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+            <span className="badge">Nuevo</span>
+          </button>
+          <button className="list-item row-between" onClick={() => setView("templates")}>
             <span className="body">Paradas predeterminadas</span>
-            <span className="btn-plain">Gestionar</span>
-          </div>
-          <div className="card glass-card row-between" onClick={() => setView("history")} style={{ borderRadius: 0, border: 'none' }}>
+            <span className="badge">Gestionar</span>
+          </button>
+          <button className="list-item row-between" onClick={() => setView("history")}>
             <span className="body">Historial de viajes</span>
-            <span className="btn-plain">Ver</span>
-          </div>
+            <span className="badge">Ver</span>
+          </button>
         </div>
       </div>
 
-      <div className="stack" style={{ marginTop: 40 }}>
+      <div className="stack">
         <div className="inset-group">
           <h3 className="subheadline">Traslados activos</h3>
           <AdminTrips />
