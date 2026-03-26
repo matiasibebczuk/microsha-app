@@ -20,6 +20,29 @@ function getTripTypeBucket(type) {
   return "other";
 }
 
+function normalizeTripsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.trips)) return payload.trips;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+}
+
+async function readJsonSafely(res) {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default function AdminTrips() {
   const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
@@ -42,22 +65,60 @@ export default function AdminTrips() {
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [groupLabel, setGroupLabel] = useState("-");
   const [passengerPage, setPassengerPage] = useState(1);
   const passengerPageSize = 20;
   const passengersSectionRef = useRef(null);
+
+  const getTokenWithRetry = useCallback(async () => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const token = await getAccessToken();
+      if (token) return token;
+      await sleep(250);
+    }
+    return null;
+  }, [getAccessToken]);
 
   const loadTrips = useCallback(async () => {
     try {
       setLoading(true);
       setNotice("");
-      const token = await getAccessToken();
+      const token = await getTokenWithRetry();
       if (!token) { setTrips([]); setNotice("Sesión expirada"); return; }
-      const res = await fetch(apiUrl("/trips"), { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (!res.ok) { setNotice(json?.error || "Error"); setTrips([]); return; }
-      setTrips(Array.isArray(json) ? json : []);
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [tripsRes, groupRes] = await Promise.all([
+        fetch(apiUrl("/trips"), { headers }),
+        fetch(apiUrl("/groups/me"), { headers }),
+      ]);
+
+      const [tripsJson, groupJson] = await Promise.all([
+        readJsonSafely(tripsRes),
+        readJsonSafely(groupRes),
+      ]);
+
+      if (groupRes.ok) {
+        const gid = groupJson?.groupId || "-";
+        const gname = groupJson?.groupName ? ` (${groupJson.groupName})` : "";
+        setGroupLabel(`${gid}${gname}`);
+      } else {
+        setGroupLabel("sin grupo");
+      }
+
+      if (!tripsRes.ok) {
+        setNotice(tripsJson?.error || `Error cargando traslados (${tripsRes.status})`);
+        setTrips([]);
+        return;
+      }
+
+      const normalizedTrips = normalizeTripsPayload(tripsJson).filter((trip) => trip && typeof trip === "object");
+      setTrips(normalizedTrips);
+
+      if (normalizedTrips.length === 0) {
+        setNotice("No hay traslados para el grupo actual.");
+      }
     } catch { setNotice("Error de red"); setTrips([]); } finally { setLoading(false); }
-  }, [getAccessToken]);
+  }, [getTokenWithRetry]);
 
   useEffect(() => {
     void loadTrips();
@@ -273,6 +334,8 @@ export default function AdminTrips() {
       ) : (
         <div className="stack">
           <div className="row" style={{ justifyContent: "flex-end" }}>
+            <span className="badge">Grupo: {groupLabel}</span>
+            <span className="badge">Traslados: {trips.length}</span>
             <button className="btn-secondary" onClick={() => void loadTrips()}>Refrescar traslados</button>
           </div>
           <div className="inset-group">
