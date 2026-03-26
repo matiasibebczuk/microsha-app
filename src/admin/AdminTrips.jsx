@@ -76,6 +76,9 @@ export default function AdminTrips() {
   const [editStops, setEditStops] = useState([]);
   const [editBuses, setEditBuses] = useState([]);
   const [editLoading, setEditLoading] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingTripId, setDeletingTripId] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
   const [notice, setNotice] = useState("");
   const [groupLabel, setGroupLabel] = useState("-");
   const [passengerPage, setPassengerPage] = useState(1);
@@ -210,38 +213,59 @@ export default function AdminTrips() {
   const removeEditStop = (i) => setEditStops(p => p.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, order: idx + 1 })));
 
   const saveEditTrip = async () => {
-    if (!editingTripId) return;
+    if (!editingTripId || savingEdit) return;
+    setSavingEdit(true);
     const token = await getAccessToken();
-    if (!token) return;
-    const body = { name: editName, type: editType };
-    if (editDeparture) body.departure_datetime = new Date(editDeparture).toISOString();
-    body.waitlist_start_day = editWaitlistEnabled ? Number(editWaitlistStartDay) : null;
-    body.waitlist_start_time = editWaitlistEnabled ? editWaitlistStartTime : null;
-    body.waitlist_end_day = editWaitlistEnabled && editWaitlistHasEnd ? Number(editWaitlistEndDay) : null;
-    body.waitlist_end_time = editWaitlistEnabled && editWaitlistHasEnd ? editWaitlistEndTime : null;
-    body.waitlist_start_at = null;
-    body.waitlist_end_at = null;
-    const res = await fetch(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-    if (!res.ok) { alert("Error guardando traslado"); return; }
-    await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ buses: editBuses }) });
-    await fetch(apiUrl(`/trips/${editingTripId}/stops/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ stops: editStops }) });
-    setEditingTripId(null); await loadTrips();
+    if (!token) {
+      setSavingEdit(false);
+      return;
+    }
+    try {
+      const body = { name: editName, type: editType };
+      if (editDeparture) body.departure_datetime = new Date(editDeparture).toISOString();
+      body.waitlist_start_day = editWaitlistEnabled ? Number(editWaitlistStartDay) : null;
+      body.waitlist_start_time = editWaitlistEnabled ? editWaitlistStartTime : null;
+      body.waitlist_end_day = editWaitlistEnabled && editWaitlistHasEnd ? Number(editWaitlistEndDay) : null;
+      body.waitlist_end_time = editWaitlistEnabled && editWaitlistHasEnd ? editWaitlistEndTime : null;
+      body.waitlist_start_at = null;
+      body.waitlist_end_at = null;
+      const res = await fetch(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      if (!res.ok) { alert("Error guardando traslado"); return; }
+      await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ buses: editBuses }) });
+      await fetch(apiUrl(`/trips/${editingTripId}/stops/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ stops: editStops }) });
+      setEditingTripId(null);
+      await loadTrips();
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const deleteTrip = async (id) => {
+    if (deletingTripId === id) return;
     if (!confirm("¿Eliminar?")) return;
+    setDeletingTripId(id);
     const token = await getAccessToken();
-    const res = await fetch(apiUrl(`/trips/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) { alert("Error"); return; }
-    if (selectedTripId === id) setSelectedTripId(null);
-    await loadTrips();
+    try {
+      const res = await fetch(apiUrl(`/trips/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) { alert("Error"); return; }
+      if (selectedTripId === id) setSelectedTripId(null);
+      await loadTrips();
+    } finally {
+      setDeletingTripId(null);
+    }
   };
 
   const changeTripStatus = async (id, status) => {
+    if (statusUpdatingId === id) return;
+    setStatusUpdatingId(id);
     const token = await getAccessToken();
-    const res = await fetch(apiUrl(`/trips/${id}/status`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) });
-    if (!res.ok) { alert("Error"); return; }
-    setTrips(p => p.map(t => t.id === id ? { ...t, status } : t));
+    try {
+      const res = await fetch(apiUrl(`/trips/${id}/status`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) });
+      if (!res.ok) { alert("Error"); return; }
+      setTrips(p => p.map(t => t.id === id ? { ...t, status } : t));
+    } finally {
+      setStatusUpdatingId(null);
+    }
   };
 
   const loadPassengers = async (id) => {
@@ -292,8 +316,8 @@ export default function AdminTrips() {
       <div className="divider" />
 
       <div className="row" style={{ flexWrap: 'wrap', gap: '8px' }}>
-        <button className="btn-secondary" style={{ fontSize: '14px', flex: 1 }} onClick={() => changeTripStatus(trip.id, trip.status === 'open' ? 'closed' : 'open')}>
-          {trip.status === 'open' ? 'Cerrar' : 'Abrir'}
+        <button className="btn-secondary" style={{ fontSize: '14px', flex: 1 }} onClick={() => changeTripStatus(trip.id, trip.status === 'open' ? 'closed' : 'open')} disabled={statusUpdatingId === trip.id}>
+          {statusUpdatingId === trip.id ? 'Actualizando...' : (trip.status === 'open' ? 'Cerrar' : 'Abrir')}
         </button>
         <button className="btn-secondary" style={{ fontSize: '14px', flex: 1 }} onClick={() => loadPassengers(trip.id)}>
           Pasajeros
@@ -301,7 +325,7 @@ export default function AdminTrips() {
         <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => startEditTrip(trip)}>
           <IconEdit />
         </button>
-        <button className="btn-plain" style={{ color: 'var(--ios-system-red)', padding: '10px' }} onClick={() => deleteTrip(trip.id)}>
+        <button className="btn-plain" style={{ color: 'var(--ios-system-red)', padding: '10px' }} onClick={() => deleteTrip(trip.id)} disabled={deletingTripId === trip.id}>
           <IconTrash />
         </button>
       </div>
@@ -372,8 +396,8 @@ export default function AdminTrips() {
               <button className="btn-plain" onClick={addEditStop}>+ Agregar parada</button>
 
               <div className="row" style={{ marginTop: 16 }}>
-                <button className="btn-primary" style={{ flex: 1 }} onClick={saveEditTrip}>Guardar Cambios</button>
-                <button className="btn-secondary" onClick={() => setEditingTripId(null)}>Cancelar</button>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={saveEditTrip} disabled={savingEdit}>{savingEdit ? 'Guardando...' : 'Guardar Cambios'}</button>
+                <button className="btn-secondary" onClick={() => setEditingTripId(null)} disabled={savingEdit}>Cancelar</button>
               </div>
             </div>
           )}

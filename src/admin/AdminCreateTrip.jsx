@@ -28,6 +28,7 @@ export default function AdminCreateTrip({ onCreated }) {
 
   const [templates, setTemplates] = useState([]);
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -84,39 +85,45 @@ export default function AdminCreateTrip({ onCreated }) {
   const removeBus = (i) => { const c = [...buses]; c.splice(i, 1); setBuses(c); };
 
   const createTrip = async () => {
+    if (submitting) return;
     if (buses.length === 0) { alert("Agregá al menos un vehículo."); return; }
-    const { data: sessionData } = await supabase.auth.getSession();
-    const tripRes = await fetch(apiUrl("/trips"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
-      body: JSON.stringify({
-        name, type,
-        waitlist_start_day: waitlistEnabled ? Number(waitlistStartDay) : null,
-        waitlist_start_time: waitlistEnabled ? waitlistStartTime : null,
-        waitlist_end_day: waitlistEnabled && waitlistHasEnd ? Number(waitlistEndDay) : null,
-        waitlist_end_time: waitlistEnabled && waitlistHasEnd ? waitlistEndTime : null,
-        waitlist_start_at: null,
-        waitlist_end_at: null,
-      }),
-    });
-    const trip = await tripRes.json();
-    if (!tripRes.ok) { alert(trip.error); return; }
-    for (let i = 0; i < stops.length; i++) {
-      await fetch(apiUrl(`/trips/${trip.id}/stops`), {
+    setSubmitting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const tripRes = await fetch(apiUrl("/trips"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ name: stops[i].name, time: stops[i].time, order: i + 1 }),
+        body: JSON.stringify({
+          name, type,
+          waitlist_start_day: waitlistEnabled ? Number(waitlistStartDay) : null,
+          waitlist_start_time: waitlistEnabled ? waitlistStartTime : null,
+          waitlist_end_day: waitlistEnabled && waitlistHasEnd ? Number(waitlistEndDay) : null,
+          waitlist_end_time: waitlistEnabled && waitlistHasEnd ? waitlistEndTime : null,
+          waitlist_start_at: null,
+          waitlist_end_at: null,
+        }),
       });
+      const trip = await tripRes.json();
+      if (!tripRes.ok) { alert(trip.error); return; }
+      for (let i = 0; i < stops.length; i++) {
+        await fetch(apiUrl(`/trips/${trip.id}/stops`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
+          body: JSON.stringify({ name: stops[i].name, time: stops[i].time, order: i + 1 }),
+        });
+      }
+      for (const b of buses) {
+        await fetch(apiUrl(`/trips/${trip.id}/buses`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
+          body: JSON.stringify(b),
+        });
+      }
+      setSuccess(true);
+      setTimeout(() => { if (onCreated) onCreated(); }, 1500);
+    } finally {
+      setSubmitting(false);
     }
-    for (const b of buses) {
-      await fetch(apiUrl(`/trips/${trip.id}/buses`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify(b),
-      });
-    }
-    setSuccess(true);
-    setTimeout(() => { if (onCreated) onCreated(); }, 1500);
   };
 
   if (success) {
@@ -217,8 +224,8 @@ export default function AdminCreateTrip({ onCreated }) {
       </div>
 
       <div className="inset-group stack" style={{ marginTop: 40, paddingBottom: 60 }}>
-        <button className="btn-primary" onClick={createTrip}>Crear Traslado</button>
-        {onCreated && <button className="btn-plain" onClick={onCreated}>Cancelar</button>}
+        <button className="btn-primary" onClick={createTrip} disabled={submitting}>{submitting ? "Creando..." : "Crear Traslado"}</button>
+        {onCreated && <button className="btn-plain" onClick={onCreated} disabled={submitting}>Cancelar</button>}
       </div>
     </div>
   );

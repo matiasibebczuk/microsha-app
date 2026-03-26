@@ -9,6 +9,10 @@ export default function TemplateManager({ onBack }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
   const [stops, setStops] = useState([]);
+  const [creatingTemplate, setCreatingTemplate] = useState(false);
+  const [savingStops, setSavingStops] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
+  const [loadingTemplateId, setLoadingTemplateId] = useState(null);
 
   async function loadTemplates() {
     const { data } = await supabase.auth.getSession();
@@ -20,34 +24,61 @@ export default function TemplateManager({ onBack }) {
   }
 
   useEffect(() => {
-    loadTemplates();
+    let alive = true;
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      const res = await fetch(apiUrl("/templates"), {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      });
+      const json = await res.json();
+      if (alive && Array.isArray(json)) {
+        setTemplates(json);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const createTemplate = async () => {
+    if (creatingTemplate) return;
     if (!name.trim()) return;
-    const { data } = await supabase.auth.getSession();
-    const res = await fetch(apiUrl("/templates"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-      body: JSON.stringify({ name, type }),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      alert(err.error || "Error");
-      return;
+    setCreatingTemplate(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const res = await fetch(apiUrl("/templates"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ name, type }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Error");
+        return;
+      }
+      setName("");
+      loadTemplates();
+    } finally {
+      setCreatingTemplate(false);
     }
-    setName("");
-    loadTemplates();
   };
 
   const loadStops = async (template) => {
+    if (loadingTemplateId === template.id) return;
+    setLoadingTemplateId(template.id);
     const { data } = await supabase.auth.getSession();
     setSelected(template);
-    const res = await fetch(apiUrl(`/templates/${template.id}/stops`), {
-      headers: { Authorization: `Bearer ${data.session.access_token}` },
-    });
-    const json = await res.json();
-    setStops(json || []);
+    try {
+      const res = await fetch(apiUrl(`/templates/${template.id}/stops`), {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      });
+      const json = await res.json();
+      setStops(json || []);
+    } finally {
+      setLoadingTemplateId(null);
+    }
   };
 
   const addStop = () => {
@@ -68,28 +99,40 @@ export default function TemplateManager({ onBack }) {
   };
 
   const saveStops = async () => {
+    if (savingStops) return;
+    setSavingStops(true);
     const { data } = await supabase.auth.getSession();
-    for (const s of stops) {
-      if (s.id) continue;
-      await fetch(apiUrl(`/templates/${selected.id}/stops`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-        body: JSON.stringify(s),
-      });
+    try {
+      for (const s of stops) {
+        if (s.id) continue;
+        await fetch(apiUrl(`/templates/${selected.id}/stops`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+          body: JSON.stringify(s),
+        });
+      }
+      alert("Paradas guardadas");
+      loadStops(selected);
+    } finally {
+      setSavingStops(false);
     }
-    alert("Paradas guardadas");
-    loadStops(selected);
   };
 
   const deleteTemplate = async (id) => {
+    if (deletingTemplateId === id) return;
     if (!confirm("¿Eliminar plantilla?")) return;
+    setDeletingTemplateId(id);
     const { data } = await supabase.auth.getSession();
-    await fetch(apiUrl(`/templates/${id}`), {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${data.session.access_token}` },
-    });
-    setSelected(null);
-    loadTemplates();
+    try {
+      await fetch(apiUrl(`/templates/${id}`), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      });
+      setSelected(null);
+      loadTemplates();
+    } finally {
+      setDeletingTemplateId(null);
+    }
   };
 
   if (!selected) {
@@ -112,7 +155,7 @@ export default function TemplateManager({ onBack }) {
                 <option value="ida">Ida</option>
                 <option value="vuelta">Vuelta</option>
               </select>
-              <button className="btn-primary" onClick={createTemplate}>Crear</button>
+              <button className="btn-primary" onClick={createTemplate} disabled={creatingTemplate}>{creatingTemplate ? "Creando..." : "Crear"}</button>
             </div>
           </div>
         </div>
@@ -133,8 +176,8 @@ export default function TemplateManager({ onBack }) {
                     <span className="caption">{t.type === 'ida' ? 'Ida' : 'Vuelta'}</span>
                   </div>
                   <div className="row">
-                    <button className="btn-secondary" onClick={() => loadStops(t)}>Editar</button>
-                    <button className="btn-danger btn-with-icon" onClick={() => deleteTemplate(t.id)}>
+                    <button className="btn-secondary" onClick={() => loadStops(t)} disabled={loadingTemplateId === t.id || deletingTemplateId === t.id}>{loadingTemplateId === t.id ? "Cargando..." : "Editar"}</button>
+                    <button className="btn-danger btn-with-icon" onClick={() => deleteTemplate(t.id)} disabled={deletingTemplateId === t.id}>
                       <IconTrash />
                     </button>
                   </div>
@@ -174,7 +217,7 @@ export default function TemplateManager({ onBack }) {
       </div>
 
       <div className="inset-group stack">
-        <button className="btn-primary" onClick={saveStops}>Guardar Plantilla</button>
+        <button className="btn-primary" onClick={saveStops} disabled={savingStops}>{savingStops ? "Guardando..." : "Guardar Plantilla"}</button>
       </div>
     </div>
   );

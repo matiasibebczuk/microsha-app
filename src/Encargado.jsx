@@ -24,6 +24,9 @@ export default function Encargado() {
   const [activeController, setActiveController] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
   const [notice, setNotice] = useState("");
+  const [startingTrip, setStartingTrip] = useState(false);
+  const [finishingTrip, setFinishingTrip] = useState(false);
+  const [boardingReservationId, setBoardingReservationId] = useState(null);
 
   const getAuthHeader = useCallback(async () => {
     const token = await getAuthToken();
@@ -82,49 +85,65 @@ export default function Encargado() {
   };
 
   const startTrip = async () => {
-    if (!selectedTrip) return;
+    if (!selectedTrip || startingTrip) return;
+    setStartingTrip(true);
     let authHeader;
-    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-    const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/start`), { method: "POST", headers: authHeader });
-    const json = await res.json();
-    if (!res.ok) { alert(json?.error || "No se pudo iniciar el recorrido"); return; }
-    setStarted(true);
-    setTripClosed(true);
-    setFinished(false);
-    setCanManage(true);
-    setStartedAt(json.startedAt || new Date().toISOString());
-    await loadTripData(selectedTrip.id);
+    try {
+      try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/start`), { method: "POST", headers: authHeader });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || "No se pudo iniciar el recorrido"); return; }
+      setStarted(true);
+      setTripClosed(true);
+      setFinished(false);
+      setCanManage(true);
+      setStartedAt(json.startedAt || new Date().toISOString());
+      await loadTripData(selectedTrip.id);
+    } finally {
+      setStartingTrip(false);
+    }
   };
 
   const toggleBoarded = async (reservationId, boarded) => {
+    if (boardingReservationId === reservationId) return;
+    setBoardingReservationId(reservationId);
     let authHeader;
-    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-    const res = await fetch(apiUrl(`/encargado/reservations/${reservationId}/boarded`), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeader },
-      body: JSON.stringify({ boarded }),
-    });
-    const json = await res.json();
-    if (!res.ok) { alert(json?.error || "No se pudo actualizar asistencia"); return; }
-    await loadTripData(selectedTrip.id);
+    try {
+      try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+      const res = await fetch(apiUrl(`/encargado/reservations/${reservationId}/boarded`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeader },
+        body: JSON.stringify({ boarded }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || "No se pudo actualizar asistencia"); return; }
+      await loadTripData(selectedTrip.id);
+    } finally {
+      setBoardingReservationId(null);
+    }
   };
 
   const finishTrip = async () => {
-    if (!selectedTrip) return;
+    if (!selectedTrip || finishingTrip) return;
     if (!started && !tripClosed) { alert("Primero iniciá el recorrido."); return; }
+    setFinishingTrip(true);
     let authHeader;
-    try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-    const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
-    const json = await res.json();
-    if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
-    alert(`Recorrido finalizado. Historial run #${json.runId}`);
-    setFinished(true);
-    setSelectedTrip(null);
-    setStarted(false);
-    setTripClosed(false);
-    setGroups([]);
-    setDashboard(null);
-    await loadTrips();
+    try {
+      try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
+      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
+      alert(`Recorrido finalizado. Historial run #${json.runId}`);
+      setFinished(true);
+      setSelectedTrip(null);
+      setStarted(false);
+      setTripClosed(false);
+      setGroups([]);
+      setDashboard(null);
+      await loadTrips();
+    } finally {
+      setFinishingTrip(false);
+    }
   };
 
   const selectTrip = async (trip) => {
@@ -223,11 +242,11 @@ export default function Encargado() {
         <div className="card stack-sm">
           {!started ? (
             <button className="btn-primary" onClick={startTrip} disabled={tripClosed || finished || !canManage}>
-              Iniciar recorrido
+              {startingTrip ? "Iniciando..." : "Iniciar recorrido"}
             </button>
           ) : (
-            <button className="btn-danger" onClick={finishTrip} disabled={finished || !canManage}>
-              Finalizar recorrido
+            <button className="btn-danger" onClick={finishTrip} disabled={finished || !canManage || finishingTrip}>
+              {finishingTrip ? "Finalizando..." : "Finalizar recorrido"}
             </button>
           )}
 
@@ -274,10 +293,10 @@ export default function Encargado() {
                       <p className="caption">{p.phone || "Sin tel"} · {p.description || "Sin descripción"}</p>
                       
                       <div className="row">
-                        <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded}>
+                        <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded || boardingReservationId === p.reservationId}>
                           Marcar Presente
                         </button>
-                        <button className="btn-plain" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded}>
+                        <button className="btn-plain" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded || boardingReservationId === p.reservationId}>
                           Marcar Ausente
                         </button>
                       </div>

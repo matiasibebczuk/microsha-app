@@ -510,6 +510,8 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
   const [existing, setExisting] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [submittingStopId, setSubmittingStopId] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const handleSessionExpired = () => {
     alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
@@ -591,84 +593,96 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
   }, [trip.id, user.id, user.passengerToken, onSessionExpired]);
 
   const reserve = async (stopId) => {
+    if (submittingStopId !== null) return;
+    setSubmittingStopId(stopId);
     console.log("ENVIANDO RESERVA:", { userId: user.id, tripId: trip.id, stopId });
 
-    let res = await passengerFetch(apiUrl("/reservations"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tripId: trip.id,
-        stopId,
-      }),
-    });
-
-    if (!res) return;
-
-    if (!res.ok) {
-      const err = await res.json();
-
-      if (err.error?.includes("duplicate")) {
-        res = await passengerFetch(apiUrl("/reservations/change"), {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tripId: trip.id,
-            stopId,
-          }),
-        });
-
-        if (!res) return;
-      } else {
-        alert(err.error || "No se pudo reservar");
-        return;
-      }
-    }
-
-    const json = await res.json();
-
-    if (!res.ok) {
-      alert(json.error || "No se pudo reservar");
-      return;
-    }
-
-    const selectedStop = stops.find((stop) => String(stop.id) === String(stopId));
-
-    clearCached(`passenger:trips:${user.passengerToken}`);
-    onReserved({
-      status: json.status,
-      stopName: selectedStop?.name || null,
-      stopTime: formatTimeNoSeconds(selectedStop?.time || null),
-    });
-  };
-
-  if (existing) {
-    const cancel = async () => {
-      const res = await passengerFetch(apiUrl("/reservations"), {
-        method: "DELETE",
+    try {
+      let res = await passengerFetch(apiUrl("/reservations"), {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           tripId: trip.id,
+          stopId,
         }),
       });
 
       if (!res) return;
 
+      if (!res.ok) {
+        const err = await res.json();
+
+        if (err.error?.includes("duplicate")) {
+          res = await passengerFetch(apiUrl("/reservations/change"), {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              tripId: trip.id,
+              stopId,
+            }),
+          });
+
+          if (!res) return;
+        } else {
+          alert(err.error || "No se pudo reservar");
+          return;
+        }
+      }
+
       const json = await res.json();
 
       if (!res.ok) {
-        alert(json.error || "No se pudo cancelar");
+        alert(json.error || "No se pudo reservar");
         return;
       }
 
+      const selectedStop = stops.find((stop) => String(stop.id) === String(stopId));
+
       clearCached(`passenger:trips:${user.passengerToken}`);
-      setExisting(null);
-      onReservationCancelled?.(trip.id);
+      onReserved({
+        status: json.status,
+        stopName: selectedStop?.name || null,
+        stopTime: formatTimeNoSeconds(selectedStop?.time || null),
+      });
+    } finally {
+      setSubmittingStopId(null);
+    }
+  };
+
+  if (existing) {
+    const cancel = async () => {
+      if (cancelling) return;
+      setCancelling(true);
+      try {
+        const res = await passengerFetch(apiUrl("/reservations"), {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tripId: trip.id,
+          }),
+        });
+
+        if (!res) return;
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          alert(json.error || "No se pudo cancelar");
+          return;
+        }
+
+        clearCached(`passenger:trips:${user.passengerToken}`);
+        setExisting(null);
+        onReservationCancelled?.(trip.id);
+      } finally {
+        setCancelling(false);
+      }
     };
 
     const change = () => setExisting(null);
@@ -696,7 +710,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
             <div className="stack-sm">
               <button className="btn-primary" onClick={change}>Cambiar mi parada</button>
-              <button className="btn-plain" style={{ color: 'var(--ios-system-red)' }} onClick={cancel}>Cancelar lugar</button>
+              <button className="btn-plain" style={{ color: 'var(--ios-system-red)' }} onClick={cancel} disabled={cancelling}>{cancelling ? "Cancelando..." : "Cancelar lugar"}</button>
             </div>
           </div>
         </div>
@@ -733,9 +747,10 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
         ) : (
           <div className="inset-group">
             <h3 className="subheadline">Lista de paradas</h3>
+            {submittingStopId !== null ? <LoadingState compact label="Guardando reserva..." /> : null}
             <div className="inset-list">
               {stops.map((s) => (
-                <div key={s.id} className="card glass-card row-between" onClick={() => reserve(s.id)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+                <div key={s.id} className="card glass-card row-between" onClick={() => reserve(s.id)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', opacity: submittingStopId !== null ? 0.7 : 1, pointerEvents: submittingStopId !== null ? 'none' : 'auto' }}>
                   <div className="stack-sm">
                     <span className="body"><b>{s.name}</b></span>
                     <span className="caption">Pasa a las {s.time}</span>
