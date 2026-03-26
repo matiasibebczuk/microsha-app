@@ -13,6 +13,13 @@ function normalizeTripType(type) {
   return String(type || "").trim().toLowerCase();
 }
 
+function getTripTypeBucket(type) {
+  const normalized = normalizeTripType(type);
+  if (normalized.startsWith("ida")) return "ida";
+  if (normalized.startsWith("vuelta") || normalized.startsWith("regreso")) return "vuelta";
+  return "other";
+}
+
 export default function AdminTrips() {
   const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
@@ -247,6 +254,10 @@ export default function AdminTrips() {
     </div>
   );
 
+  const idaTrips = trips.filter((t) => getTripTypeBucket(t.type) === "ida");
+  const vueltaTrips = trips.filter((t) => getTripTypeBucket(t.type) === "vuelta");
+  const otherTrips = trips.filter((t) => getTripTypeBucket(t.type) === "other");
+
   return (
     <div className="stack fade-up">
       <MessageBanner message={notice} />
@@ -257,12 +268,26 @@ export default function AdminTrips() {
         <div className="stack">
           <div className="inset-group">
             <h3 className="subheadline">Traslados de Ida</h3>
-            {trips.filter((t) => normalizeTripType(t.type) === "ida").map(renderTripCard)}
+            {idaTrips.length === 0 ? (
+              <EmptyState title="Sin traslados de ida" subtitle="No hay viajes de ida para mostrar." />
+            ) : (
+              idaTrips.map(renderTripCard)
+            )}
           </div>
           <div className="inset-group">
             <h3 className="subheadline">Traslados de Vuelta</h3>
-            {trips.filter((t) => normalizeTripType(t.type) === "vuelta").map(renderTripCard)}
+            {vueltaTrips.length === 0 ? (
+              <EmptyState title="Sin traslados de vuelta" subtitle="No hay viajes de vuelta para mostrar." />
+            ) : (
+              vueltaTrips.map(renderTripCard)
+            )}
           </div>
+          {otherTrips.length > 0 ? (
+            <div className="inset-group">
+              <h3 className="subheadline">Otros traslados</h3>
+              {otherTrips.map(renderTripCard)}
+            </div>
+          ) : null}
         </div>
       )}
 

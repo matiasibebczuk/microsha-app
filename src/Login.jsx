@@ -24,7 +24,7 @@ export default function Login({ onPassenger }) {
     setPassengerLoading(true);
     window.setTimeout(() => {
       onPassenger?.();
-    }, 180);
+    }, 700);
   };
 
   useEffect(() => {
@@ -225,6 +225,12 @@ export default function Login({ onPassenger }) {
 
   return (
     <div className="page-narrow fade-up">
+      {passengerLoading ? (
+        <div className="loading-screen" style={{ position: "fixed", inset: 0, background: "rgba(7, 12, 24, 0.62)", zIndex: 1200 }}>
+          <LoadingState compact label="Abriendo acceso para pasajeros..." />
+        </div>
+      ) : null}
+
       <div className="ios-logo-container">
         <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
       </div>
@@ -238,8 +244,6 @@ export default function Login({ onPassenger }) {
         <button className="cta-passenger" onClick={goPassenger} disabled={passengerLoading}>
           {passengerLoading ? "Cargando acceso..." : "Quiero anotarme"}
         </button>
-
-        {passengerLoading ? <LoadingState compact label="Preparando acceso pasajero..." /> : null}
 
         <button
           className="btn-secondary"

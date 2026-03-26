@@ -21,8 +21,20 @@ function formatSummaryItem(value) {
 function formatTimeNoSeconds(value) {
   if (!value) return value;
   const asText = String(value);
+
+  // Direct HH:mm(:ss) formats
   const hhmm = asText.match(/^(\d{2}:\d{2})/);
-  return hhmm ? hhmm[1] : asText;
+  if (hhmm) return hhmm[1];
+
+  // ISO/local datetime values
+  const parsed = new Date(asText);
+  if (!Number.isNaN(parsed.getTime())) {
+    const hh = String(parsed.getHours()).padStart(2, "0");
+    const mm = String(parsed.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  return asText;
 }
 
 function toSpanishTripType(type) {
