@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import MessageBanner from "./ui/MessageBanner";
+import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 export default function PassengerLogin({ onLogin, onBack }) {
   const [dni, setDni] = useState("");
@@ -38,6 +39,10 @@ export default function PassengerLogin({ onLogin, onBack }) {
 
   return (
     <div className="page-narrow stack">
+      <div className="ios-logo-container">
+        <img src={microshaLogo} alt="MicroSHA Logo" />
+      </div>
+
       <div className="card stack">
         <div>
           <h2 className="title">Ingreso pasajeros</h2>
