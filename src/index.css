@@ -1,8 +1,8 @@
 :root {
-  --bg: #0b1020;
-  --bg-elev-1: #11152c;
-  --bg-elev-2: #1a2140;
-  --bg-elev-3: #202a4f;
+  --bg: #081235;
+  --bg-elev-1: #0d1a42;
+  --bg-elev-2: #132453;
+  --bg-elev-3: #1a2f67;
   --line: #33426f;
   --text: #ecf1ff;
   --muted: #aab5d4;
@@ -34,7 +34,7 @@ html {
 }
 
 body {
-  background: radial-gradient(1200px 600px at 8% -10%, #1b264d 0%, var(--bg) 48%, #080d1c 100%);
+  background: radial-gradient(1200px 620px at 8% -12%, #1e4f9a 0%, #0f2761 34%, var(--bg) 68%, #060f2d 100%);
   color: var(--text);
   font-family: var(--font);
   line-height: 1.45;
@@ -495,7 +495,7 @@ button:disabled {
 }
 
 .ios-logo-container img {
-  width: clamp(180px, 34vw, 300px);
+  width: clamp(128px, 24vw, 210px);
   height: auto;
 }
 
