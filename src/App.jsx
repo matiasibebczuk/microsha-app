@@ -67,8 +67,15 @@ function App() {
     boot();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
         if (!active) return;
+
+        // Avoid remount loops in staff screens caused by periodic token refresh events.
+        if (event === "TOKEN_REFRESHED") {
+          setAuthReady(true);
+          return;
+        }
+
         setSession(newSession);
         setAuthReady(true);
       }
