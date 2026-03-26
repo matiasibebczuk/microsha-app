@@ -9,6 +9,10 @@ import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
 import { formatDateTime, formatOccupancy, formatTripStatus } from "../utils/format";
 
+function normalizeTripType(type) {
+  return String(type || "").trim().toLowerCase();
+}
+
 export default function AdminTrips() {
   const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
@@ -253,11 +257,11 @@ export default function AdminTrips() {
         <div className="stack">
           <div className="inset-group">
             <h3 className="subheadline">Traslados de Ida</h3>
-            {trips.filter(t => t.type === 'ida').map(renderTripCard)}
+            {trips.filter((t) => normalizeTripType(t.type) === "ida").map(renderTripCard)}
           </div>
           <div className="inset-group">
             <h3 className="subheadline">Traslados de Vuelta</h3>
-            {trips.filter(t => t.type === 'vuelta').map(renderTripCard)}
+            {trips.filter((t) => normalizeTripType(t.type) === "vuelta").map(renderTripCard)}
           </div>
         </div>
       )}

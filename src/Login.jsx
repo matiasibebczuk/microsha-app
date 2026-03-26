@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import LoadingState from "./ui/LoadingState";
 
 export default function Login({ onPassenger }) {
   const [mode, setMode] = useState("login");
@@ -15,7 +16,16 @@ export default function Login({ onPassenger }) {
   const [adminClubName, setAdminClubName] = useState("");
   const [adminClubPassword, setAdminClubPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passengerLoading, setPassengerLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  const goPassenger = () => {
+    if (passengerLoading) return;
+    setPassengerLoading(true);
+    window.setTimeout(() => {
+      onPassenger?.();
+    }, 180);
+  };
 
   useEffect(() => {
     if (resendCooldown <= 0) return undefined;
@@ -225,9 +235,11 @@ export default function Login({ onPassenger }) {
           <p className="caption">Acceso principal para socios y staff.</p>
         </div>
 
-        <button className="cta-passenger" onClick={onPassenger}>
-          Quiero anotarme
+        <button className="cta-passenger" onClick={goPassenger} disabled={passengerLoading}>
+          {passengerLoading ? "Cargando acceso..." : "Quiero anotarme"}
         </button>
+
+        {passengerLoading ? <LoadingState compact label="Preparando acceso pasajero..." /> : null}
 
         <button
           className="btn-secondary"

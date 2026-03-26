@@ -18,6 +18,13 @@ function formatSummaryItem(value) {
   return value;
 }
 
+function formatTimeNoSeconds(value) {
+  if (!value) return value;
+  const asText = String(value);
+  const hhmm = asText.match(/^(\d{2}:\d{2})/);
+  return hhmm ? hhmm[1] : asText;
+}
+
 function toSpanishTripType(type) {
   if (type === "ida") return "Ida";
   if (type === "vuelta") return "Vuelta";
@@ -33,7 +40,7 @@ function normalizeTripType(type) {
 function buildPromotionMessage(notification) {
   const typeLabel = toSpanishTripType(notification?.tripType);
   const stopLabel = notification?.stopName || "-";
-  const timeLabel = notification?.stopTime || "-";
+  const timeLabel = formatTimeNoSeconds(notification?.stopTime) || "-";
   return `${typeLabel} · Parada: ${stopLabel} · Horario: ${timeLabel} · Estado: Confirmado`;
 }
 
@@ -147,7 +154,7 @@ export default function Passenger({ user, onSessionExpired }) {
               status: item.status,
               tripType: item.trip_type || null,
               stopName: item.stop_name || null,
-              stopTime: item.stop_time || null,
+              stopTime: formatTimeNoSeconds(item.stop_time || null),
             };
             return acc;
           },
@@ -323,7 +330,7 @@ export default function Passenger({ user, onSessionExpired }) {
                       <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                         <div className="stack-sm">
                           <span className="body"><b>{t.name}</b></span>
-                          <span className="caption">Inicia {t.first_time} {t.status === "closed" ? "· Cerrado" : ""}</span>
+                          <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)} {t.status === "closed" ? "· Cerrado" : ""}</span>
                         </div>
                         <div className="row">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
@@ -394,7 +401,7 @@ export default function Passenger({ user, onSessionExpired }) {
                       <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                         <div className="stack-sm">
                           <span className="body"><b>{t.name}</b></span>
-                          <span className="caption">Inicia {t.first_time}</span>
+                          <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)}</span>
                         </div>
                         <div className="row">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
@@ -452,7 +459,7 @@ export default function Passenger({ user, onSessionExpired }) {
                 {toSpanishStatus(effectiveIdaReservation?.status)}
               </span>
             </div>
-            <p className="caption">Parada: {formatSummaryItem(effectiveIdaReservation?.stopName)} · {formatSummaryItem(effectiveIdaReservation?.stopTime)}</p>
+            <p className="caption">Parada: {formatSummaryItem(effectiveIdaReservation?.stopName)} · {formatSummaryItem(formatTimeNoSeconds(effectiveIdaReservation?.stopTime))}</p>
           </div>
 
           <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none' }}>
@@ -462,7 +469,7 @@ export default function Passenger({ user, onSessionExpired }) {
                 {toSpanishStatus(effectiveVueltaReservation?.status)}
               </span>
             </div>
-            <p className="caption">Parada: {formatSummaryItem(effectiveVueltaReservation?.stopName)} · {formatSummaryItem(effectiveVueltaReservation?.stopTime)}</p>
+            <p className="caption">Parada: {formatSummaryItem(effectiveVueltaReservation?.stopName)} · {formatSummaryItem(formatTimeNoSeconds(effectiveVueltaReservation?.stopTime))}</p>
           </div>
         </div>
       </div>
@@ -621,7 +628,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     onReserved({
       status: json.status,
       stopName: selectedStop?.name || null,
-      stopTime: selectedStop?.time || null,
+      stopTime: formatTimeNoSeconds(selectedStop?.time || null),
     });
   };
 
@@ -669,7 +676,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
             
             <div className="stack-sm">
               <p className="body">Parada: <b>{existing.stops?.name}</b></p>
-              <p className="caption">Horario: {existing.stops?.time}</p>
+              <p className="caption">Horario: {formatTimeNoSeconds(existing.stops?.time)}</p>
             </div>
 
             <div className="divider" />
