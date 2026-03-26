@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import LoadingState from "./ui/LoadingState";
+import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 const DEFAULT_EMAIL_REDIRECT_TO = "https://microsha.vercel.app/";
 
@@ -238,7 +239,7 @@ export default function Login({ onPassenger }) {
       ) : null}
 
       <div className="ios-logo-container">
-        <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
+        <img src={microshaLogo} alt="MicroSHA Logo" />
       </div>
 
       <div className="card glass-card stack">

@@ -10,6 +10,7 @@ import GroupSetup from "./GroupSetup";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
+import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 function App() {
   const [authReady, setAuthReady] = useState(false);
@@ -236,7 +237,7 @@ function App() {
       <div className="loading-screen fade-up">
         <div className="stack" style={{ textAlign: "center" }}>
           <div className="ios-logo-container">
-            <img src="./assets/MicroSHA_LOGO.png" alt="MicroSHA Logo" />
+            <img src={microshaLogo} alt="MicroSHA Logo" />
           </div>
           <LoadingState compact label="Iniciando sesión..." />
         </div>
