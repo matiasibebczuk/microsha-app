@@ -13,6 +13,25 @@ const WEEK_DAYS = [
   { value: 6, label: "Sábado" },
 ];
 
+const DAY_MINUTES = 24 * 60;
+
+function parseTimeToMinutes(value) {
+  if (typeof value !== "string") return null;
+  const [hh, mm] = value.split(":");
+  const h = Number(hh);
+  const m = Number(mm);
+  if (!Number.isInteger(h) || !Number.isInteger(m)) return null;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+function minutesToTime(totalMinutes) {
+  const normalized = ((totalMinutes % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  const hh = String(Math.floor(normalized / 60)).padStart(2, "0");
+  const mm = String(normalized % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
@@ -65,19 +84,22 @@ export default function AdminCreateTrip({ onCreated }) {
   };
 
   const shiftTimes = (index, newTime) => {
-    if (index !== 0 || !stops[0]?.time) { updateStop(index, "time", newTime); return; }
-    const old = new Date(`1970-01-01T${stops[0].time}`);
-    const updated = new Date(`1970-01-01T${newTime}`);
-    const diff = updated - old;
-    const newStops = stops.map((s) => {
-      if (!s.time) return s;
-      const date = new Date(`1970-01-01T${s.time}`);
-      const newDate = new Date(date.getTime() + diff);
-      const hh = newDate.getHours().toString().padStart(2, "0");
-      const mm = newDate.getMinutes().toString().padStart(2, "0");
-      return { ...s, time: `${hh}:${mm}` };
-    });
-    setStops(newStops);
+    const oldMinutes = parseTimeToMinutes(stops[index]?.time);
+    const newMinutes = parseTimeToMinutes(newTime);
+
+    if (oldMinutes === null || newMinutes === null) {
+      updateStop(index, "time", newTime);
+      return;
+    }
+
+    const diff = newMinutes - oldMinutes;
+    setStops((prev) => prev.map((stop, idx) => {
+      const stopMinutes = parseTimeToMinutes(stop.time);
+      if (stopMinutes === null) {
+        return idx === index ? { ...stop, time: newTime } : stop;
+      }
+      return { ...stop, time: minutesToTime(stopMinutes + diff) };
+    }));
   };
 
   const addBus = () => setBuses([...buses, { name: "", capacity: 40 }]);
