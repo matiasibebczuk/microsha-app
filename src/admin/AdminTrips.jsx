@@ -84,6 +84,7 @@ export default function AdminTrips() {
   const [passengerPage, setPassengerPage] = useState(1);
   const passengerPageSize = 20;
   const passengersSectionRef = useRef(null);
+  const initialLoadDoneRef = useRef(false);
 
   const getTokenWithRetry = useCallback(async () => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -136,6 +137,8 @@ export default function AdminTrips() {
   }, [getTokenWithRetry]);
 
   useEffect(() => {
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
     void loadTrips();
   }, [loadTrips]);
 
