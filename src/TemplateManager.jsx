@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { IconTrash } from "./ui/icons";
 import { apiUrl } from "./api";
@@ -13,6 +13,7 @@ export default function TemplateManager({ onBack }) {
   const [savingStops, setSavingStops] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [loadingTemplateId, setLoadingTemplateId] = useState(null);
+  const savingStopsRef = useRef(false);
 
   async function loadTemplates() {
     const { data } = await supabase.auth.getSession();
@@ -99,7 +100,8 @@ export default function TemplateManager({ onBack }) {
   };
 
   const saveStops = async () => {
-    if (savingStops) return;
+    if (savingStopsRef.current) return;
+    savingStopsRef.current = true;
     setSavingStops(true);
     const { data } = await supabase.auth.getSession();
     try {
@@ -114,6 +116,7 @@ export default function TemplateManager({ onBack }) {
       alert("Paradas guardadas");
       loadStops(selected);
     } finally {
+      savingStopsRef.current = false;
       setSavingStops(false);
     }
   };
