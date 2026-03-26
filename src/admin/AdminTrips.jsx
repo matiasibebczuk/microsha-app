@@ -205,7 +205,41 @@ export default function AdminTrips() {
   const updateEditBus = (i, f, v) => setEditBuses(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
   const removeEditBus = (i) => setEditBuses(p => p.filter((_, idx) => idx !== i));
   const addEditStop = () => setEditStops(p => [...p, { id: null, name: "", time: "", order: p.length + 1 }]);
-  const updateEditStop = (i, f, v) => setEditStops(p => { const c = [...p]; c[i] = { ...c[i], [f]: f === "order" ? Number(v || 0) : v }; return c; });
+  const updateEditStop = (i, f, v) => setEditStops((p) => {
+    const c = [...p];
+
+    if (f === "time") {
+      const currentTime = c[i]?.time;
+      const baseCurrent = currentTime ? new Date(`1970-01-01T${currentTime}`) : null;
+      const baseNext = v ? new Date(`1970-01-01T${v}`) : null;
+
+      if (!baseCurrent || Number.isNaN(baseCurrent.getTime()) || !baseNext || Number.isNaN(baseNext.getTime())) {
+        c[i] = { ...c[i], time: v };
+        return c;
+      }
+
+      const diffMs = baseNext.getTime() - baseCurrent.getTime();
+
+      return c.map((stop, idx) => {
+        if (!stop?.time) {
+          return idx === i ? { ...stop, time: v } : stop;
+        }
+
+        const baseStop = new Date(`1970-01-01T${stop.time}`);
+        if (Number.isNaN(baseStop.getTime())) {
+          return idx === i ? { ...stop, time: v } : stop;
+        }
+
+        const shifted = new Date(baseStop.getTime() + diffMs);
+        const hh = String(shifted.getHours()).padStart(2, "0");
+        const mm = String(shifted.getMinutes()).padStart(2, "0");
+        return { ...stop, time: `${hh}:${mm}` };
+      });
+    }
+
+    c[i] = { ...c[i], [f]: f === "order" ? Number(v || 0) : v };
+    return c;
+  });
   const removeEditStop = (i) => setEditStops(p => p.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, order: idx + 1 })));
 
   const saveEditTrip = async () => {
