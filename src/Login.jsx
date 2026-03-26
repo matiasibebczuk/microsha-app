@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import LoadingState from "./ui/LoadingState";
 
+const DEFAULT_EMAIL_REDIRECT_TO = "https://microsha.vercel.app/";
+
 export default function Login({ onPassenger }) {
   const [mode, setMode] = useState("login");
   const [staffOpen, setStaffOpen] = useState(false);
@@ -38,8 +40,12 @@ export default function Login({ onPassenger }) {
   }, [resendCooldown]);
 
   const getEmailRedirectTo = () => {
-    if (typeof window === "undefined") return undefined;
-    return `${window.location.origin}/`;
+    const configured = import.meta.env.VITE_EMAIL_REDIRECT_TO;
+    if (configured && String(configured).trim()) {
+      const value = String(configured).trim();
+      return value.endsWith("/") ? value : `${value}/`;
+    }
+    return DEFAULT_EMAIL_REDIRECT_TO;
   };
 
   const handleRateLimitError = (message) => {
