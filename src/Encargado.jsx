@@ -12,6 +12,7 @@ import { formatDateTime, formatTripStatus } from "./utils/format";
 export default function Encargado() {
   const getAuthToken = useSessionToken();
   const [trips, setTrips] = useState([]);
+  const [loadingTrips, setLoadingTrips] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [started, setStarted] = useState(false);
   const [groups, setGroups] = useState([]);
@@ -31,6 +32,7 @@ export default function Encargado() {
   }, [getAuthToken]);
 
   const loadTrips = useCallback(async () => {
+    setLoadingTrips(true);
     try {
       const authHeader = await getAuthHeader();
       const res = await fetch(apiUrl("/trips"), { headers: authHeader });
@@ -44,6 +46,8 @@ export default function Encargado() {
     } catch (err) {
       setNotice(err.message || "No se pudieron cargar los viajes");
       setTrips([]);
+    } finally {
+      setLoadingTrips(false);
     }
   }, [getAuthHeader]);
 
@@ -134,8 +138,11 @@ export default function Encargado() {
     await loadTripData(trip.id);
   };
 
-  const idaTrips = trips.filter((trip) => trip.type === "ida");
-  const vueltaTrips = trips.filter((trip) => trip.type === "vuelta");
+  const idaTrips = trips.filter((trip) => String(trip.type || "").trim().toLowerCase().startsWith("ida"));
+  const vueltaTrips = trips.filter((trip) => {
+    const normalized = String(trip.type || "").trim().toLowerCase();
+    return normalized.startsWith("vuelta") || normalized.startsWith("regreso");
+  });
 
   if (!selectedTrip) {
     return (
@@ -156,7 +163,9 @@ export default function Encargado() {
         <div className="inset-group">
           <h3 className="subheadline">Traslados de Ida</h3>
           <div className="grid">
-            {idaTrips.length === 0 ? (
+            {loadingTrips ? (
+              <SkeletonCards count={2} />
+            ) : idaTrips.length === 0 ? (
               <EmptyState title="No hay traslados de ida" subtitle="Publicá un viaje para comenzar." />
             ) : (
               idaTrips.map((trip) => (
@@ -175,7 +184,9 @@ export default function Encargado() {
         <div className="inset-group">
           <h3 className="subheadline">Traslados de Vuelta</h3>
           <div className="grid">
-            {vueltaTrips.length === 0 ? (
+            {loadingTrips ? (
+              <SkeletonCards count={2} />
+            ) : vueltaTrips.length === 0 ? (
               <EmptyState title="No hay traslados de vuelta" subtitle="Publicá un viaje para comenzar." />
             ) : (
               vueltaTrips.map((trip) => (

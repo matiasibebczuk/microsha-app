@@ -63,6 +63,13 @@ export default function AdminTrips() {
     void loadTrips();
   }, [loadTrips]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void loadTrips();
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [loadTrips]);
+
   const startEditTrip = async (trip) => {
     if (editingTripId === trip.id) { setEditingTripId(null); setEditLoading(false); return; }
     setEditingTripId(trip.id);
@@ -265,6 +272,9 @@ export default function AdminTrips() {
         <div className="inset-group"><SkeletonCards count={3} /></div>
       ) : (
         <div className="stack">
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <button className="btn-secondary" onClick={() => void loadTrips()}>Refrescar traslados</button>
+          </div>
           <div className="inset-group">
             <h3 className="subheadline">Traslados de Ida</h3>
             {idaTrips.length === 0 ? (
