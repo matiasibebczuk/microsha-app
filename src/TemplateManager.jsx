@@ -15,6 +15,12 @@ export default function TemplateManager({ onBack }) {
   const [loadingTemplateId, setLoadingTemplateId] = useState(null);
   const savingStopsRef = useRef(false);
 
+  const normalizeStopOrder = (list) =>
+    list.map((stop, index) => ({
+      ...stop,
+      order_index: index + 1,
+    }));
+
   async function loadTemplates() {
     const { data } = await supabase.auth.getSession();
     const res = await fetch(apiUrl("/templates"), {
@@ -76,42 +82,80 @@ export default function TemplateManager({ onBack }) {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       const json = await res.json();
-      setStops(json || []);
+      const normalized = (json || []).map((stop) => ({
+        ...stop,
+        offset_minutes: Number(stop.offset_minutes) || 0,
+      }));
+      setStops(normalizeStopOrder(normalized));
     } finally {
       setLoadingTemplateId(null);
     }
   };
 
   const addStop = () => {
-    setStops([
-      ...stops,
-      {
+    setStops((prev) => {
+      const next = [...prev];
+      next.push({
         name: "",
-        order_index: stops.length + 1,
-        offset_minutes: stops.length === 0 ? 0 : Number(stops[stops.length - 1].offset_minutes) + 10,
-      },
-    ]);
+        order_index: next.length + 1,
+        offset_minutes: next.length === 1 ? 0 : Number(next[next.length - 2].offset_minutes) + 10,
+      });
+      return normalizeStopOrder(next);
+    });
   };
 
   const updateStop = (index, field, value) => {
-    const copy = [...stops];
-    copy[index][field] = value;
-    setStops(copy);
+    setStops((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        [field]: field === "offset_minutes" ? value : value,
+      };
+      return copy;
+    });
+  };
+
+  const removeStop = (index) => {
+    setStops((prev) => normalizeStopOrder(prev.filter((_, i) => i !== index)));
+  };
+
+  const moveStop = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= stops.length) return;
+    setStops((prev) => {
+      const copy = [...prev];
+      const [moved] = copy.splice(index, 1);
+      copy.splice(target, 0, moved);
+      return normalizeStopOrder(copy);
+    });
   };
 
   const saveStops = async () => {
     if (savingStopsRef.current) return;
+    const normalized = normalizeStopOrder(stops).map((stop) => ({
+      name: String(stop.name || "").trim(),
+      order_index: stop.order_index,
+      offset_minutes: Number.parseInt(stop.offset_minutes, 10) || 0,
+    }));
+
+    if (normalized.some((stop) => !stop.name)) {
+      alert("Todas las paradas deben tener nombre");
+      return;
+    }
+
     savingStopsRef.current = true;
     setSavingStops(true);
     const { data } = await supabase.auth.getSession();
     try {
-      for (const s of stops) {
-        if (s.id) continue;
-        await fetch(apiUrl(`/templates/${selected.id}/stops`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-          body: JSON.stringify(s),
-        });
+      const res = await fetch(apiUrl(`/templates/${selected.id}/stops`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ stops: normalized }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "No se pudo guardar");
+        return;
       }
       alert("Paradas guardadas");
       loadStops(selected);
@@ -208,15 +252,21 @@ export default function TemplateManager({ onBack }) {
         <div className="grid">
           {stops.map((s, i) => (
             <div key={i} className="list-item row">
+              <span className="caption">#{i + 1}</span>
               <input placeholder="Nombre parada" value={s.name} onChange={e => updateStop(i, "name", e.target.value)} />
               <div className="row">
                 <input type="number" value={s.offset_minutes} onChange={e => updateStop(i, "offset_minutes", e.target.value)} />
                 <span className="caption">min</span>
               </div>
+              <div className="row">
+                <button className="btn-secondary" type="button" onClick={() => moveStop(i, -1)} disabled={i === 0 || savingStops}>Subir</button>
+                <button className="btn-secondary" type="button" onClick={() => moveStop(i, 1)} disabled={i === stops.length - 1 || savingStops}>Bajar</button>
+                <button className="btn-danger" type="button" onClick={() => removeStop(i)} disabled={savingStops}>Eliminar</button>
+              </div>
             </div>
           ))}
         </div>
-        <button className="btn-secondary" onClick={addStop}>+ Agregar parada</button>
+        <button className="btn-secondary" onClick={addStop} disabled={savingStops}>+ Agregar parada</button>
       </div>
 
       <div className="inset-group stack">
