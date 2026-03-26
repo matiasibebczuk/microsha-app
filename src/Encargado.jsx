@@ -263,51 +263,60 @@ export default function Encargado() {
             <span className="badge">Total: {dashboard.total}</span>
             <span className="badge badge-success">Presentes: {dashboard.boarded}</span>
             <span className="badge badge-warning">Ausentes: {dashboard.missing}</span>
+            <span className="badge">Espera: {dashboard.waiting || 0}</span>
           </div>
         )}
       </div>
 
       <MessageBanner message={notice} />
 
-      {started && (
-        <div className="stack">
-          {loadingList && groups.length === 0 ? (
-            <div className="inset-group">
-              <SkeletonCards count={2} />
-            </div>
-          ) : groups.length === 0 ? (
-            <EmptyState title="Sin pasajeros" subtitle="Nadie se anotó para este viaje todavía." />
-          ) : (
-            groups.map((group) => (
-              <div key={group.stopId} className="inset-group">
-                <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
-                <div className="grid">
-                  {group.passengers.map((p) => (
+      <div className="stack">
+        {loadingList && groups.length === 0 ? (
+          <div className="inset-group">
+            <SkeletonCards count={2} />
+          </div>
+        ) : groups.length === 0 ? (
+          <EmptyState title="Sin pasajeros" subtitle="Nadie se anotó para este viaje todavía." />
+        ) : (
+          groups.map((group) => (
+            <div key={group.stopId} className="inset-group">
+              <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
+              <div className="grid">
+                {group.passengers.map((p) => {
+                  const isWaiting = p.status === "waiting";
+                  const statusClass = isWaiting
+                    ? "badge-warning"
+                    : (p.boarded ? "badge-success" : "badge-warning");
+                  const statusText = isWaiting
+                    ? "En espera"
+                    : (p.boarded ? "Presente" : "Ausente");
+
+                  return (
                     <div key={p.reservationId} className="list-item stack-sm">
                       <div className="row-between">
                         <span className="body"><b>{p.name}</b></span>
-                        <span className={`badge ${p.boarded ? 'badge-success' : 'badge-warning'}`}>
-                          {p.boarded ? "Presente" : "Ausente"}
-                        </span>
+                        <span className={`badge ${statusClass}`}>{statusText}</span>
                       </div>
                       <p className="caption">{p.phone || "Sin tel"} · {p.description || "Sin descripción"}</p>
-                      
-                      <div className="row">
-                        <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded || boardingReservationId === p.reservationId}>
-                          Marcar Presente
-                        </button>
-                        <button className="btn-plain" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded || boardingReservationId === p.reservationId}>
-                          Marcar Ausente
-                        </button>
-                      </div>
+
+                      {!isWaiting && started ? (
+                        <div className="row">
+                          <button className="btn-secondary" onClick={() => toggleBoarded(p.reservationId, true)} disabled={!canManage || p.boarded || boardingReservationId === p.reservationId}>
+                            Marcar Presente
+                          </button>
+                          <button className="btn-plain" onClick={() => toggleBoarded(p.reservationId, false)} disabled={!canManage || !p.boarded || boardingReservationId === p.reservationId}>
+                            Marcar Ausente
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ))
-          )}
-        </div>
-      )}
+            </div>
+          ))
+        )}
+      </div>
 
       {startedAt && <p className="caption">Inicio: {formatDateTime(startedAt)}</p>}
     </div>
