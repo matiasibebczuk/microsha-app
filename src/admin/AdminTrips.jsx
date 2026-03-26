@@ -139,13 +139,6 @@ export default function AdminTrips() {
     void loadTrips();
   }, [loadTrips]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      void loadTrips();
-    }, 15000);
-    return () => clearInterval(timer);
-  }, [loadTrips]);
-
   const startEditTrip = async (trip) => {
     if (editingTripId === trip.id) { setEditingTripId(null); setEditLoading(false); return; }
     setEditingTripId(trip.id);
