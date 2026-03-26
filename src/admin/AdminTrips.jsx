@@ -417,7 +417,6 @@ export default function AdminTrips() {
               <h4 className="caption" style={{fontWeight: 'bold'}}>Paradas</h4>
               {editStops.map((s, i) => (
                 <div key={i} className="row">
-                  <input style={{ width: '40px' }} type="number" value={s.order} onChange={e => updateEditStop(i, "order", e.target.value)} />
                   <input style={{ flex: 1 }} placeholder="Nombre" value={s.name} onChange={e => updateEditStop(i, "name", e.target.value)} />
                   <input style={{ width: '100px' }} type="time" value={s.time} onChange={e => updateEditStop(i, "time", e.target.value)} />
                   <button className="btn-plain" onClick={() => removeEditStop(i)}><IconTrash/></button>
