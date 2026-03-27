@@ -277,7 +277,9 @@ function App() {
       return (
         <div className="loading-screen fade-up">
           <div className="stack" style={{ textAlign: "center" }}>
-            <h2 className="large-title">MicroSHA</h2>
+            <div className="ios-logo-container">
+              <img src={microshaLogo} alt="MicroSHA Logo" />
+            </div>
             <LoadingState compact label="Cargando grupo..." />
           </div>
         </div>
