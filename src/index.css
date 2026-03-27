@@ -419,6 +419,22 @@ button:disabled {
   font-weight: 600;
 }
 
+.passenger-trip-caption-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.passenger-trip-mobile-chevron {
+  display: none;
+  align-items: center;
+  color: #b8cbfa;
+}
+
+.passenger-trip-side svg {
+  flex: 0 0 auto;
+}
+
 .stop-time-pill {
   display: inline-flex;
   align-items: center;
@@ -809,6 +825,26 @@ button:disabled {
   .stop-choice-side {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .passenger-trip-side {
+    width: auto;
+    margin-left: auto;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .passenger-trip-main {
+    gap: 0.28rem;
+  }
+
+  .passenger-trip-mobile-chevron {
+    display: inline-flex;
+  }
+
+  .passenger-trip-side svg,
+  .passenger-trip-action {
+    display: none;
   }
 
   .stop-choice-side {

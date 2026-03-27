@@ -377,7 +377,10 @@ export default function Passenger({ user, onSessionExpired }) {
                       >
                         <div className="stack-sm passenger-trip-main">
                           <span className="body"><b>{t.name}</b></span>
-                          <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)} {t.status === "closed" ? "· Cerrado" : ""}</span>
+                          <span className="caption passenger-trip-caption-row">
+                            <span>Inicia {formatTimeNoSeconds(t.first_time)} {t.status === "closed" ? "· Cerrado" : ""}</span>
+                            <span className="passenger-trip-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>
+                          </span>
                           {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
                         <div className="row passenger-trip-side">
@@ -462,7 +465,10 @@ export default function Passenger({ user, onSessionExpired }) {
                       >
                         <div className="stack-sm passenger-trip-main">
                           <span className="body"><b>{t.name}</b></span>
-                          <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)}</span>
+                          <span className="caption passenger-trip-caption-row">
+                            <span>Inicia {formatTimeNoSeconds(t.first_time)}</span>
+                            <span className="passenger-trip-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>
+                          </span>
                           {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
                         <div className="row passenger-trip-side">
