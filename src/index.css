@@ -355,6 +355,83 @@ button:disabled {
   color: #fff2c3;
 }
 
+.status-alert-card {
+  border-radius: var(--radius-md);
+  border: 1px solid #475a94;
+  background: #1b2446;
+  color: #e9f1ff;
+  padding: 0.72rem 0.86rem;
+  margin-bottom: 0.8rem;
+  animation: fadeUp 180ms ease-out;
+}
+
+.status-alert-success {
+  border-color: rgba(129, 201, 149, 0.52);
+  background: rgba(31, 80, 57, 0.45);
+  color: #e6ffed;
+}
+
+.status-alert-waiting {
+  border-color: rgba(251, 192, 45, 0.6);
+  background: rgba(114, 88, 26, 0.42);
+  color: #fff4cf;
+}
+
+.status-alert-error {
+  border-color: rgba(242, 139, 130, 0.55);
+  background: rgba(112, 43, 56, 0.45);
+  color: #ffd9dd;
+}
+
+.passenger-trip-card,
+.stop-choice-card {
+  width: 100%;
+  text-align: left;
+  justify-content: space-between;
+  background: var(--bg-elev-2);
+  border-color: #3b4d83;
+  color: var(--text);
+  padding: 0.92rem;
+  border-radius: var(--radius-md);
+  min-height: 72px;
+  animation: fadeUp 220ms ease-out;
+}
+
+.passenger-trip-card:hover,
+.stop-choice-card:hover {
+  background: var(--bg-elev-3);
+  border-color: #4a5f9b;
+}
+
+.passenger-trip-main,
+.stop-choice-main {
+  min-width: 0;
+}
+
+.passenger-trip-side,
+.stop-choice-side {
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.passenger-trip-action {
+  color: #c9d8ff;
+  font-weight: 600;
+}
+
+.stop-time-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #5872b1;
+  background: rgba(87, 119, 189, 0.22);
+  color: #dcebff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .message-banner {
   border-radius: var(--radius-md);
   border: 1px solid #3f4f80;
@@ -618,6 +695,22 @@ button:disabled {
 
   .trip-grid {
     grid-template-columns: 1fr;
+  }
+
+  .passenger-trip-card,
+  .stop-choice-card {
+    padding: 0.82rem;
+    min-height: 68px;
+  }
+
+  .passenger-trip-side,
+  .stop-choice-side {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .passenger-trip-action {
+    font-size: 0.82rem;
   }
 
   .web-alert-stack {

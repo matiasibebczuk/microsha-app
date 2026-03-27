@@ -49,6 +49,12 @@ function normalizeTripType(type) {
     .toLowerCase();
 }
 
+function hasActiveWaitlist(trip) {
+  if (!trip || typeof trip !== "object") return false;
+  if (trip.waitlist_active === true) return true;
+  return trip.mode === "waiting";
+}
+
 function buildPromotionMessage(notification) {
   const typeLabel = toSpanishTripType(notification?.tripType);
   const stopLabel = notification?.stopName || "-";
@@ -111,6 +117,7 @@ export default function Passenger({ user, onSessionExpired }) {
 
   const [idaReservation, setIdaReservation] = useState(null);
   const [vueltaReservation, setVueltaReservation] = useState(null);
+  const [statusAlert, setStatusAlert] = useState(null);
 
   useEffect(() => {
     if (!user?.passengerToken) {
@@ -233,7 +240,10 @@ export default function Passenger({ user, onSessionExpired }) {
 
         json.forEach((notification) => {
           const message = buildPromotionMessage(notification);
-          alert(`¡Te confirmamos tu lugar! ${message}`);
+          setStatusAlert({
+            type: "success",
+            text: `Se confirmó tu lugar. ${message}`,
+          });
 
           if ("Notification" in window && window.Notification.permission === "granted") {
             const title = notification?.tripName
@@ -280,6 +290,18 @@ export default function Passenger({ user, onSessionExpired }) {
         onReserved={(reservationInfo) => {
           if (!reservationInfo) return;
 
+          if (reservationInfo.status === "waiting") {
+            setStatusAlert({
+              type: "waiting",
+              text: "Tu solicitud quedó en lista de espera. Te avisaremos cuando se confirme tu lugar.",
+            });
+          } else if (reservationInfo.status === "confirmed") {
+            setStatusAlert({
+              type: "success",
+              text: "Reserva confirmada. Tu lugar ya está asegurado.",
+            });
+          }
+
           setMyReservationsByTrip((prev) => ({
             ...prev,
             [String(selectedTrip.id)]: {
@@ -316,6 +338,12 @@ export default function Passenger({ user, onSessionExpired }) {
           <p className="caption">Elegí tu traslado de ida</p>
         </header>
 
+        {statusAlert ? (
+          <div className={`status-alert-card ${statusAlert.type === "success" ? "status-alert-success" : "status-alert-waiting"}`}>
+            {statusAlert.text}
+          </div>
+        ) : null}
+
         <MessageBanner message={tripsError} />
 
         <div className="stack">
@@ -340,16 +368,24 @@ export default function Passenger({ user, onSessionExpired }) {
                     const action = getTripActionConfig(t, hasReservation);
 
                     return (
-                      <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                        <div className="stack-sm">
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="card glass-card row-between passenger-trip-card"
+                        onClick={() => !action.disabled && setSelectedTrip(t)}
+                        disabled={action.disabled}
+                      >
+                        <div className="stack-sm passenger-trip-main">
                           <span className="body"><b>{t.name}</b></span>
                           <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)} {t.status === "closed" ? "· Cerrado" : ""}</span>
+                          {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
-                        <div className="row">
+                        <div className="row passenger-trip-side">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          <span className="caption passenger-trip-action">{action.label}</span>
                           <IconChevronRight />
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
               </div>
@@ -387,6 +423,12 @@ export default function Passenger({ user, onSessionExpired }) {
           <p className="caption">¿Cómo querés volver?</p>
         </header>
 
+        {statusAlert ? (
+          <div className={`status-alert-card ${statusAlert.type === "success" ? "status-alert-success" : "status-alert-waiting"}`}>
+            {statusAlert.text}
+          </div>
+        ) : null}
+
         <MessageBanner message={tripsError} />
 
         <div className="stack">
@@ -411,16 +453,24 @@ export default function Passenger({ user, onSessionExpired }) {
                     const action = getTripActionConfig(t, hasReservation);
 
                     return (
-                      <div key={t.id} className="card glass-card row-between" onClick={() => !action.disabled && setSelectedTrip(t)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                        <div className="stack-sm">
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="card glass-card row-between passenger-trip-card"
+                        onClick={() => !action.disabled && setSelectedTrip(t)}
+                        disabled={action.disabled}
+                      >
+                        <div className="stack-sm passenger-trip-main">
                           <span className="body"><b>{t.name}</b></span>
                           <span className="caption">Inicia {formatTimeNoSeconds(t.first_time)}</span>
+                          {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
-                        <div className="row">
+                        <div className="row passenger-trip-side">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          <span className="caption passenger-trip-action">{action.label}</span>
                           <IconChevronRight />
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
               </div>
@@ -461,6 +511,12 @@ export default function Passenger({ user, onSessionExpired }) {
         <h1 className="large-title">Resumen</h1>
         <p className="caption">Repasá tus inscripciones</p>
       </header>
+
+      {statusAlert ? (
+        <div className={`status-alert-card ${statusAlert.type === "success" ? "status-alert-success" : "status-alert-waiting"}`}>
+          {statusAlert.text}
+        </div>
+      ) : null}
 
       <div className="inset-group">
         <h3 className="subheadline">Detalles del viaje</h3>
@@ -510,6 +566,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
   const [existing, setExisting] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState(null);
   const [submittingStopId, setSubmittingStopId] = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -628,7 +685,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
           if (!res) return;
         } else {
-          alert(err.error || "No se pudo reservar");
+          setNotice({ type: "error", text: err.error || "No se pudo reservar" });
           return;
         }
       }
@@ -636,13 +693,20 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
       const json = await res.json();
 
       if (!res.ok) {
-        alert(json.error || "No se pudo reservar");
+        setNotice({ type: "error", text: json.error || "No se pudo reservar" });
         return;
       }
 
       const selectedStop = stops.find((stop) => String(stop.id) === String(stopId));
 
       clearCached(`passenger:trips:${user.passengerToken}`);
+      setNotice({
+        type: json.status === "waiting" ? "waiting" : "success",
+        text:
+          json.status === "waiting"
+            ? "Quedaste en lista de espera para esta parada."
+            : "Reserva confirmada para esta parada.",
+      });
       onReserved({
         status: json.status,
         stopName: selectedStop?.name || null,
@@ -673,7 +737,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
         const json = await res.json();
 
         if (!res.ok) {
-          alert(json.error || "No se pudo cancelar");
+          setNotice({ type: "error", text: json.error || "No se pudo cancelar" });
           return;
         }
 
@@ -729,7 +793,18 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
         <p className="caption">Elegí el punto de encuentro</p>
       </header>
 
+      {hasActiveWaitlist(trip) ? (
+        <div className="status-alert-card status-alert-waiting">
+          Lista de espera activa para este traslado. Si no hay cupo, quedas anotado en espera.
+        </div>
+      ) : null}
+
       <MessageBanner message={error} />
+      {notice ? (
+        <div className={`status-alert-card ${notice.type === "success" ? "status-alert-success" : notice.type === "waiting" ? "status-alert-waiting" : "status-alert-error"}`}>
+          {notice.text}
+        </div>
+      ) : null}
 
       <div className="stack">
         {loading ? (
@@ -750,13 +825,22 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
             {submittingStopId !== null ? <LoadingState compact label="Guardando reserva..." /> : null}
             <div className="inset-list">
               {stops.map((s) => (
-                <div key={s.id} className="card glass-card row-between" onClick={() => reserve(s.id)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', opacity: submittingStopId !== null ? 0.7 : 1, pointerEvents: submittingStopId !== null ? 'none' : 'auto' }}>
-                  <div className="stack-sm">
+                <button
+                  key={s.id}
+                  type="button"
+                  className="card glass-card row-between stop-choice-card"
+                  onClick={() => reserve(s.id)}
+                  disabled={submittingStopId !== null}
+                >
+                  <div className="stack-sm stop-choice-main">
                     <span className="body"><b>{s.name}</b></span>
-                    <span className="caption">Pasa a las {s.time}</span>
+                    <span className="caption">Pasa a las {formatTimeNoSeconds(s.time)}</span>
                   </div>
-                  <IconChevronRight />
-                </div>
+                  <div className="row stop-choice-side">
+                    <span className="stop-time-pill">{formatTimeNoSeconds(s.time)}</span>
+                    <IconChevronRight />
+                  </div>
+                </button>
               ))}
             </div>
           </div>
