@@ -53,6 +53,18 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getWeekDayLabel(dayValue) {
+  const day = WEEK_DAYS.find((item) => Number(item.value) === Number(dayValue));
+  return day?.label || "-";
+}
+
+function formatLegacyDateTime(value) {
+  if (!value) return "-";
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return "-";
+  return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+}
+
 export default function AdminTrips() {
   const getAccessToken = useSessionToken();
   const [trips, setTrips] = useState([]);
@@ -341,6 +353,23 @@ export default function AdminTrips() {
       <div className="stack-sm" style={{ opacity: 0.8 }}>
         <p className="caption">Ocupación: <b>{trip.confirmed || 0}/{trip.capacity || 0}</b> ({formatOccupancy(trip.confirmed, trip.capacity)}%)</p>
         {trip.waiting > 0 && <p className="caption" style={{ color: 'var(--ios-system-orange)' }}>Lista de espera: {trip.waiting}</p>}
+        {(trip.waitlist_start_day !== null && trip.waitlist_start_day !== undefined && trip.waitlist_start_time) ? (
+          <>
+            <p className="caption">Activación lista de espera: {getWeekDayLabel(trip.waitlist_start_day)} {String(trip.waitlist_start_time).slice(0, 5)}</p>
+            {trip.waitlist_end_day !== null && trip.waitlist_end_day !== undefined && trip.waitlist_end_time ? (
+              <p className="caption">Cierre lista de espera: {getWeekDayLabel(trip.waitlist_end_day)} {String(trip.waitlist_end_time).slice(0, 5)}</p>
+            ) : null}
+            <p className="caption">Estado actual lista de espera: <b>{trip.waitlist_active ? "Activa" : "Inactiva"}</b></p>
+          </>
+        ) : trip.waitlist_start_at ? (
+          <>
+            <p className="caption">Activación lista de espera: {formatLegacyDateTime(trip.waitlist_start_at)}</p>
+            {trip.waitlist_end_at ? <p className="caption">Cierre lista de espera: {formatLegacyDateTime(trip.waitlist_end_at)}</p> : null}
+            <p className="caption">Estado actual lista de espera: <b>{trip.waitlist_active ? "Activa" : "Inactiva"}</b></p>
+          </>
+        ) : (
+          <p className="caption">Lista de espera: <b>No configurada</b></p>
+        )}
       </div>
 
       <div className="divider" />
