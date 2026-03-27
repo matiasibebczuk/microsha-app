@@ -334,18 +334,32 @@ export default function AdminTrips() {
       const res = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const configRes = await fetch(apiUrl(`/trips/${trip.id}/reinforcement-config`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const json = await res.json();
+      const configJson = configRes.ok ? await configRes.json() : null;
       if (!res.ok) {
         alert(json?.error || "No se pudieron cargar paradas");
         return;
       }
+      if (configRes.ok && configJson?.active) {
+        alert("Ya existe un refuerzo activo para este traslado.");
+        return;
+      }
+
+      const defaultSplitIds = new Set(
+        Array.isArray(configJson?.split_stop_ids)
+          ? configJson.split_stop_ids.map((id) => String(id))
+          : []
+      );
       const normalized = (Array.isArray(json) ? json : [])
         .map((stop) => ({
           ...stop,
           name: stop?.name || "",
           time: stop?.time || "",
           order: Number(stop?.order || 0),
-          selected: false,
+          selected: defaultSplitIds.has(String(stop?.id)),
         }))
         .sort((a, b) => a.order - b.order);
 
@@ -353,6 +367,17 @@ export default function AdminTrips() {
         alert("El traslado necesita al menos 2 paradas para crear refuerzo.");
         return;
       }
+
+      if (configJson?.reinforcement_trip_name) {
+        setReinforcementName(configJson.reinforcement_trip_name);
+      }
+      if (configJson?.reinforcement_bus_name) {
+        setReinforcementBusName(configJson.reinforcement_bus_name);
+      }
+      if (configJson?.reinforcement_bus_capacity) {
+        setReinforcementBusCapacity(String(configJson.reinforcement_bus_capacity));
+      }
+
       setReinforcementStops(normalized);
     } finally {
       setLoadingReinforcementStops(false);
@@ -395,12 +420,11 @@ export default function AdminTrips() {
     }
 
     const toReinforcement = reinforcementStops.filter((stop) => stop.selected);
-    const remaining = reinforcementStops.filter((stop) => !stop.selected);
     if (toReinforcement.length === 0) {
       alert("Seleccioná al menos una parada para el refuerzo.");
       return;
     }
-    if (remaining.length === 0) {
+    if (toReinforcement.length === reinforcementStops.length) {
       alert("Debe quedar al menos una parada en el traslado original.");
       return;
     }
@@ -413,80 +437,19 @@ export default function AdminTrips() {
         return;
       }
 
-      const createTripBody = {
-        name: reinforcementName.trim(),
-        type: reinforcementTargetTrip.type || "ida",
-        waitlist_start_day: reinforcementTargetTrip.waitlist_start_day ?? null,
-        waitlist_start_time: reinforcementTargetTrip.waitlist_start_time || null,
-        waitlist_end_day: reinforcementTargetTrip.waitlist_end_day ?? null,
-        waitlist_end_time: reinforcementTargetTrip.waitlist_end_time || null,
-        waitlist_start_at: reinforcementTargetTrip.waitlist_start_at || null,
-        waitlist_end_at: reinforcementTargetTrip.waitlist_end_at || null,
-      };
-
-      if (reinforcementTargetTrip.time) {
-        createTripBody.departure_datetime = reinforcementTargetTrip.time;
-      }
-
-      const tripRes = await fetch(apiUrl("/trips"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(createTripBody),
-      });
-      const tripJson = await tripRes.json();
-      if (!tripRes.ok) {
-        alert(tripJson?.error || "No se pudo crear traslado de refuerzo.");
-        return;
-      }
-
-      const newTripId = tripJson.id;
-      for (let i = 0; i < toReinforcement.length; i += 1) {
-        const stop = toReinforcement[i];
-        const stopRes = await fetch(apiUrl(`/trips/${newTripId}/stops`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            name: stop.name,
-            time: stop.time,
-            order: i + 1,
-          }),
-        });
-        if (!stopRes.ok) {
-          const stopJson = await stopRes.json().catch(() => ({}));
-          alert(stopJson?.error || "No se pudieron guardar las paradas del refuerzo.");
-          return;
-        }
-      }
-
-      const busRes = await fetch(apiUrl(`/trips/${newTripId}/buses`), {
+      const createRes = await fetch(apiUrl(`/trips/${reinforcementTargetTrip.id}/reinforcement`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          name: reinforcementBusName.trim(),
-          capacity: busCapacity,
+          name: reinforcementName.trim(),
+          bus_name: reinforcementBusName.trim(),
+          bus_capacity: busCapacity,
+          stop_ids: toReinforcement.map((stop) => stop.id),
         }),
       });
-      if (!busRes.ok) {
-        const busJson = await busRes.json().catch(() => ({}));
-        alert(busJson?.error || "No se pudo guardar el vehículo del refuerzo.");
-        return;
-      }
-
-      const syncRes = await fetch(apiUrl(`/trips/${reinforcementTargetTrip.id}/stops/sync`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          stops: remaining.map((stop, idx) => ({
-            id: stop.id,
-            name: stop.name,
-            time: stop.time,
-            order: idx + 1,
-          })),
-        }),
-      });
-      if (!syncRes.ok) {
-        const syncJson = await syncRes.json().catch(() => ({}));
-        alert(syncJson?.error || "No se pudo actualizar el traslado original.");
+      const createJson = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        alert(createJson?.error || "No se pudo crear refuerzo.");
         return;
       }
 
