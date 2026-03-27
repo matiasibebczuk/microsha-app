@@ -42,7 +42,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [waitlistEndDay, setWaitlistEndDay] = useState("1");
   const [waitlistEndTime, setWaitlistEndTime] = useState("09:00");
   const [enableReinforcement, setEnableReinforcement] = useState(false);
-  const [maxAvailability, setMaxAvailability] = useState("40");
+  const [maxAvailability, setMaxAvailability] = useState("50");
   const [reinforcementTripName, setReinforcementTripName] = useState("");
   const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
   const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
