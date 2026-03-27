@@ -91,6 +91,13 @@ export default function AdminTrips() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingTripId, setDeletingTripId] = useState(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [forcingReinforcementTripId, setForcingReinforcementTripId] = useState(null);
+  const [reinforcementTargetTrip, setReinforcementTargetTrip] = useState(null);
+  const [reinforcementStops, setReinforcementStops] = useState([]);
+  const [reinforcementName, setReinforcementName] = useState("");
+  const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
+  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
+  const [loadingReinforcementStops, setLoadingReinforcementStops] = useState(false);
   const [notice, setNotice] = useState("");
   const [groupLabel, setGroupLabel] = useState("-");
   const [passengerPage, setPassengerPage] = useState(1);
@@ -311,6 +318,188 @@ export default function AdminTrips() {
     }
   };
 
+  const openForcedReinforcement = async (trip) => {
+    if (loadingReinforcementStops) return;
+    setLoadingReinforcementStops(true);
+    setReinforcementTargetTrip(trip);
+    setReinforcementName(`${trip.name || "Traslado"} Refuerzo`);
+    setReinforcementBusName("Refuerzo 1");
+    setReinforcementBusCapacity("20");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setNotice("Sesión expirada");
+        return;
+      }
+      const res = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json?.error || "No se pudieron cargar paradas");
+        return;
+      }
+      const normalized = (Array.isArray(json) ? json : [])
+        .map((stop) => ({
+          ...stop,
+          name: stop?.name || "",
+          time: stop?.time || "",
+          order: Number(stop?.order || 0),
+          selected: false,
+        }))
+        .sort((a, b) => a.order - b.order);
+
+      if (normalized.length < 2) {
+        alert("El traslado necesita al menos 2 paradas para crear refuerzo.");
+        return;
+      }
+      setReinforcementStops(normalized);
+    } finally {
+      setLoadingReinforcementStops(false);
+    }
+  };
+
+  const closeForcedReinforcement = (force = false) => {
+    if (forcingReinforcementTripId && !force) return;
+    setReinforcementTargetTrip(null);
+    setReinforcementStops([]);
+  };
+
+  const toggleReinforcementStop = (index) => {
+    setReinforcementStops((prev) => prev.map((stop, idx) => (
+      idx === index ? { ...stop, selected: !stop.selected } : stop
+    )));
+  };
+
+  const assignStopsFromIndexToReinforcement = (index) => {
+    setReinforcementStops((prev) => prev.map((stop, idx) => ({
+      ...stop,
+      selected: idx >= index,
+    })));
+  };
+
+  const forceCreateReinforcement = async () => {
+    if (!reinforcementTargetTrip || forcingReinforcementTripId) return;
+    const busCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
+    if (!reinforcementName.trim()) {
+      alert("Ingresá el nombre del nuevo traslado de refuerzo.");
+      return;
+    }
+    if (!reinforcementBusName.trim()) {
+      alert("Ingresá el nombre del vehículo de refuerzo.");
+      return;
+    }
+    if (busCapacity <= 0) {
+      alert("Ingresá una capacidad válida para el vehículo de refuerzo.");
+      return;
+    }
+
+    const toReinforcement = reinforcementStops.filter((stop) => stop.selected);
+    const remaining = reinforcementStops.filter((stop) => !stop.selected);
+    if (toReinforcement.length === 0) {
+      alert("Seleccioná al menos una parada para el refuerzo.");
+      return;
+    }
+    if (remaining.length === 0) {
+      alert("Debe quedar al menos una parada en el traslado original.");
+      return;
+    }
+
+    setForcingReinforcementTripId(reinforcementTargetTrip.id);
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        alert("Sesión expirada");
+        return;
+      }
+
+      const createTripBody = {
+        name: reinforcementName.trim(),
+        type: reinforcementTargetTrip.type || "ida",
+        waitlist_start_day: reinforcementTargetTrip.waitlist_start_day ?? null,
+        waitlist_start_time: reinforcementTargetTrip.waitlist_start_time || null,
+        waitlist_end_day: reinforcementTargetTrip.waitlist_end_day ?? null,
+        waitlist_end_time: reinforcementTargetTrip.waitlist_end_time || null,
+        waitlist_start_at: reinforcementTargetTrip.waitlist_start_at || null,
+        waitlist_end_at: reinforcementTargetTrip.waitlist_end_at || null,
+      };
+
+      if (reinforcementTargetTrip.time) {
+        createTripBody.departure_datetime = reinforcementTargetTrip.time;
+      }
+
+      const tripRes = await fetch(apiUrl("/trips"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(createTripBody),
+      });
+      const tripJson = await tripRes.json();
+      if (!tripRes.ok) {
+        alert(tripJson?.error || "No se pudo crear traslado de refuerzo.");
+        return;
+      }
+
+      const newTripId = tripJson.id;
+      for (let i = 0; i < toReinforcement.length; i += 1) {
+        const stop = toReinforcement[i];
+        const stopRes = await fetch(apiUrl(`/trips/${newTripId}/stops`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            name: stop.name,
+            time: stop.time,
+            order: i + 1,
+          }),
+        });
+        if (!stopRes.ok) {
+          const stopJson = await stopRes.json().catch(() => ({}));
+          alert(stopJson?.error || "No se pudieron guardar las paradas del refuerzo.");
+          return;
+        }
+      }
+
+      const busRes = await fetch(apiUrl(`/trips/${newTripId}/buses`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: reinforcementBusName.trim(),
+          capacity: busCapacity,
+        }),
+      });
+      if (!busRes.ok) {
+        const busJson = await busRes.json().catch(() => ({}));
+        alert(busJson?.error || "No se pudo guardar el vehículo del refuerzo.");
+        return;
+      }
+
+      const syncRes = await fetch(apiUrl(`/trips/${reinforcementTargetTrip.id}/stops/sync`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          stops: remaining.map((stop, idx) => ({
+            id: stop.id,
+            name: stop.name,
+            time: stop.time,
+            order: idx + 1,
+          })),
+        }),
+      });
+      if (!syncRes.ok) {
+        const syncJson = await syncRes.json().catch(() => ({}));
+        alert(syncJson?.error || "No se pudo actualizar el traslado original.");
+        return;
+      }
+
+      closeForcedReinforcement(true);
+      await loadTrips();
+      if (selectedTripId === reinforcementTargetTrip.id) {
+        await loadPassengers(reinforcementTargetTrip.id);
+      }
+    } finally {
+      setForcingReinforcementTripId(null);
+    }
+  };
+
   const loadPassengers = async (id) => {
     const token = await getAccessToken();
     setPassengersLoading(true);
@@ -383,6 +572,9 @@ export default function AdminTrips() {
         </button>
         <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => startEditTrip(trip)}>
           <IconEdit />
+        </button>
+        <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px' }} onClick={() => void openForcedReinforcement(trip)} disabled={loadingReinforcementStops || forcingReinforcementTripId === trip.id}>
+          {forcingReinforcementTripId === trip.id ? "Creando..." : "Refuerzo"}
         </button>
         <button className="btn-plain" style={{ color: 'var(--ios-system-red)', padding: '10px' }} onClick={() => deleteTrip(trip.id)} disabled={deletingTripId === trip.id}>
           <IconTrash />
@@ -598,6 +790,79 @@ export default function AdminTrips() {
                 </button>
               )}
               <p className="body"><b>Description:</b> {selectedPassenger.users?.description || "Sin description"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reinforcementTargetTrip && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="page fade-up"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 55,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={closeForcedReinforcement}
+        >
+          <div
+            className="card glass-card stack-sm"
+            style={{ width: "100%", maxWidth: "760px", padding: "20px", maxHeight: "90vh", overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between">
+              <h3 className="headline" style={{ margin: 0 }}>Refuerzo forzado</h3>
+              <button className="btn-secondary" type="button" onClick={closeForcedReinforcement} disabled={Boolean(forcingReinforcementTripId)}>
+                Cerrar
+              </button>
+            </div>
+            <p className="caption">Traslado original: <b>{reinforcementTargetTrip.name || reinforcementTargetTrip.id}</b></p>
+            <div className="divider" />
+
+            <div className="stack-sm">
+              <input placeholder="Nombre nuevo traslado" value={reinforcementName} onChange={(e) => setReinforcementName(e.target.value)} />
+              <div className="row">
+                <input style={{ flex: 1 }} placeholder="Nombre vehículo" value={reinforcementBusName} onChange={(e) => setReinforcementBusName(e.target.value)} />
+                <input style={{ width: '140px' }} type="number" min="1" placeholder="Capacidad" value={reinforcementBusCapacity} onChange={(e) => setReinforcementBusCapacity(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="divider" />
+            <p className="caption">Seleccioná qué paradas pasan al nuevo traslado de refuerzo.</p>
+            <div className="row">
+              <button className="btn-secondary" type="button" onClick={() => setReinforcementStops((prev) => prev.map((stop) => ({ ...stop, selected: false })))}>
+                Ninguna
+              </button>
+              <button className="btn-secondary" type="button" onClick={() => setReinforcementStops((prev) => prev.map((stop, idx) => ({ ...stop, selected: idx >= Math.ceil(prev.length / 2) })))}>
+                Mitad final
+              </button>
+            </div>
+
+            <div className="inset-list">
+              {reinforcementStops.map((stop, idx) => (
+                <div key={`${stop.id || idx}-${stop.order}`} className="list-item row-between">
+                  <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                    <input type="checkbox" checked={Boolean(stop.selected)} onChange={() => toggleReinforcementStop(idx)} />
+                    <span className="body"><b>{stop.name || `Parada ${idx + 1}`}</b> {stop.time ? `· ${stop.time}` : ""}</span>
+                  </label>
+                  <button className="btn-secondary" type="button" onClick={() => assignStopsFromIndexToReinforcement(idx)}>
+                    Desde acá
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="row" style={{ marginTop: 8 }}>
+              <button className="btn-primary" type="button" onClick={forceCreateReinforcement} disabled={forcingReinforcementTripId === reinforcementTargetTrip.id}>
+                {forcingReinforcementTripId === reinforcementTargetTrip.id ? "Creando refuerzo..." : "Crear refuerzo y dividir paradas"}
+              </button>
             </div>
           </div>
         </div>
