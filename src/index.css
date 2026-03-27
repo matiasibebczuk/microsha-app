@@ -432,6 +432,22 @@ button:disabled {
   font-weight: 700;
 }
 
+.stop-choice-caption-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.stop-choice-mobile-chevron {
+  display: none;
+  align-items: center;
+  color: #b8cbfa;
+}
+
+.stop-choice-side svg {
+  flex: 0 0 auto;
+}
+
 .message-banner {
   border-radius: var(--radius-md);
   border: 1px solid #3f4f80;
@@ -793,6 +809,25 @@ button:disabled {
   .stop-choice-side {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .stop-choice-side {
+    width: auto;
+    margin-left: auto;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .stop-choice-main {
+    gap: 0.28rem;
+  }
+
+  .stop-choice-mobile-chevron {
+    display: inline-flex;
+  }
+
+  .stop-choice-side svg {
+    display: none;
   }
 
   .passenger-trip-action {
