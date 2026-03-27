@@ -512,7 +512,6 @@ export default function AdminTrips() {
                         >
                           <span className="body"><b>{r.users?.name || "Sin nombre"}</b></span>
                         </button>
-                        <span className="caption">{r.users?.phone || "Sin tel"}</span>
                       </div>
                       <div className="row">
                          {r.status === 'waiting' ? (
@@ -560,12 +559,16 @@ export default function AdminTrips() {
             </div>
             <div className="divider" />
             <div className="stack-sm">
-              <p className="body"><b>Nombre:</b> {selectedPassenger.users?.name || "Sin nombre"}</p>
-              <p className="body"><b>Teléfono:</b> {selectedPassenger.users?.phone || "Sin teléfono"}</p>
-              <p className="body"><b>Estado:</b> {selectedPassenger.status === "waiting" ? "En espera" : "Confirmado"}</p>
-              <p className="body"><b>Parada:</b> {selectedPassenger.stops?.name || "Sin parada"}</p>
-              <p className="caption"><b>ID usuario:</b> {selectedPassenger.user_id || "-"}</p>
-              <p className="caption"><b>ID reserva:</b> {selectedPassenger.id || "-"}</p>
+              {selectedPassenger.users?.phone ? (
+                <a className="btn-primary" href={`tel:${selectedPassenger.users.phone}`}>
+                  Llamar
+                </a>
+              ) : (
+                <button className="btn-secondary" type="button" disabled>
+                  Sin teléfono
+                </button>
+              )}
+              <p className="body"><b>Description:</b> {selectedPassenger.users?.description || "Sin description"}</p>
             </div>
           </div>
         </div>
