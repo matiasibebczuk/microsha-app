@@ -230,7 +230,7 @@ export default function Encargado() {
         <button className="btn-plain" onClick={() => setSelectedTrip(null)}>
           Atrás
         </button>
-        {loadingList ? <span className="loader loader-sm" aria-hidden="true" /> : null}
+        {loadingList ? <span className="badge">Actualizando lista...</span> : null}
       </header>
 
       <section className="stack-sm">
@@ -280,7 +280,19 @@ export default function Encargado() {
         ) : (
           groups.map((group) => (
             <div key={group.stopId} className="inset-group">
-              <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
+              <div className="row-between">
+                <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
+                <div className="row">
+                  <span className="badge">
+                    {group.passengers.filter((p) => p.status !== "waiting").length} a subir
+                  </span>
+                  {group.passengers.some((p) => p.status === "waiting") ? (
+                    <span className="badge badge-warning">
+                      {group.passengers.filter((p) => p.status === "waiting").length} espera
+                    </span>
+                  ) : null}
+                </div>
+              </div>
               <div className="grid">
                 {group.passengers.map((p) => {
                   const isWaiting = p.status === "waiting";
