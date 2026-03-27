@@ -16,10 +16,14 @@ export default function TemplateManager({ onBack }) {
   const savingStopsRef = useRef(false);
 
   const normalizeStopOrder = (list) =>
-    list.map((stop, index) => ({
-      ...stop,
-      order_index: index + 1,
-    }));
+    (Array.isArray(list) ? list : [])
+      .filter((stop) => stop && typeof stop === "object")
+      .map((stop, index) => ({
+        ...stop,
+        name: String(stop.name || ""),
+        offset_minutes: Number(stop.offset_minutes ?? stop.offset ?? 0) || 0,
+        order_index: index + 1,
+      }));
 
   async function loadTemplates() {
     const { data } = await supabase.auth.getSession();
@@ -82,10 +86,7 @@ export default function TemplateManager({ onBack }) {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       const json = await res.json();
-      const normalized = (json || []).map((stop) => ({
-        ...stop,
-        offset_minutes: Number(stop.offset_minutes) || 0,
-      }));
+      const normalized = normalizeStopOrder(json || []);
       setStops(normalizeStopOrder(normalized));
     } finally {
       setLoadingTemplateId(null);
@@ -253,9 +254,9 @@ export default function TemplateManager({ onBack }) {
           {stops.map((s, i) => (
             <div key={i} className="list-item row">
               <span className="caption">#{i + 1}</span>
-              <input placeholder="Nombre parada" value={s.name} onChange={e => updateStop(i, "name", e.target.value)} />
+              <input placeholder="Nombre parada" value={s?.name || ""} onChange={e => updateStop(i, "name", e.target.value)} />
               <div className="row">
-                <input type="number" value={s.offset_minutes} onChange={e => updateStop(i, "offset_minutes", e.target.value)} />
+                <input type="number" value={Number(s?.offset_minutes ?? 0)} onChange={e => updateStop(i, "offset_minutes", e.target.value)} />
                 <span className="caption">min</span>
               </div>
               <div className="row">

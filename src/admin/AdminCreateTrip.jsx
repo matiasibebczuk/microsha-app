@@ -114,8 +114,11 @@ export default function AdminCreateTrip({ onCreated }) {
     const json = await res.json();
     const base = "10:00";
     const start = new Date(`1970-01-01T${base}`);
-    const mapped = json.map((s) => {
-      const d = new Date(start.getTime() + s.offset_minutes * 60000);
+    const mapped = (Array.isArray(json) ? json : [])
+      .filter((s) => s && typeof s === "object")
+      .map((s) => {
+      const offset = Number(s.offset_minutes ?? s.offset ?? 0) || 0;
+      const d = new Date(start.getTime() + offset * 60000);
       const hh = d.getHours().toString().padStart(2, "0");
       const mm = d.getMinutes().toString().padStart(2, "0");
       return { name: s.name, time: `${hh}:${mm}`, split_target: "main" };
