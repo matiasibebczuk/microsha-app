@@ -95,24 +95,29 @@ export default function TemplateManager({ onBack }) {
 
   const addStop = () => {
     setStops((prev) => {
-      const next = [...prev];
+      const next = normalizeStopOrder(prev);
+      const lastOffset = next.length > 0
+        ? Number(next[next.length - 1]?.offset_minutes ?? 0) || 0
+        : 0;
+
       next.push({
         name: "",
         order_index: next.length + 1,
-        offset_minutes: next.length === 1 ? 0 : Number(next[next.length - 2].offset_minutes) + 10,
+        offset_minutes: next.length === 0 ? 0 : lastOffset + 10,
       });
+
       return normalizeStopOrder(next);
     });
   };
 
   const updateStop = (index, field, value) => {
     setStops((prev) => {
-      const copy = [...prev];
+      const copy = normalizeStopOrder(prev);
       copy[index] = {
         ...copy[index],
-        [field]: field === "offset_minutes" ? value : value,
+        [field]: value,
       };
-      return copy;
+      return normalizeStopOrder(copy);
     });
   };
 
