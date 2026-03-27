@@ -651,8 +651,94 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.screen-lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(4, 10, 26, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeUp 150ms ease-out;
+}
+
+.screen-lock-card {
+  width: min(520px, calc(100% - 1rem));
+  border-radius: var(--radius-lg);
+  border: 1px solid #4a61a1;
+  background: linear-gradient(160deg, #122554 0%, #0e1f4a 55%, #0a183d 100%);
+  box-shadow: 0 20px 48px rgba(2, 6, 20, 0.45);
+  padding: 1.2rem;
+  display: grid;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.screen-lock-card .loader {
+  margin: 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.success-celebration {
+  width: min(560px, calc(100% - 1rem));
+  text-align: center;
+  padding: 2rem 1.4rem;
+  display: grid;
+  gap: 0.6rem;
+  background: linear-gradient(160deg, #143060 0%, #122754 45%, #0e1f45 100%);
+  border-color: #4d67a8;
+  animation: successPop 420ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.success-ring {
+  width: 90px;
+  height: 90px;
+  border-radius: 999px;
+  margin: 0 auto 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(129, 201, 149, 0.8);
+  background: radial-gradient(circle at 30% 20%, rgba(129, 201, 149, 0.35), rgba(58, 131, 93, 0.22));
+  box-shadow: 0 0 0 0 rgba(129, 201, 149, 0.3);
+  animation: successPulse 1100ms ease-out infinite;
+}
+
+.success-check {
+  font-size: 2rem;
+  color: #dbffe5;
+  font-weight: 800;
+  transform: translateY(-1px);
+}
+
 .fade-up {
   animation: fadeUp 220ms ease-out;
+}
+
+@keyframes successPop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes successPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(129, 201, 149, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(129, 201, 149, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(129, 201, 149, 0);
+  }
 }
 
 @keyframes fadeUp {

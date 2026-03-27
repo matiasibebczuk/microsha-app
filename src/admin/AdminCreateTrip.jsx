@@ -53,6 +53,7 @@ export default function AdminCreateTrip({ onCreated }) {
 
   const [templates, setTemplates] = useState([]);
   const [success, setSuccess] = useState(false);
+  const [createdTripName, setCreatedTripName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
@@ -236,6 +237,7 @@ export default function AdminCreateTrip({ onCreated }) {
       }
 
       const createdTrip = await createOneTrip(token, name, stops, buses);
+      setCreatedTripName(createdTrip?.name || name || "Traslado");
 
       if (shouldConfigureReinforcement) {
         const configRes = await fetch(apiUrl(`/trips/${createdTrip.id}/reinforcement-config`), {
@@ -258,7 +260,7 @@ export default function AdminCreateTrip({ onCreated }) {
       }
 
       setSuccess(true);
-      setTimeout(() => { if (onCreated) onCreated(); }, 1500);
+      setTimeout(() => { if (onCreated) onCreated(); }, 1900);
     } catch (err) {
       alert(err?.message || "No se pudo crear el traslado");
     } finally {
@@ -270,8 +272,13 @@ export default function AdminCreateTrip({ onCreated }) {
   if (success) {
     return (
       <div className="page full-center fade-up">
-        <div className="card glass-card" style={{ padding: '40px', textAlign: 'center' }}>
-          <h2 className="large-title">✅ Traslado creado</h2>
+        <div className="card glass-card success-celebration">
+          <div className="success-ring">
+            <span className="success-check">✓</span>
+          </div>
+          <h2 className="large-title">Traslado creado con éxito</h2>
+          <p className="body"><b>{createdTripName}</b></p>
+          <p className="caption">Guardando cambios finales y redirigiendo...</p>
         </div>
       </div>
     );
@@ -279,6 +286,16 @@ export default function AdminCreateTrip({ onCreated }) {
 
   return (
     <div className="page fade-up">
+      {submitting ? (
+        <div className="screen-lock-overlay" role="status" aria-live="polite" aria-busy="true">
+          <div className="screen-lock-card">
+            <span className="loader" aria-hidden="true" />
+            <h3 className="headline">Creando traslado...</h3>
+            <p className="caption">No cierres esta pantalla. Estamos guardando paradas, vehículos y configuración.</p>
+          </div>
+        </div>
+      ) : null}
+
       <header className="stack-sm" style={{ marginBottom: 32 }}>
         <h1 className="large-title">Nuevo Traslado</h1>
         <p className="caption">Configurá las paradas y vehículos</p>
