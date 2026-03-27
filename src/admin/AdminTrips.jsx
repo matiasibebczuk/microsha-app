@@ -523,6 +523,7 @@ export default function AdminTrips() {
   const groupedByStop = pagedPassengers.reduce((a, r) => { const k = r.stops?.name || "Sin parada"; if (!a[k]) a[k] = []; a[k].push(r); return a; }, {});
   const confirmedCount = filteredPassengers.filter(p => p.status === "confirmed").length;
   const waitingCount = filteredPassengers.filter(p => p.status === "waiting").length;
+  const selectedTripLabel = trips.find((trip) => Number(trip?.id) === Number(selectedTripId))?.name || `Viaje ${selectedTripId}`;
   const reinforcementSelectedSummary = reinforcementStops.reduce(
     (acc, stop) => {
       if (!stop?.selected) return acc;
@@ -704,7 +705,7 @@ export default function AdminTrips() {
       {selectedTripId && (
         <div ref={passengersSectionRef} className="page fade-up">
           <header className="stack-sm" style={{ marginBottom: 24 }}>
-            <h1 className="headline">Pasajeros viaje {selectedTripId}</h1>
+            <h1 className="headline">Pasajeros {selectedTripLabel}</h1>
             <div className="row">
                <span className="badge badge-success">{confirmedCount} Confirmados</span>
                <span className="badge badge-warning">{waitingCount} Espera</span>
