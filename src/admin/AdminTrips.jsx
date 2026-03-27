@@ -94,6 +94,7 @@ export default function AdminTrips() {
   const [forcingReinforcementTripId, setForcingReinforcementTripId] = useState(null);
   const [reinforcementTargetTrip, setReinforcementTargetTrip] = useState(null);
   const [reinforcementStops, setReinforcementStops] = useState([]);
+  const [reinforcementStopStats, setReinforcementStopStats] = useState({});
   const [reinforcementName, setReinforcementName] = useState("");
   const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
   const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
@@ -326,20 +327,28 @@ export default function AdminTrips() {
     setReinforcementName(`${trip.name || "Traslado"} Refuerzo`);
     setReinforcementBusName("Refuerzo 1");
     setReinforcementBusCapacity("20");
+    setReinforcementStopStats({});
     try {
       const token = await getAccessToken();
       if (!token) {
         setNotice("Sesión expirada");
         return;
       }
-      const res = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const configRes = await fetch(apiUrl(`/trips/${trip.id}/reinforcement-config`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [res, configRes, reservationsRes] = await Promise.all([
+        fetch(apiUrl(`/trips/${trip.id}/stops`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl(`/trips/${trip.id}/reinforcement-config`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl(`/admin/trips/${trip.id}/reservations`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
       const json = await res.json();
       const configJson = configRes.ok ? await configRes.json() : null;
+      const reservationsJson = reservationsRes.ok ? await reservationsRes.json() : [];
       if (!res.ok) {
         alert(json?.error || "No se pudieron cargar paradas");
         return;
@@ -354,12 +363,27 @@ export default function AdminTrips() {
           ? configJson.split_stop_ids.map((id) => String(id))
           : []
       );
+
+      const stopStats = (Array.isArray(reservationsJson) ? reservationsJson : []).reduce((acc, row) => {
+        const key = String(row?.stop_id || "");
+        if (!key) return acc;
+        if (!acc[key]) {
+          acc[key] = { total: 0, confirmed: 0, waiting: 0 };
+        }
+
+        acc[key].total += 1;
+        if (row?.status === "confirmed") acc[key].confirmed += 1;
+        if (row?.status === "waiting") acc[key].waiting += 1;
+        return acc;
+      }, {});
+
       const normalized = (Array.isArray(json) ? json : [])
         .map((stop) => ({
           ...stop,
           name: stop?.name || "",
           time: stop?.time || "",
           order: Number(stop?.order || 0),
+          passengerStats: stopStats[String(stop?.id)] || { total: 0, confirmed: 0, waiting: 0 },
           selected: defaultSplitIds.has(String(stop?.id)),
         }))
         .sort((a, b) => a.order - b.order);
@@ -379,6 +403,7 @@ export default function AdminTrips() {
         setReinforcementBusCapacity(String(configJson.reinforcement_bus_capacity));
       }
 
+      setReinforcementStopStats(stopStats);
       setReinforcementStops(normalized);
     } finally {
       setLoadingReinforcementStops(false);
@@ -389,6 +414,7 @@ export default function AdminTrips() {
     if (forcingReinforcementTripId && !force) return;
     setReinforcementTargetTrip(null);
     setReinforcementStops([]);
+    setReinforcementStopStats({});
   };
 
   const toggleReinforcementStop = (index) => {
@@ -497,6 +523,18 @@ export default function AdminTrips() {
   const groupedByStop = pagedPassengers.reduce((a, r) => { const k = r.stops?.name || "Sin parada"; if (!a[k]) a[k] = []; a[k].push(r); return a; }, {});
   const confirmedCount = filteredPassengers.filter(p => p.status === "confirmed").length;
   const waitingCount = filteredPassengers.filter(p => p.status === "waiting").length;
+  const reinforcementSelectedSummary = reinforcementStops.reduce(
+    (acc, stop) => {
+      if (!stop?.selected) return acc;
+      const stats = stop?.passengerStats || reinforcementStopStats[String(stop?.id)] || { total: 0, confirmed: 0, waiting: 0 };
+      acc.stops += 1;
+      acc.total += Number(stats.total || 0);
+      acc.confirmed += Number(stats.confirmed || 0);
+      acc.waiting += Number(stats.waiting || 0);
+      return acc;
+    },
+    { stops: 0, total: 0, confirmed: 0, waiting: 0 }
+  );
 
   const renderTripCard = (trip) => (
     <div key={trip.id} className="card glass-card stack-sm" style={{ padding: '20px', marginBottom: '16px' }}>
@@ -803,6 +841,12 @@ export default function AdminTrips() {
             <div className="divider" />
             <p className="caption">Seleccioná qué paradas pasan al nuevo traslado de refuerzo.</p>
             <div className="row">
+              <span className="badge">Paradas seleccionadas: {reinforcementSelectedSummary.stops}</span>
+              <span className="badge">Pasajeros: {reinforcementSelectedSummary.total}</span>
+              <span className="badge badge-success">Confirmados: {reinforcementSelectedSummary.confirmed}</span>
+              <span className="badge badge-warning">Espera: {reinforcementSelectedSummary.waiting}</span>
+            </div>
+            <div className="row">
               <button className="btn-secondary" type="button" onClick={() => setReinforcementStops((prev) => prev.map((stop) => ({ ...stop, selected: false })))}>
                 Ninguna
               </button>
@@ -814,9 +858,16 @@ export default function AdminTrips() {
             <div className="inset-list">
               {reinforcementStops.map((stop, idx) => (
                 <div key={`${stop.id || idx}-${stop.order}`} className="list-item row-between">
-                  <label className="row" style={{ alignItems: "center", gap: 8 }}>
+                  <label className="row" style={{ alignItems: "center", gap: 8, flex: 1 }}>
                     <input type="checkbox" checked={Boolean(stop.selected)} onChange={() => toggleReinforcementStop(idx)} />
-                    <span className="body"><b>{stop.name || `Parada ${idx + 1}`}</b> {stop.time ? `· ${stop.time}` : ""}</span>
+                    <span className="body" style={{ display: "grid", gap: 4 }}>
+                      <span><b>{stop.name || `Parada ${idx + 1}`}</b> {stop.time ? `· ${stop.time}` : ""}</span>
+                      <span className="caption">
+                        Pasajeros: {stop?.passengerStats?.total || reinforcementStopStats[String(stop?.id)]?.total || 0}
+                        {` · Confirmados: ${stop?.passengerStats?.confirmed || reinforcementStopStats[String(stop?.id)]?.confirmed || 0}`}
+                        {` · Espera: ${stop?.passengerStats?.waiting || reinforcementStopStats[String(stop?.id)]?.waiting || 0}`}
+                      </span>
+                    </span>
                   </label>
                   <button className="btn-secondary" type="button" onClick={() => assignStopsFromIndexToReinforcement(idx)}>
                     Desde acá
