@@ -36,8 +36,8 @@ export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("ida");
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
-  const [waitlistStartDay, setWaitlistStartDay] = useState("1");
-  const [waitlistStartTime, setWaitlistStartTime] = useState("08:00");
+  const [waitlistStartDay, setWaitlistStartDay] = useState("4");
+  const [waitlistStartTime, setWaitlistStartTime] = useState("14:00");
   const [waitlistHasEnd, setWaitlistHasEnd] = useState(false);
   const [waitlistEndDay, setWaitlistEndDay] = useState("1");
   const [waitlistEndTime, setWaitlistEndTime] = useState("09:00");
