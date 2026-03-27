@@ -49,7 +49,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [quickReinforcementCount, setQuickReinforcementCount] = useState("2");
 
   const [stops, setStops] = useState([]);
-  const [buses, setBuses] = useState([]);
+  const [buses, setBuses] = useState([{ name: "Micro 1", capacity: 50 }]);
 
   const [templates, setTemplates] = useState([]);
   const [success, setSuccess] = useState(false);
