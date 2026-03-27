@@ -41,10 +41,11 @@ export default function AdminCreateTrip({ onCreated }) {
   const [waitlistHasEnd, setWaitlistHasEnd] = useState(false);
   const [waitlistEndDay, setWaitlistEndDay] = useState("1");
   const [waitlistEndTime, setWaitlistEndTime] = useState("09:00");
-  const [splitIfExceeded, setSplitIfExceeded] = useState(false);
+  const [enableReinforcement, setEnableReinforcement] = useState(false);
   const [maxAvailability, setMaxAvailability] = useState("40");
-  const [splitTripOneName, setSplitTripOneName] = useState("");
-  const [splitTripTwoName, setSplitTripTwoName] = useState("");
+  const [reinforcementTripName, setReinforcementTripName] = useState("");
+  const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
+  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
 
   const [stops, setStops] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -66,7 +67,7 @@ export default function AdminCreateTrip({ onCreated }) {
     return () => { alive = false; };
   }, []);
 
-  const addStop = () => setStops([...stops, { name: "", time: "", split_target: "1" }]);
+  const addStop = () => setStops([...stops, { name: "", time: "", split_target: "main" }]);
   const updateStop = (i, f, v) => { const c = [...stops]; c[i][f] = v; setStops(c); };
   const removeStop = (i) => { const c = [...stops]; c.splice(i, 1); setStops(c); };
 
@@ -82,7 +83,7 @@ export default function AdminCreateTrip({ onCreated }) {
       const d = new Date(start.getTime() + s.offset_minutes * 60000);
       const hh = d.getHours().toString().padStart(2, "0");
       const mm = d.getMinutes().toString().padStart(2, "0");
-      return { name: s.name, time: `${hh}:${mm}`, split_target: "1" };
+      return { name: s.name, time: `${hh}:${mm}`, split_target: "main" };
     });
     setStops(mapped);
   };
@@ -111,39 +112,9 @@ export default function AdminCreateTrip({ onCreated }) {
   const removeBus = (i) => { const c = [...buses]; c.splice(i, 1); setBuses(c); };
 
   const totalCapacity = buses.reduce((sum, bus) => sum + (Number(bus.capacity) || 0), 0);
-  const splitLimit = Number.parseInt(maxAvailability, 10) || 0;
-  const exceedsSplitLimit = splitLimit > 0 && totalCapacity > splitLimit;
-  const shouldSplitOnCreate = splitIfExceeded && exceedsSplitLimit;
-
-  const distributeBusesInTwoTrips = (sourceBuses) => {
-    if (sourceBuses.length < 2) return null;
-
-    const normalized = sourceBuses.map((bus) => ({
-      ...bus,
-      capacity: Number(bus.capacity) || 0,
-    }));
-
-    const groupOne = [];
-    const groupTwo = [];
-    let capOne = 0;
-    let capTwo = 0;
-
-    for (const bus of normalized) {
-      if (capOne <= capTwo) {
-        groupOne.push(bus);
-        capOne += bus.capacity;
-      } else {
-        groupTwo.push(bus);
-        capTwo += bus.capacity;
-      }
-    }
-
-    if (groupOne.length === 0 || groupTwo.length === 0) {
-      return null;
-    }
-
-    return { groupOne, groupTwo };
-  };
+  const maxLimit = Number.parseInt(maxAvailability, 10) || 0;
+  const exceedsMaxAvailability = maxLimit > 0 && totalCapacity > maxLimit;
+  const shouldCreateReinforcement = enableReinforcement && exceedsMaxAvailability;
 
   const createOneTrip = async (token, tripName, tripStops, tripBuses) => {
     const tripRes = await fetch(apiUrl("/trips"), {
@@ -199,16 +170,17 @@ export default function AdminCreateTrip({ onCreated }) {
     if (buses.length === 0) { alert("Agregá al menos un vehículo."); return; }
     if (stops.length === 0) { alert("Agregá al menos una parada."); return; }
 
-    if (shouldSplitOnCreate) {
-      if (buses.length < 2) {
-        alert("Para dividir en 2 traslados necesitás al menos 2 vehículos.");
+    if (shouldCreateReinforcement) {
+      const reinforcementCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
+      if (reinforcementCapacity <= 0) {
+        alert("Definí una capacidad válida para el vehículo de refuerzo.");
         return;
       }
 
-      const stopsOne = stops.filter((stop) => stop.split_target !== "2");
-      const stopsTwo = stops.filter((stop) => stop.split_target === "2");
-      if (stopsOne.length === 0 || stopsTwo.length === 0) {
-        alert("Asigná al menos una parada en cada traslado (1 y 2).");
+      const mainStops = stops.filter((stop) => stop.split_target !== "reinforcement");
+      const reinforcementStops = stops.filter((stop) => stop.split_target === "reinforcement");
+      if (mainStops.length === 0 || reinforcementStops.length === 0) {
+        alert("Asigná al menos una parada al traslado principal y una al refuerzo.");
         return;
       }
     }
@@ -222,20 +194,17 @@ export default function AdminCreateTrip({ onCreated }) {
         return;
       }
 
-      if (shouldSplitOnCreate) {
-        const distributed = distributeBusesInTwoTrips(buses);
-        if (!distributed) {
-          alert("No se pudieron distribuir los vehículos entre los 2 traslados.");
-          return;
-        }
+      if (shouldCreateReinforcement) {
+        const mainStops = stops.filter((stop) => stop.split_target !== "reinforcement");
+        const reinforcementStops = stops.filter((stop) => stop.split_target === "reinforcement");
+        const secondTripName = reinforcementTripName.trim() || `${name || "Traslado"} Refuerzo`;
+        const secondBus = {
+          name: reinforcementBusName.trim() || "Refuerzo 1",
+          capacity: Number.parseInt(reinforcementBusCapacity, 10) || 0,
+        };
 
-        const stopsOne = stops.filter((stop) => stop.split_target !== "2");
-        const stopsTwo = stops.filter((stop) => stop.split_target === "2");
-        const nameOne = splitTripOneName.trim() || `${name || "Traslado"} 1`;
-        const nameTwo = splitTripTwoName.trim() || `${name || "Traslado"} 2`;
-
-        await createOneTrip(token, nameOne, stopsOne, distributed.groupOne);
-        await createOneTrip(token, nameTwo, stopsTwo, distributed.groupTwo);
+        await createOneTrip(token, name, mainStops, buses);
+        await createOneTrip(token, secondTripName, reinforcementStops, [secondBus]);
       } else {
         await createOneTrip(token, name, stops, buses);
       }
@@ -278,15 +247,15 @@ export default function AdminCreateTrip({ onCreated }) {
           <div className="divider" />
 
           <div className="stack-sm">
-            <h4 className="caption" style={{ fontWeight: "bold" }}>División automática de traslado</h4>
+            <h4 className="caption" style={{ fontWeight: "bold" }}>Vehículo de refuerzo automático</h4>
             <label className="row" style={{ alignItems: "center", gap: 8 }}>
               <input
                 style={{ width: "auto", marginBottom: 0 }}
                 type="checkbox"
-                checked={splitIfExceeded}
-                onChange={e => setSplitIfExceeded(e.target.checked)}
+                checked={enableReinforcement}
+                onChange={e => setEnableReinforcement(e.target.checked)}
               />
-              <span className="body">Dividir en 2 traslados si se supera el límite</span>
+              <span className="body">Crear refuerzo si se supera la capacidad máxima</span>
             </label>
             <div className="row">
               <input
@@ -294,17 +263,38 @@ export default function AdminCreateTrip({ onCreated }) {
                 min="1"
                 value={maxAvailability}
                 onChange={e => setMaxAvailability(e.target.value)}
-                placeholder="Límite disponibilidad"
+                placeholder="Capacidad máxima"
               />
-              <span className="caption" style={{ alignSelf: "center" }}>cupos máx. por traslado</span>
+              <span className="caption" style={{ alignSelf: "center" }}>si se supera, se crea refuerzo</span>
             </div>
             <p className="caption">
-              Capacidad actual configurada: <b>{totalCapacity}</b> {splitLimit > 0 ? `(límite ${splitLimit})` : ""}
+              Capacidad actual configurada: <b>{totalCapacity}</b> {maxLimit > 0 ? `(máximo ${maxLimit})` : ""}
             </p>
-            {splitIfExceeded ? (
-              <p className="caption" style={{ color: exceedsSplitLimit ? "var(--ios-system-orange)" : "inherit" }}>
-                {exceedsSplitLimit ? "Se crearán 2 traslados al guardar." : "No supera el límite, se creará 1 traslado."}
+            {enableReinforcement ? (
+              <p className="caption" style={{ color: exceedsMaxAvailability ? "var(--ios-system-orange)" : "inherit" }}>
+                {exceedsMaxAvailability ? "Se creará traslado de refuerzo al guardar." : "No supera el máximo, se creará solo el traslado principal."}
               </p>
+            ) : null}
+            {shouldCreateReinforcement ? (
+              <div className="stack-sm">
+                <input
+                  placeholder="Nombre traslado refuerzo (opcional)"
+                  value={reinforcementTripName}
+                  onChange={e => setReinforcementTripName(e.target.value)}
+                />
+                <input
+                  placeholder="Nombre vehículo refuerzo"
+                  value={reinforcementBusName}
+                  onChange={e => setReinforcementBusName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Capacidad vehículo refuerzo"
+                  value={reinforcementBusCapacity}
+                  onChange={e => setReinforcementBusCapacity(e.target.value)}
+                />
+              </div>
             ) : null}
           </div>
           
@@ -353,22 +343,18 @@ export default function AdminCreateTrip({ onCreated }) {
               <div key={i} className="card glass-card row" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', padding: '12px' }}>
                 <input style={{ flex: 2, marginBottom: 0 }} placeholder="Nombre parada" value={s.name} onChange={e => updateStop(i, "name", e.target.value)} />
                 <input style={{ width: '120px', marginBottom: 0 }} type="time" value={s.time} onChange={e => shiftTimes(i, e.target.value)} />
-                {shouldSplitOnCreate ? (
-                  <select style={{ width: '120px', marginBottom: 0 }} value={s.split_target || "1"} onChange={e => updateStop(i, "split_target", e.target.value)}>
-                    <option value="1">Traslado 1</option>
-                    <option value="2">Traslado 2</option>
+                {shouldCreateReinforcement ? (
+                  <select style={{ width: '140px', marginBottom: 0 }} value={s.split_target || "main"} onChange={e => updateStop(i, "split_target", e.target.value)}>
+                    <option value="main">Principal</option>
+                    <option value="reinforcement">Refuerzo</option>
                   </select>
                 ) : null}
                 <button className="btn-plain" onClick={() => removeStop(i)}><IconTrash/></button>
               </div>
             ))}
           </div>
-          {shouldSplitOnCreate ? (
-            <div className="stack-sm">
-              <input placeholder="Nombre traslado 1 (opcional)" value={splitTripOneName} onChange={e => setSplitTripOneName(e.target.value)} />
-              <input placeholder="Nombre traslado 2 (opcional)" value={splitTripTwoName} onChange={e => setSplitTripTwoName(e.target.value)} />
-              <p className="caption">Asigná cada parada al traslado 1 o 2.</p>
-            </div>
+          {shouldCreateReinforcement ? (
+            <p className="caption">Asigná cada parada al traslado principal o al refuerzo.</p>
           ) : null}
           <button className="btn-secondary" onClick={addStop}>+ Agregar parada</button>
         </div>
@@ -391,7 +377,7 @@ export default function AdminCreateTrip({ onCreated }) {
       </div>
 
       <div className="inset-group stack" style={{ marginTop: 40, paddingBottom: 60 }}>
-        <button className="btn-primary" onClick={createTrip} disabled={submitting}>{submitting ? "Creando..." : (shouldSplitOnCreate ? "Crear 2 Traslados" : "Crear Traslado")}</button>
+        <button className="btn-primary" onClick={createTrip} disabled={submitting}>{submitting ? "Creando..." : (shouldCreateReinforcement ? "Crear Traslado + Refuerzo" : "Crear Traslado")}</button>
         {onCreated && <button className="btn-plain" onClick={onCreated} disabled={submitting}>Cancelar</button>}
       </div>
     </div>
