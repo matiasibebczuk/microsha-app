@@ -149,7 +149,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const totalCapacity = buses.reduce((sum, bus) => sum + (Number(bus.capacity) || 0), 0);
   const maxLimit = Number.parseInt(maxAvailability, 10) || 0;
   const exceedsMaxAvailability = maxLimit > 0 && totalCapacity > maxLimit;
-  const shouldCreateReinforcement = enableReinforcement && exceedsMaxAvailability;
+  const shouldConfigureReinforcement = enableReinforcement;
 
   const createOneTrip = async (token, tripName, tripStops, tripBuses) => {
     const tripRes = await fetch(apiUrl("/trips"), {
@@ -198,6 +198,8 @@ export default function AdminCreateTrip({ onCreated }) {
         throw new Error(busJson?.error || "No se pudieron guardar vehículos");
       }
     }
+
+    return trip;
   };
 
   const createTrip = async () => {
@@ -205,7 +207,7 @@ export default function AdminCreateTrip({ onCreated }) {
     if (buses.length === 0) { alert("Agregá al menos un vehículo."); return; }
     if (stops.length === 0) { alert("Agregá al menos una parada."); return; }
 
-    if (shouldCreateReinforcement) {
+    if (shouldConfigureReinforcement) {
       const reinforcementCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
       if (reinforcementCapacity <= 0) {
         alert("Definí una capacidad válida para el vehículo de refuerzo.");
@@ -230,19 +232,26 @@ export default function AdminCreateTrip({ onCreated }) {
         return;
       }
 
-      if (shouldCreateReinforcement) {
-        const mainStops = stops.filter((stop) => stop.split_target !== "reinforcement");
-        const reinforcementStops = stops.filter((stop) => stop.split_target === "reinforcement");
-        const secondTripName = reinforcementTripName.trim() || `${name || "Traslado"} Refuerzo`;
-        const secondBus = {
-          name: reinforcementBusName.trim() || "Refuerzo 1",
-          capacity: Number.parseInt(reinforcementBusCapacity, 10) || 0,
-        };
+      const createdTrip = await createOneTrip(token, name, stops, buses);
 
-        await createOneTrip(token, name, mainStops, buses);
-        await createOneTrip(token, secondTripName, reinforcementStops, [secondBus]);
-      } else {
-        await createOneTrip(token, name, stops, buses);
+      if (shouldConfigureReinforcement) {
+        const configRes = await fetch(apiUrl(`/trips/${createdTrip.id}/reinforcement-config`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            reinforcement_trip_name: reinforcementTripName.trim() || `${name || "Traslado"} Refuerzo`,
+            reinforcement_bus_name: reinforcementBusName.trim() || "Refuerzo 1",
+            reinforcement_bus_capacity: Number.parseInt(reinforcementBusCapacity, 10) || 0,
+            split_order_indexes: stops
+              .map((stop, idx) => (stop.split_target === "reinforcement" ? idx + 1 : null))
+              .filter(Boolean),
+          }),
+        });
+
+        if (!configRes.ok) {
+          const configJson = await configRes.json().catch(() => ({}));
+          throw new Error(configJson?.error || "Se creó el traslado, pero falló guardar la configuración de refuerzo");
+        }
       }
 
       setSuccess(true);
@@ -309,10 +318,10 @@ export default function AdminCreateTrip({ onCreated }) {
             </p>
             {enableReinforcement ? (
               <p className="caption" style={{ color: exceedsMaxAvailability ? "var(--ios-system-orange)" : "inherit" }}>
-                {exceedsMaxAvailability ? "Se creará traslado de refuerzo al guardar." : "No supera el máximo, se creará solo el traslado principal."}
+                {exceedsMaxAvailability ? "Está excedido: el refuerzo se activará automáticamente cuando se complete el cupo." : "Se guardará configuración para activar refuerzo cuando se complete el cupo."}
               </p>
             ) : null}
-            {shouldCreateReinforcement ? (
+            {shouldConfigureReinforcement ? (
               <div className="stack-sm">
                 <input
                   placeholder="Nombre traslado refuerzo (opcional)"
@@ -380,7 +389,7 @@ export default function AdminCreateTrip({ onCreated }) {
               <div key={i} className="card glass-card row" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', padding: '12px' }}>
                 <input style={{ flex: 2, marginBottom: 0 }} placeholder="Nombre parada" value={s.name} onChange={e => updateStop(i, "name", e.target.value)} />
                 <input style={{ width: '120px', marginBottom: 0 }} type="time" value={s.time} onChange={e => shiftTimes(i, e.target.value)} />
-                {shouldCreateReinforcement ? (
+                {shouldConfigureReinforcement ? (
                   <>
                     <select style={{ width: '140px', marginBottom: 0 }} value={s.split_target || "main"} onChange={e => updateStop(i, "split_target", e.target.value)}>
                       <option value="main">Principal</option>
@@ -395,7 +404,7 @@ export default function AdminCreateTrip({ onCreated }) {
               </div>
             ))}
           </div>
-          {shouldCreateReinforcement ? (
+          {shouldConfigureReinforcement ? (
             <div className="stack-sm">
               <div className="row">
                 <button className="btn-secondary" type="button" onClick={assignAllStopsToMain}>Todo principal</button>
@@ -436,7 +445,7 @@ export default function AdminCreateTrip({ onCreated }) {
       </div>
 
       <div className="inset-group stack" style={{ marginTop: 40, paddingBottom: 60 }}>
-        <button className="btn-primary" onClick={createTrip} disabled={submitting}>{submitting ? "Creando..." : (shouldCreateReinforcement ? "Crear Traslado + Refuerzo" : "Crear Traslado")}</button>
+        <button className="btn-primary" onClick={createTrip} disabled={submitting}>{submitting ? "Creando..." : "Crear Traslado"}</button>
         {onCreated && <button className="btn-plain" onClick={onCreated} disabled={submitting}>Cancelar</button>}
       </div>
     </div>
