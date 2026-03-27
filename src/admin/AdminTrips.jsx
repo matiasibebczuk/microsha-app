@@ -82,6 +82,7 @@ export default function AdminTrips() {
   const [notice, setNotice] = useState("");
   const [groupLabel, setGroupLabel] = useState("-");
   const [passengerPage, setPassengerPage] = useState(1);
+  const [selectedPassenger, setSelectedPassenger] = useState(null);
   const passengerPageSize = 20;
   const passengersSectionRef = useRef(null);
   const initialLoadDoneRef = useRef(false);
@@ -503,7 +504,14 @@ export default function AdminTrips() {
                   {rows.map(r => (
                     <div key={r.id} className="card glass-card row-between" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', padding: '12px 16px' }}>
                       <div className="stack-sm">
-                        <span className="body"><b>{r.users?.name || "Sin nombre"}</b></span>
+                        <button
+                          type="button"
+                          className="btn-plain"
+                          style={{ padding: 0, textAlign: "left" }}
+                          onClick={() => setSelectedPassenger(r)}
+                        >
+                          <span className="body"><b>{r.users?.name || "Sin nombre"}</b></span>
+                        </button>
                         <span className="caption">{r.users?.phone || "Sin tel"}</span>
                       </div>
                       <div className="row">
@@ -519,6 +527,47 @@ export default function AdminTrips() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {selectedPassenger && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="page fade-up"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={() => setSelectedPassenger(null)}
+        >
+          <div
+            className="card glass-card stack-sm"
+            style={{ width: "100%", maxWidth: "520px", padding: "20px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between">
+              <h3 className="headline" style={{ margin: 0 }}>Detalle del pasajero</h3>
+              <button className="btn-secondary" type="button" onClick={() => setSelectedPassenger(null)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="divider" />
+            <div className="stack-sm">
+              <p className="body"><b>Nombre:</b> {selectedPassenger.users?.name || "Sin nombre"}</p>
+              <p className="body"><b>Teléfono:</b> {selectedPassenger.users?.phone || "Sin teléfono"}</p>
+              <p className="body"><b>Estado:</b> {selectedPassenger.status === "waiting" ? "En espera" : "Confirmado"}</p>
+              <p className="body"><b>Parada:</b> {selectedPassenger.stops?.name || "Sin parada"}</p>
+              <p className="caption"><b>ID usuario:</b> {selectedPassenger.user_id || "-"}</p>
+              <p className="caption"><b>ID reserva:</b> {selectedPassenger.id || "-"}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
