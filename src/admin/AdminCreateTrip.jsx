@@ -46,6 +46,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [reinforcementTripName, setReinforcementTripName] = useState("");
   const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
   const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
+  const [quickReinforcementCount, setQuickReinforcementCount] = useState("2");
 
   const [stops, setStops] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -70,6 +71,39 @@ export default function AdminCreateTrip({ onCreated }) {
   const addStop = () => setStops([...stops, { name: "", time: "", split_target: "main" }]);
   const updateStop = (i, f, v) => { const c = [...stops]; c[i][f] = v; setStops(c); };
   const removeStop = (i) => { const c = [...stops]; c.splice(i, 1); setStops(c); };
+
+  const assignAllStopsToMain = () => {
+    setStops((prev) => prev.map((stop) => ({ ...stop, split_target: "main" })));
+  };
+
+  const assignHalfStopsToReinforcement = () => {
+    setStops((prev) => {
+      const splitStart = Math.ceil(prev.length / 2);
+      return prev.map((stop, index) => ({
+        ...stop,
+        split_target: index >= splitStart ? "reinforcement" : "main",
+      }));
+    });
+  };
+
+  const assignLastStopsToReinforcement = () => {
+    const count = Number.parseInt(quickReinforcementCount, 10) || 0;
+    setStops((prev) => {
+      if (count <= 0) return prev;
+      const start = Math.max(prev.length - count, 0);
+      return prev.map((stop, index) => ({
+        ...stop,
+        split_target: index >= start ? "reinforcement" : "main",
+      }));
+    });
+  };
+
+  const assignStopsFromIndexToReinforcement = (startIndex) => {
+    setStops((prev) => prev.map((stop, index) => ({
+      ...stop,
+      split_target: index >= startIndex ? "reinforcement" : "main",
+    })));
+  };
 
   const loadFromTemplate = async (templateId) => {
     const { data } = await supabase.auth.getSession();
@@ -344,17 +378,39 @@ export default function AdminCreateTrip({ onCreated }) {
                 <input style={{ flex: 2, marginBottom: 0 }} placeholder="Nombre parada" value={s.name} onChange={e => updateStop(i, "name", e.target.value)} />
                 <input style={{ width: '120px', marginBottom: 0 }} type="time" value={s.time} onChange={e => shiftTimes(i, e.target.value)} />
                 {shouldCreateReinforcement ? (
-                  <select style={{ width: '140px', marginBottom: 0 }} value={s.split_target || "main"} onChange={e => updateStop(i, "split_target", e.target.value)}>
-                    <option value="main">Principal</option>
-                    <option value="reinforcement">Refuerzo</option>
-                  </select>
+                  <>
+                    <select style={{ width: '140px', marginBottom: 0 }} value={s.split_target || "main"} onChange={e => updateStop(i, "split_target", e.target.value)}>
+                      <option value="main">Principal</option>
+                      <option value="reinforcement">Refuerzo</option>
+                    </select>
+                    <button className="btn-secondary" type="button" onClick={() => assignStopsFromIndexToReinforcement(i)}>
+                      Desde acá
+                    </button>
+                  </>
                 ) : null}
                 <button className="btn-plain" onClick={() => removeStop(i)}><IconTrash/></button>
               </div>
             ))}
           </div>
           {shouldCreateReinforcement ? (
-            <p className="caption">Asigná cada parada al traslado principal o al refuerzo.</p>
+            <div className="stack-sm">
+              <div className="row">
+                <button className="btn-secondary" type="button" onClick={assignAllStopsToMain}>Todo principal</button>
+                <button className="btn-secondary" type="button" onClick={assignHalfStopsToReinforcement}>Mitad a refuerzo</button>
+              </div>
+              <div className="row">
+                <input
+                  style={{ maxWidth: '120px' }}
+                  type="number"
+                  min="1"
+                  value={quickReinforcementCount}
+                  onChange={e => setQuickReinforcementCount(e.target.value)}
+                  placeholder="N"
+                />
+                <button className="btn-secondary" type="button" onClick={assignLastStopsToReinforcement}>Últimas N a refuerzo</button>
+              </div>
+              <p className="caption">Atajo rápido: en cada parada podés usar <b>Desde acá</b> para enviar esa y todas las siguientes al refuerzo.</p>
+            </div>
           ) : null}
           <button className="btn-secondary" onClick={addStop}>+ Agregar parada</button>
         </div>
