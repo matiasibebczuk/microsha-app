@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { apiUrl } from "../api";
 import { IconTrash } from "../ui/icons";
@@ -54,6 +54,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [templates, setTemplates] = useState([]);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -200,7 +201,7 @@ export default function AdminCreateTrip({ onCreated }) {
   };
 
   const createTrip = async () => {
-    if (submitting) return;
+    if (submittingRef.current || submitting) return;
     if (buses.length === 0) { alert("Agregá al menos un vehículo."); return; }
     if (stops.length === 0) { alert("Agregá al menos una parada."); return; }
 
@@ -219,6 +220,7 @@ export default function AdminCreateTrip({ onCreated }) {
       }
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -248,6 +250,7 @@ export default function AdminCreateTrip({ onCreated }) {
     } catch (err) {
       alert(err?.message || "No se pudo crear el traslado");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

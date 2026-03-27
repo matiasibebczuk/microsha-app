@@ -105,6 +105,7 @@ export default function AdminTrips() {
   const passengerPageSize = 20;
   const passengersSectionRef = useRef(null);
   const initialLoadDoneRef = useRef(false);
+  const forcingReinforcementRef = useRef(false);
 
   const getTokenWithRetry = useCallback(async () => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -404,7 +405,7 @@ export default function AdminTrips() {
   };
 
   const forceCreateReinforcement = async () => {
-    if (!reinforcementTargetTrip || forcingReinforcementTripId) return;
+    if (!reinforcementTargetTrip || forcingReinforcementTripId || forcingReinforcementRef.current) return;
     const busCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
     if (!reinforcementName.trim()) {
       alert("Ingresá el nombre del nuevo traslado de refuerzo.");
@@ -429,6 +430,7 @@ export default function AdminTrips() {
       return;
     }
 
+    forcingReinforcementRef.current = true;
     setForcingReinforcementTripId(reinforcementTargetTrip.id);
     try {
       const token = await getAccessToken();
@@ -459,6 +461,7 @@ export default function AdminTrips() {
         await loadPassengers(reinforcementTargetTrip.id);
       }
     } finally {
+      forcingReinforcementRef.current = false;
       setForcingReinforcementTripId(null);
     }
   };
