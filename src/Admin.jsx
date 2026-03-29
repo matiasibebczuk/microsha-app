@@ -105,13 +105,35 @@ export default function Admin() {
     const trips = Array.isArray(tripsJson) ? tripsJson : [];
     const withStops = await Promise.all(
       trips.map(async (trip) => {
-        const res = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json().catch(() => ([]));
+        const [stopsRes, reservationsRes] = await Promise.all([
+          fetch(apiUrl(`/trips/${trip.id}/stops`), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(apiUrl(`/admin/trips/${trip.id}/reservations`), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        const json = await stopsRes.json().catch(() => ([]));
+        const reservationsJson = await reservationsRes.json().catch(() => ([]));
+
+        const stopStats = (Array.isArray(reservationsJson) ? reservationsJson : []).reduce((acc, row) => {
+          const key = String(row?.stop_id || "");
+          if (!key) return acc;
+          if (!acc[key]) {
+            acc[key] = { total: 0 };
+          }
+          acc[key].total += 1;
+          return acc;
+        }, {});
+
+        const stopsWithPassengers = (Array.isArray(json) ? json : []).filter(
+          (stop) => Number(stopStats[String(stop?.id)]?.total || 0) > 0
+        );
+
         return {
           trip,
-          stops: Array.isArray(json) ? json : [],
+          stops: stopsWithPassengers,
         };
       })
     );
@@ -122,6 +144,7 @@ export default function Admin() {
     };
 
     withStops.forEach(({ trip, stops }) => {
+      if (!Array.isArray(stops) || stops.length === 0) return;
       const normalizedType = String(trip?.type || "").trim().toLowerCase();
       const section = normalizedType.startsWith("ida") ? "ida" : "vuelta";
       const orderedStops = [...stops].sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0));

@@ -229,6 +229,35 @@ export default function AdminTrips() {
   const addEditBus = () => setEditBuses(p => [...p, { id: null, name: "", capacity: 40 }]);
   const updateEditBus = (i, f, v) => setEditBuses(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
   const removeEditBus = (i) => setEditBuses(p => p.filter((_, idx) => idx !== i));
+  const editTotalCapacity = editBuses.reduce((acc, bus) => acc + Number(bus?.capacity || 0), 0);
+  const setEditTotalCapacity = (nextValue) => {
+    const target = Number.parseInt(nextValue, 10);
+    if (!Number.isFinite(target) || target <= 0) return;
+
+    setEditBuses((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) {
+        return [{ id: null, name: "Vehículo 1", capacity: target }];
+      }
+
+      const rest = prev.slice(1);
+      const restSum = rest.reduce((acc, bus) => acc + Number(bus?.capacity || 0), 0);
+      const minTotal = restSum + 1;
+
+      if (target < minTotal) {
+        setNotice(`La capacidad total mínima con los demás vehículos es ${minTotal}`);
+        return prev;
+      }
+
+      setNotice("");
+      return [
+        {
+          ...prev[0],
+          capacity: target - restSum,
+        },
+        ...rest,
+      ];
+    });
+  };
   const addEditStop = () => setEditStops(p => [...p, { id: null, name: "", time: "", order: p.length + 1 }]);
   const updateEditStop = (i, f, v) => setEditStops((p) => {
     const c = [...p];
@@ -286,8 +315,28 @@ export default function AdminTrips() {
       body.waitlist_end_at = null;
       const res = await fetch(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       if (!res.ok) { alert("Error guardando traslado"); return; }
-      await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ buses: editBuses }) });
-      await fetch(apiUrl(`/trips/${editingTripId}/stops/sync`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ stops: editStops }) });
+      const busesRes = await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ buses: editBuses }),
+      });
+      const busesJson = await busesRes.json().catch(() => ({}));
+      if (!busesRes.ok) {
+        alert(busesJson?.error || "No se pudo guardar la capacidad/vehículos del traslado");
+        return;
+      }
+
+      const stopsRes = await fetch(apiUrl(`/trips/${editingTripId}/stops/sync`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ stops: editStops }),
+      });
+      const stopsJson = await stopsRes.json().catch(() => ({}));
+      if (!stopsRes.ok) {
+        alert(stopsJson?.error || "No se pudieron guardar las paradas del traslado");
+        return;
+      }
+
       setEditingTripId(null);
       await loadTrips();
     } finally {
@@ -600,6 +649,16 @@ export default function AdminTrips() {
                 <select style={{ flex: 1 }} value={editType} onChange={e => setEditType(e.target.value)}>
                    <option value="ida">Ida</option><option value="vuelta">Vuelta</option>
                 </select>
+              </div>
+              <div className="row" style={{ alignItems: "center", gap: 8 }}>
+                <label className="caption" style={{ minWidth: 140, margin: 0 }}>Capacidad total</label>
+                <input
+                  style={{ flex: 1 }}
+                  type="number"
+                  min="1"
+                  value={editTotalCapacity || ""}
+                  onChange={e => setEditTotalCapacity(e.target.value)}
+                />
               </div>
 
               <div className="divider" />
