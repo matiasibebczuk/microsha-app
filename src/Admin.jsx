@@ -12,12 +12,29 @@ import { formatTripTitle, formatTimeLabel } from "./utils/format";
 
 export default function Admin() {
   const SHOW_ACTIVE_TRIPS_TITLE = false;
+  const WEEK_DAYS = [
+    { value: 0, label: "Domingo" },
+    { value: 1, label: "Lunes" },
+    { value: 2, label: "Martes" },
+    { value: 3, label: "Miércoles" },
+    { value: 4, label: "Jueves" },
+    { value: 5, label: "Viernes" },
+    { value: 6, label: "Sábado" },
+  ];
   const [view, setView] = useState("list");
   const [notice, setNotice] = useState("");
   const [tripsPaused, setTripsPaused] = useState(false);
+  const [scheduledPauseEnabled, setScheduledPauseEnabled] = useState(false);
+  const [scheduledPauseDay, setScheduledPauseDay] = useState("1");
+  const [scheduledPauseTime, setScheduledPauseTime] = useState("08:00");
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
   const [copyingTrips, setCopyingTrips] = useState(false);
   const getAccessToken = useSessionToken();
+
+  const scheduledDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledPauseDay))?.label || "-";
+  const scheduledLabel = `Programado para los ${scheduledDayLabel} - ${formatTimeLabel(scheduledPauseTime)}`;
 
   const loadFlags = async () => {
     try {
@@ -29,6 +46,9 @@ export default function Admin() {
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
         setTripsPaused(Boolean(json?.tripsPaused));
+        setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
+        setScheduledPauseDay(String(json?.scheduledPauseDay ?? "1"));
+        setScheduledPauseTime(String(json?.scheduledPauseTime || "08:00").slice(0, 5));
       }
     } catch {
       return;
@@ -138,6 +158,48 @@ export default function Admin() {
     }
   };
 
+  const saveScheduledPause = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setNotice("Sesión expirada");
+        return;
+      }
+
+      const res = await fetch(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          scheduledPauseEnabled: true,
+          scheduledPauseDay: Number(scheduledPauseDay),
+          scheduledPauseTime,
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice(json?.error || "No se pudo programar la pausa");
+        return;
+      }
+
+      setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
+      setScheduledPauseDay(String(json?.scheduledPauseDay ?? scheduledPauseDay));
+      setScheduledPauseTime(String(json?.scheduledPauseTime || scheduledPauseTime).slice(0, 5));
+      setShowScheduleModal(false);
+      setNotice("Pausa semanal programada");
+    } catch {
+      setNotice("Error de red");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
   useEffect(() => {
     void loadFlags();
   }, []);
@@ -192,6 +254,10 @@ export default function Admin() {
               {copyingTrips ? "Copiando..." : "Copiar traslados"}
             </button>
           </div>
+          <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
+            Programar pausa de traslados
+          </button>
+          {scheduledPauseEnabled ? <p className="caption">{scheduledLabel}</p> : null}
         </div>
       </div>
 
@@ -201,6 +267,51 @@ export default function Admin() {
           <AdminTrips />
         </div>
       </div>
+
+      {showScheduleModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="page fade-up"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 55,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={() => setShowScheduleModal(false)}
+        >
+          <div
+            className="card glass-card stack-sm"
+            style={{ width: "100%", maxWidth: "520px", padding: "20px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between">
+              <h3 className="headline" style={{ margin: 0 }}>Programar pausa semanal</h3>
+              <button className="btn-secondary" type="button" onClick={() => setShowScheduleModal(false)} disabled={savingSchedule}>
+                Cerrar
+              </button>
+            </div>
+            <div className="divider" />
+            <div className="row">
+              <select style={{ flex: 1 }} value={scheduledPauseDay} onChange={(e) => setScheduledPauseDay(e.target.value)}>
+                {WEEK_DAYS.map((day) => (
+                  <option key={day.value} value={String(day.value)}>{day.label}</option>
+                ))}
+              </select>
+              <input style={{ flex: 1 }} type="time" value={scheduledPauseTime} onChange={(e) => setScheduledPauseTime(e.target.value)} />
+            </div>
+            <p className="caption">{scheduledLabel}</p>
+            <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule}>
+              {savingSchedule ? "Guardando..." : "Guardar programación"}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
