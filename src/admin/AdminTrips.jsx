@@ -7,7 +7,7 @@ import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
-import { formatOccupancy, formatTripStatus } from "../utils/format";
+import { formatOccupancy, formatTripStatus, formatTripTitle } from "../utils/format";
 
 const WEEK_DAYS = [
   { value: 0, label: "Domingo" },
@@ -523,7 +523,8 @@ export default function AdminTrips() {
   const groupedByStop = pagedPassengers.reduce((a, r) => { const k = r.stops?.name || "Sin parada"; if (!a[k]) a[k] = []; a[k].push(r); return a; }, {});
   const confirmedCount = filteredPassengers.filter(p => p.status === "confirmed").length;
   const waitingCount = filteredPassengers.filter(p => p.status === "waiting").length;
-  const selectedTripLabel = trips.find((trip) => Number(trip?.id) === Number(selectedTripId))?.name || `Viaje ${selectedTripId}`;
+  const selectedTripRef = trips.find((trip) => Number(trip?.id) === Number(selectedTripId));
+  const selectedTripLabel = formatTripTitle(selectedTripRef?.name, selectedTripRef?.first_time, selectedTripId);
   const reinforcementSelectedSummary = reinforcementStops.reduce(
     (acc, stop) => {
       if (!stop?.selected) return acc;
@@ -540,7 +541,7 @@ export default function AdminTrips() {
   const renderTripCard = (trip) => (
     <div key={trip.id} className="card glass-card stack-sm" style={{ padding: '20px', marginBottom: '16px' }}>
       <div className="row-between">
-        <h2 className="headline">{trip.name || trip.id}</h2>
+        <h2 className="headline">{formatTripTitle(trip.name, trip.first_time, trip.id)}</h2>
         <span className={`badge ${trip.status === 'open' ? 'badge-success' : 'badge-warning'}`}>{formatTripStatus(trip.status)}</span>
       </div>
       
@@ -736,7 +737,24 @@ export default function AdminTrips() {
                           style={{ padding: 0, textAlign: "left" }}
                           onClick={() => setSelectedPassenger(r)}
                         >
-                          <span className="body"><b>{r.users?.name || "Sin nombre"}</b></span>
+                          <span className="body" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                            <b>{r.users?.name || "Sin nombre"}</b>
+                            {r.status === "confirmed" && r.waiting_promoted_at ? (
+                              <span
+                                title="Aceptado desde lista de espera"
+                                aria-label="Aceptado desde lista de espera"
+                                style={{
+                                  width: 9,
+                                  height: 9,
+                                  borderRadius: "50%",
+                                  background: "#f6c945",
+                                  boxShadow: "0 0 0 1px rgba(0,0,0,0.18)",
+                                  display: "inline-block",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : null}
+                          </span>
                         </button>
                       </div>
                       <div className="row">
@@ -828,7 +846,7 @@ export default function AdminTrips() {
                 Cerrar
               </button>
             </div>
-            <p className="caption">Traslado original: <b>{reinforcementTargetTrip.name || reinforcementTargetTrip.id}</b></p>
+            <p className="caption">Traslado original: <b>{formatTripTitle(reinforcementTargetTrip.name, reinforcementTargetTrip.first_time, reinforcementTargetTrip.id)}</b></p>
             <div className="divider" />
 
             <div className="stack-sm">

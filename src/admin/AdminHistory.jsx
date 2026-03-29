@@ -6,7 +6,7 @@ import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
-import { formatDateTime } from "../utils/format";
+import { formatDateTime, formatTripTitle } from "../utils/format";
 import { IconChevronRight } from "../ui/icons";
 
 export default function AdminHistory({ onBack }) {
@@ -66,7 +66,7 @@ export default function AdminHistory({ onBack }) {
         <header className="row-between" style={{ marginBottom: 32 }}>
           <div className="stack-sm">
              <h1 className="large-title">Detalle</h1>
-             <p className="caption">{selected.run?.trip_name || "Recorrido"}</p>
+             <p className="caption">{formatTripTitle(selected.run?.trip_name, selected.run?.trip_departure_datetime, selected.run?.trip_id || selected.run?.id)}</p>
           </div>
           <button className="btn-secondary" onClick={() => setSelected(null)}>Atrás</button>
         </header>
@@ -132,7 +132,7 @@ export default function AdminHistory({ onBack }) {
             {runs.slice((page - 1) * pageSize, page * pageSize).map((run) => (
               <div key={run.id} className="card glass-card row-between" onClick={() => !detailLoading && openRun(run.id)} style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
                 <div className="stack-sm">
-                  <span className="body"><b>{run.trip_name || `Viaje ${run.trip_id}`}</b></span>
+                  <span className="body"><b>{formatTripTitle(run.trip_name, run.trip_departure_datetime, run.trip_id)}</b></span>
                   <span className="caption">{run.finished_at ? formatDateTime(run.finished_at) : "-"}</span>
                   <span className="caption">Inició: {run.started_by_name || "-"} · Finalizó: {run.finished_by_name || "-"}</span>
                 </div>

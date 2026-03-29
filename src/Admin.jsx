@@ -8,6 +8,7 @@ import { IconLogout } from "./ui/icons";
 import { apiUrl } from "./api";
 import { useSessionToken } from "./hooks/useSessionToken";
 import MessageBanner from "./ui/MessageBanner";
+import { formatTripTitle, formatTimeLabel } from "./utils/format";
 
 export default function Admin() {
   const SHOW_ACTIVE_TRIPS_TITLE = false;
@@ -104,11 +105,12 @@ export default function Admin() {
       const section = normalizedType.startsWith("ida") ? "ida" : "vuelta";
       const orderedStops = [...stops].sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0));
       const firstTime = orderedStops[0]?.time || trip?.first_time || "-";
+      const tripTitle = formatTripTitle(trip?.name, firstTime, trip?.id);
 
       const lines = [
-        `${trip?.name || `Traslado ${trip?.id || ""}`} + ${firstTime}`.trim(),
+        tripTitle,
         "Encargado:",
-        ...orderedStops.map((stop) => `${stop?.name || "Sin parada"} + ${stop?.time || "-"}`),
+        ...orderedStops.map((stop) => `${stop?.name || "Sin parada"} + ${formatTimeLabel(stop?.time)}`),
         "",
       ];
 

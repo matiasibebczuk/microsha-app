@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { apiUrl } from "../api";
 import { IconTrash } from "../ui/icons";
+import { formatTripTitle } from "../utils/format";
 
 const WEEK_DAYS = [
   { value: 0, label: "Domingo" },
@@ -256,7 +257,7 @@ export default function AdminCreateTrip({ onCreated }) {
       }
 
       const createdTrip = await createOneTrip(token, name, stops, buses);
-      setCreatedTripName(createdTrip?.name || name || "Traslado");
+      setCreatedTripName(formatTripTitle(createdTrip?.name || name || "Traslado", startTime, createdTrip?.id));
 
       if (shouldConfigureReinforcement) {
         const configRes = await fetch(apiUrl(`/trips/${createdTrip.id}/reinforcement-config`), {
