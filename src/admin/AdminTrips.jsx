@@ -10,6 +10,7 @@ import { useSessionToken } from "../hooks/useSessionToken";
 import {
   formatDateTimeShort,
   formatOccupancy,
+  formatTimeLabel,
   formatTripStatus,
   formatTripTitle,
   getArgentinaWeekdayAndTime,
@@ -882,7 +883,7 @@ export default function AdminTrips() {
                   <label className="row" style={{ alignItems: "center", gap: 8, flex: 1 }}>
                     <input type="checkbox" checked={Boolean(stop.selected)} onChange={() => toggleReinforcementStop(idx)} />
                     <span className="body" style={{ display: "grid", gap: 4 }}>
-                      <span><b>{stop.name || `Parada ${idx + 1}`}</b> {stop.time ? `· ${stop.time}` : ""}</span>
+                      <span><b>{stop.name || `Parada ${idx + 1}`}</b> {stop.time ? `· ${formatTimeLabel(stop.time)}` : ""}</span>
                       <span className="caption">
                         Pasajeros: {stop?.passengerStats?.total || reinforcementStopStats[String(stop?.id)]?.total || 0}
                         {` · Confirmados: ${stop?.passengerStats?.confirmed || reinforcementStopStats[String(stop?.id)]?.confirmed || 0}`}

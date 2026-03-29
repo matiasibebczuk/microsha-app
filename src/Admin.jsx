@@ -110,7 +110,7 @@ export default function Admin() {
       const lines = [
         tripTitle,
         "Encargado:",
-        ...orderedStops.map((stop) => `${stop?.name || "Sin parada"} + ${formatTimeLabel(stop?.time)}`),
+        ...orderedStops.map((stop) => `${stop?.name || "Sin parada"} - ${formatTimeLabel(stop?.time)}`),
         "",
       ];
 
