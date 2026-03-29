@@ -75,18 +75,18 @@ function getConsolidatedReservation(myReservationsByTrip, type) {
 }
 
 function getTripActionConfig(trip, hasReservation) {
-  if (trip?.trips_paused) {
-    return {
-      disabled: true,
-      label: "En mantenimiento",
-      className: "btn-secondary",
-    };
-  }
-
   if (hasReservation) {
     return {
       disabled: false,
       label: "Mis paradas",
+      className: "btn-secondary",
+    };
+  }
+
+  if (trip?.trips_paused) {
+    return {
+      disabled: true,
+      label: "En mantenimiento",
       className: "btn-secondary",
     };
   }
