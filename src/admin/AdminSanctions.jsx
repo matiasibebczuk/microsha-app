@@ -23,7 +23,7 @@ export default function AdminSanctions({ onBack }) {
   const [sanctioningUserId, setSanctioningUserId] = useState(null);
   const [removingUserId, setRemovingUserId] = useState(null);
 
-  const activeIds = useMemo(() => new Set(activeSanctions.map((item) => Number(item.id))), [activeSanctions]);
+  const activeIds = useMemo(() => new Set(activeSanctions.map((item) => String(item.id))), [activeSanctions]);
 
   const loadActiveSanctions = async () => {
     setLoading(true);
@@ -233,7 +233,7 @@ export default function AdminSanctions({ onBack }) {
         ) : (
           <div className="inset-list">
             {results.map((row) => {
-              const isActive = activeIds.has(Number(row.id));
+              const isActive = activeIds.has(String(row.id));
               return (
                 <div key={row.id} className="list-item stack-sm">
                   <div className="row-between" style={{ alignItems: "flex-start" }}>

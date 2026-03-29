@@ -24,7 +24,8 @@ export default function PassengerLogin({ onLogin, onBack }) {
       });
 
       if (!res.ok) {
-        setError("Datos incorrectos. Revisá DNI y número de socio.");
+        const json = await res.json().catch(() => ({}));
+        setError(json?.error || "Datos incorrectos. Revisá DNI y número de socio.");
         return;
       }
 
