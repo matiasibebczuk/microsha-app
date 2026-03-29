@@ -200,6 +200,44 @@ export default function Admin() {
     }
   };
 
+  const disableScheduledPause = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setNotice("Sesión expirada");
+        return;
+      }
+
+      const res = await fetch(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          scheduledPauseEnabled: false,
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice(json?.error || "No se pudo quitar la programación");
+        return;
+      }
+
+      setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
+      setShowScheduleModal(false);
+      setNotice("Programación de pausa desactivada");
+    } catch {
+      setNotice("Error de red");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
   useEffect(() => {
     void loadFlags();
   }, []);
@@ -306,9 +344,14 @@ export default function Admin() {
               <input style={{ flex: 1 }} type="time" value={scheduledPauseTime} onChange={(e) => setScheduledPauseTime(e.target.value)} />
             </div>
             <p className="caption">{scheduledLabel}</p>
-            <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule}>
-              {savingSchedule ? "Guardando..." : "Guardar programación"}
-            </button>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
+                {savingSchedule ? "Guardando..." : "Guardar programación"}
+              </button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
+                Quitar programación
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
