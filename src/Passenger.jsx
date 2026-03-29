@@ -288,7 +288,12 @@ export default function Passenger({ user, onSessionExpired }) {
         onReserved={(reservationInfo) => {
           if (!reservationInfo) return;
 
-          if (reservationInfo.status === "waiting") {
+          if (reservationInfo.feedbackText) {
+            setStatusAlert({
+              type: reservationInfo.status === "waiting" ? "waiting" : "success",
+              text: reservationInfo.feedbackText,
+            });
+          } else if (reservationInfo.status === "waiting") {
             setStatusAlert({
               type: "waiting",
               text: "Tu solicitud quedó en lista de espera. Te avisaremos cuando se confirme tu lugar.",
@@ -710,13 +715,34 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
         type: json.status === "waiting" ? "waiting" : "success",
         text:
           json.status === "waiting"
-            ? "Quedaste en lista de espera para esta parada."
-            : "Reserva confirmada para esta parada.",
+            ? "No hay cupo ahora. Quedaste en lista de espera; volvé más tarde para revisar el estado de tu solicitud."
+            : json.irregularByWaitlist
+              ? "Hay lugar disponible. Fuiste aceptado y anotado (ingreso por ventana de lista de espera)."
+              : "Reserva confirmada para esta parada.",
       });
+
+      if (json.status === "confirmed") {
+        if (json.irregularByWaitlist) {
+          alert("Hay lugar y fuiste anotado. Tu ingreso quedó registrado como no regular por haberte anotado durante la ventana de lista de espera.");
+        } else {
+          alert("Hay lugar y fuiste anotado correctamente.");
+        }
+      } else {
+        alert("No hay lugar por ahora. Quedaste en lista de espera; ingresá más tarde para ver si se liberó un cupo y fuiste aceptado.");
+      }
+
+      const feedbackText =
+        json.status === "waiting"
+          ? "Quedaste en lista de espera. Ingresá más tarde para saber el estado de tu solicitud."
+          : json.irregularByWaitlist
+            ? "Hay lugar disponible: fuiste aceptado y anotado (registro no regular por ventana de espera)."
+            : "Hay lugar disponible: fuiste aceptado y anotado.";
+
       onReserved({
         status: json.status,
         stopName: selectedStop?.name || null,
         stopTime: formatTimeNoSeconds(selectedStop?.time || null),
+        feedbackText,
       });
     } finally {
       setSubmittingStopId(null);
@@ -801,7 +827,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
       {hasActiveWaitlist(trip) ? (
         <div className="status-alert-card status-alert-waiting">
-          Lista de espera activa para este traslado. Si no hay cupo, quedas anotado en espera.
+          Lista de espera activa para este traslado. Si hay lugar quedás anotado al instante; si no hay cupo quedás en espera y podés volver más tarde para revisar si fuiste aceptado.
         </div>
       ) : null}
 
