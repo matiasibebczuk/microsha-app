@@ -34,6 +34,7 @@ function minutesToTime(totalMinutes) {
 
 export default function AdminCreateTrip({ onCreated }) {
   const [name, setName] = useState("");
+  const [startTime, setStartTime] = useState("10:00");
   const [type, setType] = useState("ida");
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistStartDay, setWaitlistStartDay] = useState("4");
@@ -113,7 +114,7 @@ export default function AdminCreateTrip({ onCreated }) {
       headers: { Authorization: `Bearer ${data.session.access_token}` },
     });
     const json = await res.json();
-    const base = "10:00";
+    const base = startTime || "10:00";
     const start = new Date(`1970-01-01T${base}`);
     const mapped = (Array.isArray(json) ? json : [])
       .filter((s) => s && typeof s === "object")
@@ -125,6 +126,24 @@ export default function AdminCreateTrip({ onCreated }) {
       return { name: s.name, time: `${hh}:${mm}`, split_target: "main" };
     });
     setStops(mapped);
+  };
+
+  const shiftAllStopsByStartTime = (nextStartTime) => {
+    const oldMinutes = parseTimeToMinutes(startTime);
+    const newMinutes = parseTimeToMinutes(nextStartTime);
+
+    setStartTime(nextStartTime);
+
+    if (oldMinutes === null || newMinutes === null || stops.length === 0) {
+      return;
+    }
+
+    const diff = newMinutes - oldMinutes;
+    setStops((prev) => prev.map((stop) => {
+      const stopMinutes = parseTimeToMinutes(stop.time);
+      if (stopMinutes === null) return stop;
+      return { ...stop, time: minutesToTime(stopMinutes + diff) };
+    }));
   };
 
   const shiftTimes = (index, newTime) => {
@@ -305,6 +324,8 @@ export default function AdminCreateTrip({ onCreated }) {
         <h3 className="subheadline">Información General</h3>
         <div className="card glass-card stack-sm">
           <input placeholder="Nombre del traslado (ej: Micro 1)" value={name} onChange={e => setName(e.target.value)} />
+          <span className="caption">Horario comienzo</span>
+          <input type="time" value={startTime} onChange={e => shiftAllStopsByStartTime(e.target.value)} />
           <select value={type} onChange={e => setType(e.target.value)}>
             <option value="ida">Ida</option>
             <option value="vuelta">Vuelta</option>
