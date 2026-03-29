@@ -84,6 +84,8 @@ export default function AdminHistory({ onBack }) {
             </div>
             <div className="divider" />
             <p className="caption">Finalizado: {selected.run?.finished_at ? formatDateTime(selected.run.finished_at) : "-"}</p>
+            <p className="caption">Inició: {selected.run?.started_by_name || "-"}</p>
+            <p className="caption">Finalizó: {selected.run?.finished_by_name || "-"}</p>
           </div>
         </div>
 
@@ -132,6 +134,7 @@ export default function AdminHistory({ onBack }) {
                 <div className="stack-sm">
                   <span className="body"><b>{run.trip_name || `Viaje ${run.trip_id}`}</b></span>
                   <span className="caption">{run.finished_at ? formatDateTime(run.finished_at) : "-"}</span>
+                  <span className="caption">Inició: {run.started_by_name || "-"} · Finalizó: {run.finished_by_name || "-"}</span>
                 </div>
                 <IconChevronRight />
               </div>

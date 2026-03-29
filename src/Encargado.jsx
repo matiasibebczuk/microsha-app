@@ -307,9 +307,20 @@ export default function Encargado() {
                     <div key={p.reservationId} className="list-item stack-sm">
                       <div className="row-between">
                         <span className="body"><b>{p.name}</b></span>
-                        <span className={`badge ${statusClass}`}>{statusText}</span>
+                        <div className="row">
+                          {p.phone ? (
+                            <a className="btn-secondary" href={`tel:${p.phone}`}>
+                              Llamar
+                            </a>
+                          ) : (
+                            <button className="btn-secondary" type="button" disabled>
+                              Sin teléfono
+                            </button>
+                          )}
+                          <span className={`badge ${statusClass}`}>{statusText}</span>
+                        </div>
                       </div>
-                      <p className="caption">{p.phone || "Sin tel"} · {p.description || "Sin descripción"}</p>
+                      <p className="caption">{p.description || "Sin descripción"}</p>
 
                       {!isWaiting && started ? (
                         <div className="row">

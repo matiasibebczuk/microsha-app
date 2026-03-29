@@ -75,6 +75,14 @@ function getConsolidatedReservation(myReservationsByTrip, type) {
 }
 
 function getTripActionConfig(trip, hasReservation) {
+  if (trip?.trips_paused) {
+    return {
+      disabled: true,
+      label: "En mantenimiento",
+      className: "btn-secondary",
+    };
+  }
+
   if (hasReservation) {
     return {
       disabled: false,
@@ -118,6 +126,7 @@ export default function Passenger({ user, onSessionExpired }) {
   const [idaReservation, setIdaReservation] = useState(null);
   const [vueltaReservation, setVueltaReservation] = useState(null);
   const [statusAlert, setStatusAlert] = useState(null);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("");
 
   useEffect(() => {
     if (!user?.passengerToken) {
@@ -181,7 +190,10 @@ export default function Passenger({ user, onSessionExpired }) {
         );
 
         if (alive) {
-          setTrips(Array.isArray(json) ? json : []);
+          const nextTrips = Array.isArray(json) ? json : [];
+          const pausedTrip = nextTrips.find((trip) => trip?.trips_paused);
+          setMaintenanceMessage(pausedTrip?.trips_pause_message || "");
+          setTrips(nextTrips);
           setMyReservationsByTrip(reservationsMap);
         }
       } catch (err) {
@@ -345,6 +357,7 @@ export default function Passenger({ user, onSessionExpired }) {
         ) : null}
 
         <MessageBanner message={tripsError} />
+        <MessageBanner message={maintenanceMessage} variant="info" />
 
         <div className="stack">
           {tripsLoading ? (
@@ -433,6 +446,7 @@ export default function Passenger({ user, onSessionExpired }) {
         ) : null}
 
         <MessageBanner message={tripsError} />
+        <MessageBanner message={maintenanceMessage} variant="info" />
 
         <div className="stack">
           {tripsLoading ? (

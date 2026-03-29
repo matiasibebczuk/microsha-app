@@ -49,7 +49,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [quickReinforcementCount, setQuickReinforcementCount] = useState("2");
 
   const [stops, setStops] = useState([]);
-  const [buses, setBuses] = useState([{ name: "Micro 1", capacity: 50 }]);
+  const [buses, setBuses] = useState([{ name: "Micro 1", capacity: 100 }]);
 
   const [templates, setTemplates] = useState([]);
   const [success, setSuccess] = useState(false);
@@ -310,59 +310,7 @@ export default function AdminCreateTrip({ onCreated }) {
             <option value="vuelta">Vuelta</option>
           </select>
           
-          <div className="divider" />
-
-          <div className="stack-sm">
-            <h4 className="caption" style={{ fontWeight: "bold" }}>Vehículo de refuerzo automático</h4>
-            <label className="row" style={{ alignItems: "center", gap: 8 }}>
-              <input
-                style={{ width: "auto", marginBottom: 0 }}
-                type="checkbox"
-                checked={enableReinforcement}
-                onChange={e => setEnableReinforcement(e.target.checked)}
-              />
-              <span className="body">Crear refuerzo si se supera la capacidad máxima</span>
-            </label>
-            <div className="row">
-              <input
-                type="number"
-                min="1"
-                value={maxAvailability}
-                onChange={e => setMaxAvailability(e.target.value)}
-                placeholder="Capacidad máxima"
-              />
-              <span className="caption" style={{ alignSelf: "center" }}>si se supera, se crea refuerzo</span>
-            </div>
-            <p className="caption">
-              Capacidad actual configurada: <b>{totalCapacity}</b> {maxLimit > 0 ? `(máximo ${maxLimit})` : ""}
-            </p>
-            {enableReinforcement ? (
-              <p className="caption" style={{ color: exceedsMaxAvailability ? "var(--ios-system-orange)" : "inherit" }}>
-                {exceedsMaxAvailability ? "Está excedido: el refuerzo se activará automáticamente cuando se complete el cupo." : "Se guardará configuración para activar refuerzo cuando se complete el cupo."}
-              </p>
-            ) : null}
-            {shouldConfigureReinforcement ? (
-              <div className="stack-sm">
-                <input
-                  placeholder="Nombre traslado refuerzo (opcional)"
-                  value={reinforcementTripName}
-                  onChange={e => setReinforcementTripName(e.target.value)}
-                />
-                <input
-                  placeholder="Nombre vehículo refuerzo"
-                  value={reinforcementBusName}
-                  onChange={e => setReinforcementBusName(e.target.value)}
-                />
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Capacidad vehículo refuerzo"
-                  value={reinforcementBusCapacity}
-                  onChange={e => setReinforcementBusCapacity(e.target.value)}
-                />
-              </div>
-            ) : null}
-          </div>
+          <input type="hidden" value={enableReinforcement ? "1" : "0"} readOnly />
           
           <div className="stack-sm">
             <label className="row" style={{ alignItems: "center", gap: 8 }}>
