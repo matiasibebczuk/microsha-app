@@ -7,7 +7,14 @@ import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
 import { useSessionToken } from "../hooks/useSessionToken";
-import { formatOccupancy, formatTripStatus, formatTripTitle } from "../utils/format";
+import {
+  formatDateTimeShort,
+  formatOccupancy,
+  formatTripStatus,
+  formatTripTitle,
+  getArgentinaWeekdayAndTime,
+  toArgentinaDateTimeLocalInput,
+} from "../utils/format";
 
 const WEEK_DAYS = [
   { value: 0, label: "Domingo" },
@@ -59,10 +66,7 @@ function getWeekDayLabel(dayValue) {
 }
 
 function formatLegacyDateTime(value) {
-  if (!value) return "-";
-  const dt = new Date(value);
-  if (Number.isNaN(dt.getTime())) return "-";
-  return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+  return formatDateTimeShort(value);
 }
 
 export default function AdminTrips() {
@@ -174,9 +178,7 @@ export default function AdminTrips() {
     setEditLoading(true);
 
     if (trip.time) {
-      const dt = new Date(trip.time);
-      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      setEditDeparture(local);
+      setEditDeparture(toArgentinaDateTimeLocalInput(trip.time));
     } else { setEditDeparture(""); }
 
     if (trip.waitlist_start_day !== null && trip.waitlist_start_day !== undefined && trip.waitlist_start_time) {
@@ -184,9 +186,9 @@ export default function AdminTrips() {
       setEditWaitlistStartTime(String(trip.waitlist_start_time).slice(0, 5));
       setEditWaitlistEnabled(true);
     } else if (trip.waitlist_start_at) {
-      const dt = new Date(trip.waitlist_start_at);
-      setEditWaitlistStartDay(String(dt.getDay()));
-      setEditWaitlistStartTime(`${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`);
+      const startInfo = getArgentinaWeekdayAndTime(trip.waitlist_start_at);
+      setEditWaitlistStartDay(String(startInfo.day ?? 1));
+      setEditWaitlistStartTime(startInfo.time || "08:00");
       setEditWaitlistEnabled(true);
     } else {
       setEditWaitlistStartDay("1");
@@ -199,9 +201,9 @@ export default function AdminTrips() {
       setEditWaitlistEndTime(String(trip.waitlist_end_time).slice(0, 5));
       setEditWaitlistHasEnd(true);
     } else if (trip.waitlist_end_at) {
-      const dt = new Date(trip.waitlist_end_at);
-      setEditWaitlistEndDay(String(dt.getDay()));
-      setEditWaitlistEndTime(`${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`);
+      const endInfo = getArgentinaWeekdayAndTime(trip.waitlist_end_at);
+      setEditWaitlistEndDay(String(endInfo.day ?? 1));
+      setEditWaitlistEndTime(endInfo.time || "09:00");
       setEditWaitlistHasEnd(true);
     } else {
       setEditWaitlistEndDay("1");

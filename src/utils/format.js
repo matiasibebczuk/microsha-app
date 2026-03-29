@@ -1,8 +1,58 @@
-export function formatDateTime(value) {
-  if (!value) return "-";
+export const ARGENTINA_TIMEZONE = "America/Argentina/Buenos_Aires";
+
+function getArgentinaDateParts(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: ARGENTINA_TIMEZONE,
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const pick = (type) => parts.find((part) => part.type === type)?.value;
+  const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  return {
+    year: pick("year"),
+    month: pick("month"),
+    day: pick("day"),
+    hour: pick("hour"),
+    minute: pick("minute"),
+    weekday: weekdayMap[pick("weekday")] ?? null,
+  };
+}
+
+export function formatDateTime(value) {
+  const parts = getArgentinaDateParts(value);
+  if (!parts) return "-";
+  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
+export function formatDateTimeShort(value) {
+  const parts = getArgentinaDateParts(value);
+  if (!parts) return "-";
+  return `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}`;
+}
+
+export function getArgentinaWeekdayAndTime(value) {
+  const parts = getArgentinaDateParts(value);
+  if (!parts) return { day: null, time: null };
+  return {
+    day: parts.weekday,
+    time: `${parts.hour}:${parts.minute}`,
+  };
+}
+
+export function toArgentinaDateTimeLocalInput(value) {
+  const parts = getArgentinaDateParts(value);
+  if (!parts) return "";
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
 export function formatTimeLabel(value) {
@@ -16,9 +66,8 @@ export function formatTimeLabel(value) {
 
   const parsed = new Date(asText);
   if (!Number.isNaN(parsed.getTime())) {
-    const hh = String(parsed.getHours()).padStart(2, "0");
-    const mm = String(parsed.getMinutes()).padStart(2, "0");
-    return `${hh}:${mm}`;
+    const parts = getArgentinaDateParts(parsed);
+    if (parts) return `${parts.hour}:${parts.minute}`;
   }
 
   return "-";
