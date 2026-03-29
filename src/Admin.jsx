@@ -10,6 +10,7 @@ import { useSessionToken } from "./hooks/useSessionToken";
 import MessageBanner from "./ui/MessageBanner";
 
 export default function Admin() {
+  const SHOW_ACTIVE_TRIPS = false;
   const [view, setView] = useState("list");
   const [notice, setNotice] = useState("");
   const [tripsPaused, setTripsPaused] = useState(false);
@@ -192,12 +193,14 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="stack">
-        <div className="inset-group">
-          <h3 className="subheadline">Traslados activos</h3>
-          <AdminTrips />
+      {SHOW_ACTIVE_TRIPS ? (
+        <div className="stack">
+          <div className="inset-group">
+            <h3 className="subheadline">Traslados activos</h3>
+            <AdminTrips />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
