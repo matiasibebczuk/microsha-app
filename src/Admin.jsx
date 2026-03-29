@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AdminTrips from "./admin/AdminTrips";
 import AdminHistory from "./admin/AdminHistory";
 import AdminCreateTrip from "./admin/AdminCreateTrip";
+import AdminSanctions from "./admin/AdminSanctions";
 import TemplateManager from "./TemplateManager";
 import { supabase } from "./supabase";
 import { IconLogout } from "./ui/icons";
@@ -254,6 +255,10 @@ export default function Admin() {
     return <TemplateManager onBack={() => setView("list")} />;
   }
 
+  if (view === "sanctions") {
+    return <AdminSanctions onBack={() => setView("list")} />;
+  }
+
   return (
     <div className="page fade-up">
       <header className="row-between">
@@ -283,6 +288,10 @@ export default function Admin() {
           <button className="list-item row-between" onClick={() => setView("history")}>
             <span className="body">Historial de viajes</span>
             <span className="badge">Ver</span>
+          </button>
+          <button className="list-item row-between" onClick={() => setView("sanctions")}>
+            <span className="body">Sanciones</span>
+            <span className="badge">Gestionar</span>
           </button>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.55rem" }}>
             <button className="btn-secondary" onClick={toggleTripsPause} disabled={togglingPause}>
