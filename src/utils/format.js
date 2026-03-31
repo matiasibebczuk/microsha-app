@@ -1,7 +1,23 @@
 export const ARGENTINA_TIMEZONE = "America/Argentina/Buenos_Aires";
 
+function parseApiDate(value) {
+  if (value instanceof Date) return value;
+
+  const raw = String(value || "").trim();
+  if (!raw) return new Date(NaN);
+
+  // If backend returns ISO-like timestamp without timezone, treat it as UTC.
+  // Example: "2026-03-31T12:30:00" -> "2026-03-31T12:30:00Z"
+  const isoWithoutTimezone = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/;
+  if (isoWithoutTimezone.test(raw)) {
+    return new Date(`${raw}Z`);
+  }
+
+  return new Date(raw);
+}
+
 function getArgentinaDateParts(value) {
-  const date = new Date(value);
+  const date = parseApiDate(value);
   if (Number.isNaN(date.getTime())) return null;
 
   const parts = new Intl.DateTimeFormat("en-US", {
