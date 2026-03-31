@@ -7,6 +7,7 @@ import microshaLogo from "./assets/MicroSHA_LOGO.png";
 const DEFAULT_EMAIL_REDIRECT_TO = "https://microsha.vercel.app/";
 
 export default function Login({ onPassenger }) {
+  const SHOW_PASSWORD_RECOVERY = false;
   const [mode, setMode] = useState("login");
   const [staffOpen, setStaffOpen] = useState(false);
 
@@ -452,15 +453,17 @@ export default function Login({ onPassenger }) {
                       ? `Reenviar en ${resendCooldown}s`
                       : "Reenviar confirmación"}
                 </button>
-                <button
-                  className="btn-plain"
-                  onClick={sendPasswordReset}
-                  disabled={loading || resetCooldown > 0 || !email.trim()}
-                >
-                  {resetCooldown > 0
-                    ? `Recuperar contraseña en ${resetCooldown}s`
-                    : "Recuperar contraseña"}
-                </button>
+                {SHOW_PASSWORD_RECOVERY ? (
+                  <button
+                    className="btn-plain"
+                    onClick={sendPasswordReset}
+                    disabled={loading || resetCooldown > 0 || !email.trim()}
+                  >
+                    {resetCooldown > 0
+                      ? `Recuperar contraseña en ${resetCooldown}s`
+                      : "Recuperar contraseña"}
+                  </button>
+                ) : null}
               </div>
             )}
           </div>
