@@ -54,10 +54,29 @@ export default function Login({ onPassenger }) {
 
   const getEmailRedirectTo = () => {
     const configured = import.meta.env.VITE_EMAIL_REDIRECT_TO;
+    const currentOrigin = typeof window !== "undefined" ? String(window.location.origin || "").trim() : "";
+
     if (configured && String(configured).trim()) {
       const value = String(configured).trim();
-      return value.endsWith("/") ? value : `${value}/`;
+      const normalizedConfigured = value.endsWith("/") ? value : `${value}/`;
+
+      // Safety net: ignore localhost redirect in deployed environments.
+      const configuredIsLocalhost = /localhost|127\.0\.0\.1/i.test(normalizedConfigured);
+      const originIsLocalhost = /localhost|127\.0\.0\.1/i.test(currentOrigin);
+      if (configuredIsLocalhost && currentOrigin && !originIsLocalhost) {
+        return currentOrigin.endsWith("/") ? currentOrigin : `${currentOrigin}/`;
+      }
+
+      return normalizedConfigured;
     }
+
+    if (currentOrigin) {
+      const originIsLocalhost = /localhost|127\.0\.0\.1/i.test(currentOrigin);
+      if (!originIsLocalhost) {
+        return currentOrigin.endsWith("/") ? currentOrigin : `${currentOrigin}/`;
+      }
+    }
+
     return DEFAULT_EMAIL_REDIRECT_TO;
   };
 
