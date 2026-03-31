@@ -126,6 +126,10 @@ export default function Encargado() {
   const finishTrip = async () => {
     if (!selectedTrip || finishingTrip) return;
     if (!started && !tripClosed) { alert("Primero iniciá el recorrido."); return; }
+
+    const confirmed = window.confirm("¿Seguro que querés finalizar el recorrido? Esta acción cierra el viaje actual.");
+    if (!confirmed) return;
+
     setFinishingTrip(true);
     let authHeader;
     try {

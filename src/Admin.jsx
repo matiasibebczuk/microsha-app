@@ -13,6 +13,7 @@ import { formatTripTitle, formatTimeLabel } from "./utils/format";
 
 export default function Admin() {
   const SHOW_ACTIVE_TRIPS_TITLE = false;
+  const SHOW_SANCTIONS_ACTION = false;
   const WEEK_DAYS = [
     { value: 0, label: "Domingo" },
     { value: 1, label: "Lunes" },
@@ -32,7 +33,6 @@ export default function Admin() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
   const [copyingTrips, setCopyingTrips] = useState(false);
-  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const getAccessToken = useSessionToken();
 
   const scheduledDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledPauseDay))?.label || "-";
@@ -283,43 +283,6 @@ export default function Admin() {
     }
   };
 
-  const sendTestEmail = async () => {
-    if (sendingTestEmail) return;
-    setSendingTestEmail(true);
-    setNotice("");
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        setNotice("Sesión expirada");
-        return;
-      }
-
-      const res = await fetch(apiUrl("/admin/test-email"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          label: "Botón de prueba desde panel admin",
-        }),
-      });
-
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setNotice(json?.error || `No se pudo enviar test mail (${json?.reason || res.status})`);
-        return;
-      }
-
-      const recipients = Array.isArray(json?.to) ? json.to.filter(Boolean) : [];
-      setNotice(`Test mail enviado${recipients.length > 0 ? ` a: ${recipients.join(", ")}` : ""}`);
-    } catch {
-      setNotice("Error de red al enviar test mail");
-    } finally {
-      setSendingTestEmail(false);
-    }
-  };
-
   useEffect(() => {
     void loadFlags();
   }, []);
@@ -370,10 +333,12 @@ export default function Admin() {
             <span className="body">Historial de viajes</span>
             <span className="badge">Ver</span>
           </button>
-          <button className="list-item row-between" onClick={() => setView("sanctions")}>
-            <span className="body">Sanciones</span>
-            <span className="badge">Gestionar</span>
-          </button>
+          {SHOW_SANCTIONS_ACTION ? (
+            <button className="list-item row-between" onClick={() => setView("sanctions")}>
+              <span className="body">Sanciones</span>
+              <span className="badge">Gestionar</span>
+            </button>
+          ) : null}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.55rem" }}>
             <button className="btn-secondary" onClick={toggleTripsPause} disabled={togglingPause}>
               {togglingPause ? "Actualizando..." : tripsPaused ? "Reactivar Traslados" : "Pausar Traslados"}
@@ -384,9 +349,6 @@ export default function Admin() {
           </div>
           <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
             Programar pausa de traslados
-          </button>
-          <button className="btn-secondary" onClick={sendTestEmail} disabled={sendingTestEmail}>
-            {sendingTestEmail ? "Enviando test..." : "Enviar test mail"}
           </button>
           {scheduledPauseEnabled ? <p className="caption">{scheduledLabel}</p> : null}
         </div>
