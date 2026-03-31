@@ -1,19 +1,28 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { supabase } from "./supabase";
-import Login from "./Login";
-import Admin from "./Admin";
-import Encargado from "./Encargado";
-import Passenger from "./Passenger";
-import PassengerLogin from "./PassengerLogin";
-import PassengerProfileSetup from "./PassengerProfileSetup";
-import GroupSetup from "./GroupSetup";
-import ResetPassword from "./ResetPassword";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 const AUTH_DEBUG = String(import.meta.env.VITE_DEBUG_AUTH || "").toLowerCase() === "true";
+
+const Login = lazy(() => import("./Login"));
+const Admin = lazy(() => import("./Admin"));
+const Encargado = lazy(() => import("./Encargado"));
+const Passenger = lazy(() => import("./Passenger"));
+const PassengerLogin = lazy(() => import("./PassengerLogin"));
+const PassengerProfileSetup = lazy(() => import("./PassengerProfileSetup"));
+const GroupSetup = lazy(() => import("./GroupSetup"));
+const ResetPassword = lazy(() => import("./ResetPassword"));
+
+function LazyFallback({ label = "Cargando..." }) {
+  return (
+    <div className="loading-screen fade-up">
+      <LoadingState compact label={label} />
+    </div>
+  );
+}
 
 function App() {
   const [authReady, setAuthReady] = useState(false);
@@ -239,34 +248,40 @@ function App() {
   if (passengerUser) {
     if (passengerUser.needsProfileCompletion) {
       return (
-        <PassengerProfileSetup
+        <Suspense fallback={<LazyFallback label="Cargando perfil..." />}>
+          <PassengerProfileSetup
+            user={passengerUser}
+            onCompleted={setPassengerUser}
+            onSessionExpired={() => {
+              setPassengerUser(null);
+              setView("passenger-login");
+            }}
+          />
+        </Suspense>
+      );
+    }
+
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando panel pasajero..." />}>
+        <Passenger
           user={passengerUser}
-          onCompleted={setPassengerUser}
           onSessionExpired={() => {
             setPassengerUser(null);
             setView("passenger-login");
           }}
         />
-      );
-    }
-
-    return (
-      <Passenger
-        user={passengerUser}
-        onSessionExpired={() => {
-          setPassengerUser(null);
-          setView("passenger-login");
-        }}
-      />
+      </Suspense>
     );
   }
 
   if (view === "passenger-login") {
     return (
-      <PassengerLogin
-        onLogin={setPassengerUser}
-        onBack={() => setView("login")}
-      />
+      <Suspense fallback={<LazyFallback label="Cargando acceso pasajero..." />}>
+        <PassengerLogin
+          onLogin={setPassengerUser}
+          onBack={() => setView("login")}
+        />
+      </Suspense>
     );
   }
 
@@ -289,25 +304,33 @@ function App() {
   if (!session) {
     if (recoveryMode) {
       return (
+        <Suspense fallback={<LazyFallback label="Cargando recuperación..." />}>
+          <ResetPassword
+            onDone={() => {
+              setRecoveryMode(false);
+              setView("login");
+            }}
+          />
+        </Suspense>
+      );
+    }
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando login..." />}>
+        <Login onPassenger={() => setView("passenger-login")} />
+      </Suspense>
+    );
+  }
+
+  if (recoveryMode) {
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando recuperación..." />}>
         <ResetPassword
           onDone={() => {
             setRecoveryMode(false);
             setView("login");
           }}
         />
-      );
-    }
-    return <Login onPassenger={() => setView("passenger-login")} />;
-  }
-
-  if (recoveryMode) {
-    return (
-      <ResetPassword
-        onDone={() => {
-          setRecoveryMode(false);
-          setView("login");
-        }}
-      />
+      </Suspense>
     );
   }
 
@@ -350,16 +373,30 @@ function App() {
 
     if (!hasGroup) {
       return (
-        <GroupSetup
-          role={profile.role}
-          onDone={() => setGroupCheckVersion((v) => v + 1)}
-        />
+        <Suspense fallback={<LazyFallback label="Cargando configuración..." />}>
+          <GroupSetup
+            role={profile.role}
+            onDone={() => setGroupCheckVersion((v) => v + 1)}
+          />
+        </Suspense>
       );
     }
   }
 
-  if (profile.role === "admin") return <Admin />;
-  if (profile.role === "encargado") return <Encargado />;
+  if (profile.role === "admin") {
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando panel admin..." />}>
+        <Admin />
+      </Suspense>
+    );
+  }
+  if (profile.role === "encargado") {
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando panel encargado..." />}>
+        <Encargado />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="page-narrow fade-up">
