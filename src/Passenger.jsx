@@ -6,7 +6,7 @@ import SkeletonCards from "./ui/SkeletonCards";
 import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
 import { clearCached, getOrSetCached } from "./lib/cache";
-import { formatTimeLabel, formatTripTitle } from "./utils/format";
+import { formatTimeLabel, formatTripTitle, sortTrasladosByHora } from "./utils/format";
 
 function toSpanishStatus(status) {
   if (status === "confirmed") return "Confirmado";
@@ -113,6 +113,8 @@ export default function Passenger({ user, onSessionExpired }) {
   const [vueltaReservation, setVueltaReservation] = useState(null);
   const [statusAlert, setStatusAlert] = useState(null);
   const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const idaTrips = sortTrasladosByHora(trips.filter((trip) => normalizeTripType(trip.type) === "ida"));
+  const vueltaTrips = sortTrasladosByHora(trips.filter((trip) => normalizeTripType(trip.type) === "vuelta"));
 
   useEffect(() => {
     if (!user?.passengerToken) {
@@ -356,7 +358,7 @@ export default function Passenger({ user, onSessionExpired }) {
               <LoadingState compact label="Cargando traslados..." />
               <SkeletonCards count={3} />
             </div>
-          ) : trips.filter((t) => normalizeTripType(t.type) === "ida").length === 0 ? (
+          ) : idaTrips.length === 0 ? (
             <EmptyState
               title="No hay traslados de ida"
               subtitle="Cuando se publiquen nuevos viajes, los vas a ver acá."
@@ -365,9 +367,7 @@ export default function Passenger({ user, onSessionExpired }) {
             <div className="inset-group">
               <h3 className="subheadline">Disponibles ahora</h3>
               <div className="inset-list">
-                {trips
-                  .filter((t) => normalizeTripType(t.type) === "ida")
-                  .map((t) => {
+                {idaTrips.map((t) => {
                     const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
                     const action = getTripActionConfig(t, hasReservation);
 
@@ -445,7 +445,7 @@ export default function Passenger({ user, onSessionExpired }) {
               <LoadingState compact label="..." />
               <SkeletonCards count={3} />
             </div>
-          ) : trips.filter((t) => normalizeTripType(t.type) === "vuelta").length === 0 ? (
+          ) : vueltaTrips.length === 0 ? (
             <EmptyState
               title="No hay vueltas cargadas"
               subtitle="Consultá con el staff por traslados excepcionales."
@@ -454,9 +454,7 @@ export default function Passenger({ user, onSessionExpired }) {
             <div className="inset-group">
               <h3 className="subheadline">Opciones de regreso</h3>
               <div className="inset-list">
-                {trips
-                  .filter((t) => normalizeTripType(t.type) === "vuelta")
-                  .map((t) => {
+                {vueltaTrips.map((t) => {
                     const hasReservation = Boolean(myReservationsByTrip[String(t.id)]);
                     const action = getTripActionConfig(t, hasReservation);
 

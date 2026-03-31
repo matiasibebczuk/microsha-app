@@ -90,3 +90,39 @@ export function formatOccupancy(confirmed, capacity) {
   if (!capacity || capacity <= 0) return 0;
   return Math.round(((confirmed || 0) / capacity) * 100);
 }
+
+function parseClockToMinutes(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+  return hours * 60 + minutes;
+}
+
+function resolveTripSortMinutes(trip) {
+  const firstTimeMinutes = parseClockToMinutes(formatTimeLabel(trip?.first_time));
+  if (firstTimeMinutes !== null) return firstTimeMinutes;
+
+  const dateTimeMinutes = parseClockToMinutes(formatTimeLabel(trip?.time || trip?.departure_datetime));
+  if (dateTimeMinutes !== null) return dateTimeMinutes;
+
+  return Number.MAX_SAFE_INTEGER;
+}
+
+export function sortTrasladosByHora(trips) {
+  return [...(Array.isArray(trips) ? trips : [])].sort((a, b) => {
+    const diff = resolveTripSortMinutes(a) - resolveTripSortMinutes(b);
+    if (diff !== 0) return diff;
+
+    const idA = Number(a?.id);
+    const idB = Number(b?.id);
+    if (Number.isFinite(idA) && Number.isFinite(idB)) return idA - idB;
+
+    return String(a?.id || "").localeCompare(String(b?.id || ""));
+  });
+}

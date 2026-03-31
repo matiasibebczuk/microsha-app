@@ -14,6 +14,7 @@ import {
   formatTripStatus,
   formatTripTitle,
   getArgentinaWeekdayAndTime,
+  sortTrasladosByHora,
   toArgentinaDateTimeLocalInput,
 } from "../utils/format";
 
@@ -723,9 +724,9 @@ export default function AdminTrips() {
     </div>
   );
 
-  const idaTrips = trips.filter((t) => getTripTypeBucket(t.type) === "ida");
-  const vueltaTrips = trips.filter((t) => getTripTypeBucket(t.type) === "vuelta");
-  const otherTrips = trips.filter((t) => getTripTypeBucket(t.type) === "other");
+  const idaTrips = sortTrasladosByHora(trips.filter((t) => getTripTypeBucket(t.type) === "ida"));
+  const vueltaTrips = sortTrasladosByHora(trips.filter((t) => getTripTypeBucket(t.type) === "vuelta"));
+  const otherTrips = sortTrasladosByHora(trips.filter((t) => getTripTypeBucket(t.type) === "other"));
 
   return (
     <div className="stack fade-up">

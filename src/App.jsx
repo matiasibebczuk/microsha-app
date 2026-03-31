@@ -12,6 +12,8 @@ import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
+const AUTH_DEBUG = String(import.meta.env.VITE_DEBUG_AUTH || "").toLowerCase() === "true";
+
 function App() {
   const [authReady, setAuthReady] = useState(false);
   const [session, setSession] = useState(null);
@@ -53,9 +55,21 @@ function App() {
       try {
         const { data } = await supabase.auth.getSession();
 
+        if (AUTH_DEBUG) {
+          console.info("[auth] boot session", {
+            hasSession: Boolean(data?.session),
+            userId: data?.session?.user?.id || null,
+          });
+        }
+
         if (!active) return;
         setSession(data.session || null);
-      } catch {
+      } catch (error) {
+        if (AUTH_DEBUG) {
+          console.error("[auth] boot getSession failed", {
+            message: error?.message || "unknown",
+          });
+        }
         if (!active) return;
         setSession(null);
       } finally {
@@ -70,6 +84,14 @@ function App() {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!active) return;
+
+        if (AUTH_DEBUG) {
+          console.info("[auth] state change", {
+            event,
+            hasSession: Boolean(newSession),
+            userId: newSession?.user?.id || null,
+          });
+        }
 
         // Avoid remount loops in staff screens caused by periodic token refresh events.
         if (event === "TOKEN_REFRESHED") {

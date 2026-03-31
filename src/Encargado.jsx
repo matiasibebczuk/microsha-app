@@ -7,7 +7,7 @@ import SkeletonCards from "./ui/SkeletonCards";
 import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
 import { useSessionToken } from "./hooks/useSessionToken";
-import { formatDateTime, formatTripStatus, formatTripTitle } from "./utils/format";
+import { formatDateTime, formatTripStatus, formatTripTitle, sortTrasladosByHora } from "./utils/format";
 
 export default function Encargado() {
   const getAuthToken = useSessionToken();
@@ -157,11 +157,11 @@ export default function Encargado() {
     await loadTripData(trip.id);
   };
 
-  const idaTrips = trips.filter((trip) => String(trip.type || "").trim().toLowerCase().startsWith("ida"));
-  const vueltaTrips = trips.filter((trip) => {
+  const idaTrips = sortTrasladosByHora(trips.filter((trip) => String(trip.type || "").trim().toLowerCase().startsWith("ida")));
+  const vueltaTrips = sortTrasladosByHora(trips.filter((trip) => {
     const normalized = String(trip.type || "").trim().toLowerCase();
     return normalized.startsWith("vuelta") || normalized.startsWith("regreso");
-  });
+  }));
 
   if (!selectedTrip) {
     return (

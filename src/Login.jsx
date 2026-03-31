@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { probeSupabaseConnection, signInStaff } from "./lib/authClient";
 import LoadingState from "./ui/LoadingState";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
@@ -60,36 +61,22 @@ export default function Login({ onPassenger }) {
     return true;
   };
 
-  const withTimeout = async (promise, ms, label) => {
-    let timeoutId;
-
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error(`${label} tardó demasiado`));
-      }, ms);
-    });
-
-    try {
-      return await Promise.race([promise, timeoutPromise]);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  };
-
   const signIn = async () => {
     setLoading(true);
 
     try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        }),
-        10000,
-        "Inicio de sesión"
-      );
+      const { data, error } = await signInStaff({
+        email,
+        password,
+      });
 
       if (error) {
+        const probe = await probeSupabaseConnection();
+        console.error("[auth] login failed", {
+          message: error.message,
+          retryable: error.isRetryable,
+          probe,
+        });
         alert(error.message);
         return;
       }
@@ -100,7 +87,12 @@ export default function Login({ onPassenger }) {
         alert("Tenés que confirmar tu correo antes de iniciar sesión.");
       }
     } catch (err) {
-      alert(err.message || "No se pudo iniciar sesión");
+      const probe = await probeSupabaseConnection();
+      console.error("[auth] unexpected login error", {
+        message: err?.message || "unknown",
+        probe,
+      });
+      alert("No se pudo iniciar sesión. Revisá conexión con Supabase e intentá nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -134,7 +126,7 @@ export default function Login({ onPassenger }) {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      const { data, error } = await withTimeout(
+      const { data, error } = await Promise.race([
         supabase.auth.signUp({
           email: normalizedEmail,
           password,
@@ -147,9 +139,8 @@ export default function Login({ onPassenger }) {
             },
           },
         }),
-        10000,
-        "Registro"
-      );
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Registro timeout")), 10000)),
+      ]);
 
       if (error) {
         if (handleRateLimitError(error.message)) return;
@@ -202,7 +193,7 @@ export default function Login({ onPassenger }) {
     setLoading(true);
 
     try {
-      const { error } = await withTimeout(
+      const { error } = await Promise.race([
         supabase.auth.resend({
           type: "signup",
           email: normalizedEmail,
@@ -210,9 +201,8 @@ export default function Login({ onPassenger }) {
             emailRedirectTo: getEmailRedirectTo(),
           },
         }),
-        10000,
-        "Reenvío de confirmación"
-      );
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Reenvío timeout")), 10000)),
+      ]);
 
       if (error) {
         if (handleRateLimitError(error.message)) return;

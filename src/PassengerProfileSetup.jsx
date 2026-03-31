@@ -4,24 +4,52 @@ import LoadingState from "./ui/LoadingState";
 import MessageBanner from "./ui/MessageBanner";
 
 const PHONE_REGEX = /^11\d{8}$/;
+const ROLE_OPTIONS = ["Janij", "Madrij", "Profe", "Coordinador", "Mejan"];
+const MERCAZ_OPTIONS = ["Olami", "Iedi", "Maaian", "Shaia", "Netzaj", "Edma 47", "Edma 48"];
+
+function parseDescription(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return { role: "", mercaz: "", legacy: "" };
+  }
+
+  // Accept previous formats like "Madrij - Olami" and tolerate extra spaces/dashes.
+  const parts = text.split("-").map((part) => part.trim()).filter(Boolean);
+  const parsedRole = parts.find((part) => ROLE_OPTIONS.includes(part)) || "";
+  const parsedMercaz = parts.find((part) => MERCAZ_OPTIONS.includes(part)) || "";
+
+  if (parsedRole && parsedMercaz) {
+    return { role: parsedRole, mercaz: parsedMercaz, legacy: "" };
+  }
+
+  return { role: parsedRole, mercaz: parsedMercaz, legacy: text };
+}
 
 export default function PassengerProfileSetup({ user, onCompleted, onSessionExpired }) {
   const [phone, setPhone] = useState(user?.phone || "");
-  const [description, setDescription] = useState(user?.description || "");
+  const initialDescription = parseDescription(user?.description || "");
+  const [role, setRole] = useState(initialDescription.role);
+  const [mercaz, setMercaz] = useState(initialDescription.mercaz);
+  const [legacyDescription] = useState(initialDescription.legacy);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const submit = async () => {
     const normalizedPhone = String(phone || "").replace(/\D/g, "").trim();
-    const normalizedDescription = String(description || "").trim();
+    const normalizedRole = String(role || "").trim();
+    const normalizedMercaz = String(mercaz || "").trim();
+
+    const isRoleValid = ROLE_OPTIONS.includes(normalizedRole);
+    const isMercazValid = MERCAZ_OPTIONS.includes(normalizedMercaz);
+    const normalizedDescription = `${normalizedRole} - ${normalizedMercaz}`;
 
     if (!PHONE_REGEX.test(normalizedPhone)) {
       setError("El teléfono debe empezar con 11 y tener 10 dígitos. Ejemplo: 1155685941");
       return;
     }
 
-    if (!normalizedDescription) {
-      setError("La descripción es obligatoria.");
+    if (!isRoleValid || !isMercazValid) {
+      setError("Seleccioná rol y mercaz válidos.");
       return;
     }
 
@@ -72,7 +100,7 @@ export default function PassengerProfileSetup({ user, onCompleted, onSessionExpi
       <div className="card stack">
         <div>
           <h2 className="title">Completá tu perfil</h2>
-          <p className="subtitle">Antes de anotarte necesitamos teléfono y descripción.</p>
+          <p className="subtitle">Antes de anotarte necesitamos teléfono, rol y mercaz.</p>
         </div>
 
         <MessageBanner message={error} />
@@ -84,12 +112,25 @@ export default function PassengerProfileSetup({ user, onCompleted, onSessionExpi
             onChange={(e) => setPhone(e.target.value)}
           />
 
-          <textarea
-            rows={3}
-            placeholder='Descripción (ej: madre / coordi / asistente de Maaian)'
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="">Seleccioná rol</option>
+            {ROLE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+
+          <select value={mercaz} onChange={(e) => setMercaz(e.target.value)}>
+            <option value="">Seleccioná mercaz</option>
+            {MERCAZ_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+
+          {legacyDescription ? (
+            <div className="caption" style={{ opacity: 0.8 }}>
+              Valor anterior detectado: "{legacyDescription}". Guardaremos el formato nuevo: "{role || "Rol"} - {mercaz || "Mercaz"}".
+            </div>
+          ) : null}
         </div>
 
         <div className="row">
