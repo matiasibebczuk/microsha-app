@@ -22,6 +22,7 @@ export default function Login({ onPassenger }) {
   const [loading, setLoading] = useState(false);
   const [passengerLoading, setPassengerLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   const goPassenger = () => {
     if (passengerLoading) return;
@@ -40,6 +41,16 @@ export default function Login({ onPassenger }) {
 
     return () => clearInterval(timer);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (resetCooldown <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setResetCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resetCooldown]);
 
   const getEmailRedirectTo = () => {
     const configured = import.meta.env.VITE_EMAIL_REDIRECT_TO;
@@ -220,6 +231,43 @@ export default function Login({ onPassenger }) {
     }
   };
 
+  const sendPasswordReset = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      alert("Ingresá tu email para recuperar la contraseña.");
+      return;
+    }
+
+    if (resetCooldown > 0) {
+      alert(`Esperá ${resetCooldown}s para volver a enviar el link.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await Promise.race([
+        supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: getEmailRedirectTo(),
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Recuperación timeout")), 10000)),
+      ]);
+
+      if (error) {
+        if (handleRateLimitError(error.message)) return;
+        alert(error.message || "No se pudo enviar el link de recuperación");
+        return;
+      }
+
+      alert("Te enviamos un link para restablecer tu contraseña.");
+      setResetCooldown(60);
+    } catch (err) {
+      if (handleRateLimitError(err?.message)) return;
+      alert(err.message || "No se pudo enviar el link de recuperación");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="page-narrow fade-up">
       {passengerLoading ? (
@@ -373,17 +421,28 @@ export default function Login({ onPassenger }) {
             )}
 
             {mode === "login" && (
-              <button
-                className="btn-secondary"
-                onClick={resendConfirmation}
-                disabled={loading || resendCooldown > 0 || !email.trim()}
-              >
-                {loading
-                  ? "Reenviando..."
-                  : resendCooldown > 0
-                    ? `Reenviar en ${resendCooldown}s`
-                    : "Reenviar confirmación"}
-              </button>
+              <div className="stack-sm">
+                <button
+                  className="btn-secondary"
+                  onClick={resendConfirmation}
+                  disabled={loading || resendCooldown > 0 || !email.trim()}
+                >
+                  {loading
+                    ? "Reenviando..."
+                    : resendCooldown > 0
+                      ? `Reenviar en ${resendCooldown}s`
+                      : "Reenviar confirmación"}
+                </button>
+                <button
+                  className="btn-plain"
+                  onClick={sendPasswordReset}
+                  disabled={loading || resetCooldown > 0 || !email.trim()}
+                >
+                  {resetCooldown > 0
+                    ? `Recuperar contraseña en ${resetCooldown}s`
+                    : "Recuperar contraseña"}
+                </button>
+              </div>
             )}
           </div>
         </div>

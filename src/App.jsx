@@ -7,6 +7,7 @@ import Passenger from "./Passenger";
 import PassengerLogin from "./PassengerLogin";
 import PassengerProfileSetup from "./PassengerProfileSetup";
 import GroupSetup from "./GroupSetup";
+import ResetPassword from "./ResetPassword";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
@@ -17,6 +18,7 @@ const AUTH_DEBUG = String(import.meta.env.VITE_DEBUG_AUTH || "").toLowerCase() =
 function App() {
   const [authReady, setAuthReady] = useState(false);
   const [session, setSession] = useState(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const [view, setView] = useState("login");
   const [passengerUser, setPassengerUser] = useState(null);
@@ -50,6 +52,15 @@ function App() {
 
   useEffect(() => {
     let active = true;
+
+    const hasRecoveryInUrl = () => {
+      if (typeof window === "undefined") return false;
+      const hash = String(window.location.hash || "").toLowerCase();
+      const search = String(window.location.search || "").toLowerCase();
+      return hash.includes("type=recovery") || search.includes("type=recovery");
+    };
+
+    setRecoveryMode(hasRecoveryInUrl());
 
     const boot = async () => {
       try {
@@ -91,6 +102,14 @@ function App() {
             hasSession: Boolean(newSession),
             userId: newSession?.user?.id || null,
           });
+        }
+
+        if (event === "PASSWORD_RECOVERY") {
+          setRecoveryMode(true);
+        }
+
+        if (event === "SIGNED_OUT") {
+          setRecoveryMode(false);
         }
 
         // Avoid remount loops in staff screens caused by periodic token refresh events.
@@ -268,7 +287,28 @@ function App() {
   }
 
   if (!session) {
+    if (recoveryMode) {
+      return (
+        <ResetPassword
+          onDone={() => {
+            setRecoveryMode(false);
+            setView("login");
+          }}
+        />
+      );
+    }
     return <Login onPassenger={() => setView("passenger-login")} />;
+  }
+
+  if (recoveryMode) {
+    return (
+      <ResetPassword
+        onDone={() => {
+          setRecoveryMode(false);
+          setView("login");
+        }}
+      />
+    );
   }
 
   const profile = buildSessionProfile(session);
