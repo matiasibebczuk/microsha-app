@@ -145,11 +145,12 @@ export default function Admin() {
           (stop) => Number(stopStats[String(stop?.id)]?.total || 0) > 0
         );
 
-        // If trip has passengers but no stop mapping, keep all stops instead of dropping the trip.
+        // If trip has reservations but no stop mapping, keep all stops instead of dropping the trip.
         const tripHasPassengers = Number(trip?.confirmed || 0) > 0 || Number(trip?.waiting || 0) > 0;
+        const tripHasReservations = (Array.isArray(reservationsJson) ? reservationsJson : []).length > 0;
         const effectiveStops = stopsWithPassengers.length > 0
           ? stopsWithPassengers
-          : (tripHasPassengers ? allStops : []);
+          : ((tripHasPassengers || tripHasReservations) ? allStops : []);
 
         return {
           trip,
