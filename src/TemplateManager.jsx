@@ -12,6 +12,7 @@ export default function TemplateManager({ onBack }) {
   const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [savingStops, setSavingStops] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
+  const [duplicatingTemplateId, setDuplicatingTemplateId] = useState(null);
   const [loadingTemplateId, setLoadingTemplateId] = useState(null);
   const savingStopsRef = useRef(false);
 
@@ -173,7 +174,9 @@ export default function TemplateManager({ onBack }) {
 
   const deleteTemplate = async (id) => {
     if (deletingTemplateId === id) return;
-    if (!confirm("¿Eliminar plantilla?")) return;
+    const template = templates.find((item) => String(item.id) === String(id));
+    const templateName = String(template?.name || "esta plantilla");
+    if (!confirm(`¿Seguro que querés eliminar "${templateName}"? Esta acción no se puede deshacer.`)) return;
     setDeletingTemplateId(id);
     const { data } = await supabase.auth.getSession();
     try {
@@ -185,6 +188,76 @@ export default function TemplateManager({ onBack }) {
       loadTemplates();
     } finally {
       setDeletingTemplateId(null);
+    }
+  };
+
+  const duplicateTemplate = async (template) => {
+    if (!template?.id || duplicatingTemplateId === template.id) return;
+    setDuplicatingTemplateId(template.id);
+
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) {
+      setDuplicatingTemplateId(null);
+      alert("Sesión expirada");
+      return;
+    }
+
+    try {
+      const createRes = await fetch(apiUrl("/templates"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: `${template.name} (copia)`,
+          type: template.type,
+        }),
+      });
+
+      const createJson = await createRes.json().catch(() => ({}));
+      if (!createRes.ok || !createJson?.id) {
+        alert(createJson?.error || "No se pudo duplicar la plantilla");
+        return;
+      }
+
+      const stopsRes = await fetch(apiUrl(`/templates/${template.id}/stops`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const stopsJson = await stopsRes.json().catch(() => ([]));
+      if (!stopsRes.ok) {
+        alert("La plantilla se creó, pero no se pudieron copiar las paradas");
+        await loadTemplates();
+        return;
+      }
+
+      const normalizedStops = normalizeStopOrder(stopsJson || []).map((stop) => ({
+        name: String(stop.name || "").trim(),
+        order_index: stop.order_index,
+        offset_minutes: Number.parseInt(stop.offset_minutes, 10) || 0,
+      }));
+
+      if (normalizedStops.length > 0) {
+        const saveStopsRes = await fetch(apiUrl(`/templates/${createJson.id}/stops`), {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ stops: normalizedStops }),
+        });
+
+        const saveStopsJson = await saveStopsRes.json().catch(() => ({}));
+        if (!saveStopsRes.ok) {
+          alert(saveStopsJson?.error || "La plantilla se creó, pero no se pudieron copiar las paradas");
+        }
+      }
+
+      await loadTemplates();
+      alert("Plantilla duplicada");
+    } finally {
+      setDuplicatingTemplateId(null);
     }
   };
 
@@ -230,6 +303,13 @@ export default function TemplateManager({ onBack }) {
                   </div>
                   <div className="row">
                     <button className="btn-secondary" onClick={() => loadStops(t)} disabled={loadingTemplateId === t.id || deletingTemplateId === t.id}>{loadingTemplateId === t.id ? "Cargando..." : "Editar"}</button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => duplicateTemplate(t)}
+                      disabled={duplicatingTemplateId === t.id || deletingTemplateId === t.id}
+                    >
+                      {duplicatingTemplateId === t.id ? "Duplicando..." : "Duplicar"}
+                    </button>
                     <button className="btn-danger btn-with-icon" onClick={() => deleteTemplate(t.id)} disabled={deletingTemplateId === t.id}>
                       <IconTrash />
                     </button>
