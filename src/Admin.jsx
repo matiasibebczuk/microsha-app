@@ -117,6 +117,19 @@ export default function Admin() {
 
         const json = await stopsRes.json().catch(() => ([]));
         const reservationsJson = await reservationsRes.json().catch(() => ([]));
+        const allStops = Array.isArray(json) ? json : [];
+
+        if (!stopsRes.ok) {
+          throw new Error("No se pudieron cargar las paradas para copiar traslados");
+        }
+
+        // If reservations endpoint fails, fallback to all stops for this trip to avoid empty copy output.
+        if (!reservationsRes.ok) {
+          return {
+            trip,
+            stops: allStops,
+          };
+        }
 
         const stopStats = (Array.isArray(reservationsJson) ? reservationsJson : []).reduce((acc, row) => {
           const key = String(row?.stop_id || "");
@@ -128,13 +141,19 @@ export default function Admin() {
           return acc;
         }, {});
 
-        const stopsWithPassengers = (Array.isArray(json) ? json : []).filter(
+        const stopsWithPassengers = allStops.filter(
           (stop) => Number(stopStats[String(stop?.id)]?.total || 0) > 0
         );
 
+        // If trip has passengers but no stop mapping, keep all stops instead of dropping the trip.
+        const tripHasPassengers = Number(trip?.confirmed || 0) > 0 || Number(trip?.waiting || 0) > 0;
+        const effectiveStops = stopsWithPassengers.length > 0
+          ? stopsWithPassengers
+          : (tripHasPassengers ? allStops : []);
+
         return {
           trip,
-          stops: stopsWithPassengers,
+          stops: effectiveStops,
         };
       })
     );
