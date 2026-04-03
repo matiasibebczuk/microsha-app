@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { IconLogout, IconChevronRight } from "./ui/icons";
 import { apiUrl } from "./api";
@@ -10,6 +10,7 @@ import { useSessionToken } from "./hooks/useSessionToken";
 import { formatDateTime, formatTripStatus, formatTripTitle, sortTrasladosByHora } from "./utils/format";
 
 export default function Encargado() {
+  const LOCATION_INTERVAL_MS = 30000;
   const getAuthToken = useSessionToken();
   const [trips, setTrips] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
@@ -27,6 +28,11 @@ export default function Encargado() {
   const [startingTrip, setStartingTrip] = useState(false);
   const [finishingTrip, setFinishingTrip] = useState(false);
   const [boardingReservationId, setBoardingReservationId] = useState(null);
+  const [locationSharing, setLocationSharing] = useState(false);
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [locationLastUpdate, setLocationLastUpdate] = useState(null);
+  const [locationLastStop, setLocationLastStop] = useState(null);
+  const locationTimerRef = useRef(null);
 
   const getAuthHeader = useCallback(async () => {
     const token = await getAuthToken();
@@ -62,14 +68,16 @@ export default function Encargado() {
     setLoadingList(true);
     try {
       const authHeader = await getAuthHeader();
-      const [stateRes, passengersRes, dashboardRes] = await Promise.all([
+      const [stateRes, passengersRes, dashboardRes, locationRes] = await Promise.all([
         fetch(apiUrl(`/encargado/trips/${tripId}/state`), { headers: authHeader }),
         fetch(apiUrl(`/encargado/trips/${tripId}/passengers`), { headers: authHeader }),
         fetch(apiUrl(`/encargado/trips/${tripId}/dashboard`), { headers: authHeader }),
+        fetch(apiUrl(`/encargado/trips/${tripId}/location/state`), { headers: authHeader }),
       ]);
       const stateJson = await stateRes.json();
       const passengersJson = await passengersRes.json();
       const dashboardJson = await dashboardRes.json();
+      const locationJson = await locationRes.json().catch(() => ({}));
       if (stateRes.ok) {
         setTripClosed(stateJson.tripStatus === "closed");
         setStarted(Boolean(stateJson.hasActiveRun));
@@ -77,10 +85,126 @@ export default function Encargado() {
         setActiveController(stateJson.activeController || null);
         setStartedAt(stateJson.activeRunStartedAt || null);
       }
+      if (locationRes.ok) {
+        setLocationSharing(Boolean(locationJson?.active));
+        setLocationLastUpdate(locationJson?.last_update_at || null);
+        setLocationLastStop(locationJson?.last_stop_name || null);
+      }
       setGroups(Array.isArray(passengersJson) ? passengersJson : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
     } finally {
       setLoadingList(false);
+    }
+  };
+
+  const sendCurrentLocation = useCallback(async (tripId, authHeader) => {
+    if (!navigator.geolocation) {
+      throw new Error("Tu navegador no soporta geolocalización");
+    }
+
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 5000,
+      });
+    });
+
+    const { latitude, longitude, accuracy, heading, speed } = position.coords;
+    const res = await fetch(apiUrl(`/encargado/trips/${tripId}/location/update`), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader,
+      },
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        accuracy_meters: accuracy,
+        heading,
+        speed,
+      }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json?.error || "No se pudo enviar la ubicación");
+    }
+
+    setLocationLastUpdate(json?.last_update_at || new Date().toISOString());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (locationTimerRef.current) {
+        window.clearInterval(locationTimerRef.current);
+        locationTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const stopLocationSharing = async () => {
+    if (!selectedTrip || locationBusy) return;
+    setLocationBusy(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/location/stop`), {
+        method: "POST",
+        headers: authHeader,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(json?.error || "No se pudo detener la ubicación");
+        return;
+      }
+
+      if (locationTimerRef.current) {
+        window.clearInterval(locationTimerRef.current);
+        locationTimerRef.current = null;
+      }
+
+      setLocationSharing(false);
+      setNotice("Ubicación detenida");
+    } catch (err) {
+      alert(err?.message || "No se pudo detener la ubicación");
+    } finally {
+      setLocationBusy(false);
+    }
+  };
+
+  const startLocationSharing = async () => {
+    if (!selectedTrip || locationBusy) return;
+    setLocationBusy(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const startRes = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/location/start`), {
+        method: "POST",
+        headers: authHeader,
+      });
+      const startJson = await startRes.json().catch(() => ({}));
+      if (!startRes.ok) {
+        alert(startJson?.error || "No se pudo iniciar la ubicación");
+        return;
+      }
+
+      await sendCurrentLocation(selectedTrip.id, authHeader);
+
+      if (locationTimerRef.current) {
+        window.clearInterval(locationTimerRef.current);
+      }
+
+      locationTimerRef.current = window.setInterval(() => {
+        void sendCurrentLocation(selectedTrip.id, authHeader).catch((err) => {
+          console.error("[location] update error", err);
+        });
+      }, LOCATION_INTERVAL_MS);
+
+      setLocationSharing(true);
+      setNotice("Ubicación compartida cada 30 segundos");
+    } catch (err) {
+      alert(err?.message || "No se pudo iniciar la ubicación");
+    } finally {
+      setLocationBusy(false);
     }
   };
 
@@ -138,6 +262,11 @@ export default function Encargado() {
       const json = await res.json();
       if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
       alert(`Recorrido finalizado. Historial run #${json.runId}`);
+      if (locationTimerRef.current) {
+        window.clearInterval(locationTimerRef.current);
+        locationTimerRef.current = null;
+      }
+      setLocationSharing(false);
       setFinished(true);
       setSelectedTrip(null);
       setStarted(false);
@@ -260,6 +389,20 @@ export default function Encargado() {
               {activeController?.name ? ` (${activeController.name})` : ""}
             </p>
           )}
+
+          <div className="row" style={{ marginTop: 6 }}>
+            {!locationSharing ? (
+              <button className="btn-secondary" onClick={startLocationSharing} disabled={locationBusy || !canManage}>
+                {locationBusy ? "Iniciando ubicación..." : "Compartir ubicación"}
+              </button>
+            ) : (
+              <button className="btn-danger" onClick={stopLocationSharing} disabled={locationBusy || !canManage}>
+                {locationBusy ? "Deteniendo..." : "Detener ubicación"}
+              </button>
+            )}
+          </div>
+          {locationLastUpdate ? <p className="caption">Última ubicación: {formatDateTime(locationLastUpdate)}</p> : null}
+          {locationLastStop ? <p className="caption">Última parada marcada presente: {locationLastStop}</p> : null}
         </div>
 
         {dashboard && (

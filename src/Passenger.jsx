@@ -41,6 +41,19 @@ function hasActiveWaitlist(trip) {
   return trip.mode === "waiting";
 }
 
+function buildMapEmbedUrl(lat, lng) {
+  const safeLat = Number(lat);
+  const safeLng = Number(lng);
+  if (!Number.isFinite(safeLat) || !Number.isFinite(safeLng)) return "";
+
+  const delta = 0.01;
+  const left = safeLng - delta;
+  const right = safeLng + delta;
+  const top = safeLat + delta;
+  const bottom = safeLat - delta;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${safeLat}%2C${safeLng}`;
+}
+
 function buildPromotionMessage(notification) {
   const typeLabel = toSpanishTripType(notification?.tripType);
   const stopLabel = notification?.stopName || "-";
@@ -113,6 +126,9 @@ export default function Passenger({ user, onSessionExpired }) {
   const [vueltaReservation, setVueltaReservation] = useState(null);
   const [statusAlert, setStatusAlert] = useState(null);
   const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const [locationTrip, setLocationTrip] = useState(null);
+  const [locationData, setLocationData] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   const idaTrips = sortTrasladosByHora(trips.filter((trip) => normalizeTripType(trip.type) === "ida"));
   const vueltaTrips = sortTrasladosByHora(trips.filter((trip) => normalizeTripType(trip.type) === "vuelta"));
 
@@ -273,6 +289,76 @@ export default function Passenger({ user, onSessionExpired }) {
   // ========================
   // VER PARADAS
   // ========================
+  const openTripLocation = async (trip) => {
+    setLocationLoading(true);
+    try {
+      const res = await fetch(apiUrl(`/trips/${trip.id}/location`), {
+        headers: {
+          "x-passenger-token": user.passengerToken,
+        },
+      });
+      if (res.status === 401) {
+        onSessionExpired?.();
+        return;
+      }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatusAlert({ type: "error", text: json?.error || "No se pudo cargar la ubicación" });
+        return;
+      }
+
+      setLocationTrip(trip);
+      setLocationData(json || null);
+    } catch {
+      setStatusAlert({ type: "error", text: "No se pudo cargar la ubicación" });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  if (locationTrip) {
+    const session = locationData?.session || null;
+    const lat = session?.last_latitude;
+    const lng = session?.last_longitude;
+    const mapUrl = buildMapEmbedUrl(lat, lng);
+
+    return (
+      <div className="page fade-up">
+        <header className="stack-sm" style={{ marginBottom: 24 }}>
+          <h1 className="large-title">Ubicación en tiempo real</h1>
+          <p className="caption">{formatTripTitle(locationTrip.name, locationTrip.first_time, locationTrip.id)}</p>
+        </header>
+
+        <div className="inset-group stack-sm">
+          {mapUrl ? (
+            <iframe
+              title="Mapa ubicación traslado"
+              src={mapUrl}
+              style={{ width: "100%", height: "320px", border: 0, borderRadius: 12 }}
+              loading="lazy"
+            />
+          ) : (
+            <div className="card glass-card stack-sm" style={{ padding: 16 }}>
+              <p className="caption">Aún no hay coordenadas disponibles.</p>
+            </div>
+          )}
+
+          <div className="card glass-card stack-sm" style={{ padding: 16 }}>
+            <p className="caption"><b>Ubicación actual:</b> {Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) ? `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}` : "Sin datos"}</p>
+            <p className="caption"><b>Última parada con presente:</b> {session?.last_stop_name || "Sin datos"}</p>
+            <p className="caption"><b>Última actualización:</b> {session?.last_update_at ? formatDateTime(session.last_update_at) : "Sin datos"}</p>
+          </div>
+        </div>
+
+        <div className="inset-group">
+          <button className="btn-secondary" onClick={() => { setLocationTrip(null); setLocationData(null); }}>
+            Volver
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedTrip) {
     return (
       <TripStops
@@ -389,6 +475,27 @@ export default function Passenger({ user, onSessionExpired }) {
                         </div>
                         <div className="row passenger-trip-side">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          {t.location_active ? (
+                            <span
+                              className="btn-secondary"
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!locationLoading) void openTripLocation(t);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (!locationLoading) void openTripLocation(t);
+                                }
+                              }}
+                            >
+                              {locationLoading ? "Cargando..." : "Ver ubicaciones"}
+                            </span>
+                          ) : null}
                           <span className="caption passenger-trip-action">{action.label}</span>
                           <IconChevronRight />
                         </div>
@@ -476,6 +583,27 @@ export default function Passenger({ user, onSessionExpired }) {
                         </div>
                         <div className="row passenger-trip-side">
                           {hasReservation && <span className="badge badge-success">Anotado</span>}
+                          {t.location_active ? (
+                            <span
+                              className="btn-secondary"
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!locationLoading) void openTripLocation(t);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (!locationLoading) void openTripLocation(t);
+                                }
+                              }}
+                            >
+                              {locationLoading ? "Cargando..." : "Ver ubicaciones"}
+                            </span>
+                          ) : null}
                           <span className="caption passenger-trip-action">{action.label}</span>
                           <IconChevronRight />
                         </div>
