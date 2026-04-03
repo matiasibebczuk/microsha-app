@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
+import { clearSessionWindow, getSessionWindowRemainingMs, readSessionWindow, saveSessionWindow } from "./lib/sessionWindow";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 const AUTH_DEBUG = String(import.meta.env.VITE_DEBUG_AUTH || "").toLowerCase() === "true";
@@ -25,12 +26,15 @@ function LazyFallback({ label = "Cargando..." }) {
 }
 
 function App() {
+  const initialSavedSession = readSessionWindow();
   const [authReady, setAuthReady] = useState(false);
   const [session, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   const [view, setView] = useState("login");
-  const [passengerUser, setPassengerUser] = useState(null);
+  const [passengerUser, setPassengerUser] = useState(
+    initialSavedSession?.kind === "passenger" ? initialSavedSession.user || null : null
+  );
   const [groupLoading, setGroupLoading] = useState(false);
   const [hasGroup, setHasGroup] = useState(true);
   const [groupCheckVersion, setGroupCheckVersion] = useState(0);
@@ -149,6 +153,66 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const saved = readSessionWindow();
+    if (saved?.kind === "passenger" && saved?.user && !passengerUser) {
+      setPassengerUser(saved.user);
+    }
+  }, [passengerUser]);
+
+  useEffect(() => {
+    let timeoutId = null;
+
+    if (passengerUser) {
+      saveSessionWindow({
+        kind: "passenger",
+        user: passengerUser,
+      });
+
+      const remainingMs = getSessionWindowRemainingMs();
+      if (remainingMs > 0) {
+        timeoutId = window.setTimeout(() => {
+          setPassengerUser(null);
+          setView("passenger-login");
+          clearSessionWindow();
+        }, remainingMs);
+      }
+    }
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [passengerUser]);
+
+  useEffect(() => {
+    let timeoutId = null;
+    const profile = buildSessionProfile(session);
+
+    if (session?.user && profile && ["admin", "encargado"].includes(profile.role)) {
+      saveSessionWindow({
+        kind: "staff",
+        userId: profile.id,
+        role: profile.role,
+      });
+
+      const remainingMs = getSessionWindowRemainingMs();
+      if (remainingMs > 0) {
+        timeoutId = window.setTimeout(() => {
+          void supabase.auth.signOut();
+          clearSessionWindow();
+        }, remainingMs);
+      }
+    }
+
+    if (!session && !passengerUser) {
+      clearSessionWindow();
+    }
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [session, passengerUser]);
+
+  useEffect(() => {
     const controller = new AbortController();
     void prewarmApi(controller.signal);
 
@@ -255,6 +319,7 @@ function App() {
             onSessionExpired={() => {
               setPassengerUser(null);
               setView("passenger-login");
+              clearSessionWindow();
             }}
           />
         </Suspense>
@@ -268,6 +333,7 @@ function App() {
           onSessionExpired={() => {
             setPassengerUser(null);
             setView("passenger-login");
+            clearSessionWindow();
           }}
         />
       </Suspense>
@@ -278,7 +344,13 @@ function App() {
     return (
       <Suspense fallback={<LazyFallback label="Cargando acceso pasajero..." />}>
         <PassengerLogin
-          onLogin={setPassengerUser}
+          onLogin={(nextUser) => {
+            setPassengerUser(nextUser);
+            saveSessionWindow({
+              kind: "passenger",
+              user: nextUser,
+            });
+          }}
           onBack={() => setView("login")}
         />
       </Suspense>
