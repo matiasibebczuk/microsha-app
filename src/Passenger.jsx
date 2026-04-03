@@ -6,7 +6,7 @@ import SkeletonCards from "./ui/SkeletonCards";
 import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
 import { clearCached, getOrSetCached } from "./lib/cache";
-import { formatTimeLabel, formatTripTitle, sortTrasladosByHora } from "./utils/format";
+import { formatDateTime, formatTimeLabel, formatTripTitle, sortTrasladosByHora } from "./utils/format";
 
 function toSpanishStatus(status) {
   if (status === "confirmed") return "Confirmado";
