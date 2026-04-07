@@ -5,7 +5,7 @@ import MessageBanner from "./ui/MessageBanner";
 
 const PHONE_REGEX = /^11\d{8}$/;
 const ROLE_OPTIONS = ["Janij", "Madrij", "Profe", "Coordinador", "Mejan"];
-const MERCAZ_OPTIONS = ["Olami", "Iedi", "Maaian", "Shaia", "Netzaj", "Edma 47", "Edma 48"];
+const MERCAZ_OPTIONS = ["Olami", "Iedidim", "Maaian", "Shaiajut", "Netzaj", "Edma 47", "Edma 48"];
 
 function parseDescription(value) {
   const text = String(value || "").trim();
