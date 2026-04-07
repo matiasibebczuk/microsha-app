@@ -9,9 +9,11 @@ export default function PassengerLogin({ onLogin, onBack }) {
   const [memberNumber, setMemberNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [memberNumberHint, setMemberNumberHint] = useState("");
 
   const login = async () => {
     setError("");
+    setMemberNumberHint("");
     setSubmitting(true);
 
     try {
@@ -26,6 +28,9 @@ export default function PassengerLogin({ onLogin, onBack }) {
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setError(json?.error || "Datos incorrectos. Revisá DNI y número de socio.");
+        if (json?.hintMemberNumberZero) {
+          setMemberNumberHint("Si tu DNI es correcto, probá con número de socio = 0.");
+        }
         return;
       }
 
@@ -64,6 +69,8 @@ export default function PassengerLogin({ onLogin, onBack }) {
             value={memberNumber}
             onChange={(e) => setMemberNumber(e.target.value)}
           />
+
+          <MessageBanner message={memberNumberHint} variant="info" />
         </div>
 
         <div className="row">
