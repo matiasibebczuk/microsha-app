@@ -35,6 +35,16 @@ function normalizeTripType(type) {
     .toLowerCase();
 }
 
+function getGreetingName(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts[1]) return parts[1];
+  if (parts[0]) return parts[0];
+  return "";
+}
+
 function hasActiveWaitlist(trip) {
   if (!trip || typeof trip !== "object") return false;
   if (trip.waitlist_active === true) return true;
@@ -425,7 +435,7 @@ export default function Passenger({ user, onSessionExpired }) {
     return (
       <div className="page fade-up">
         <header className="stack-sm" style={{ marginBottom: 32 }}>
-          <h1 className="large-title">Hola {user.name.split(" ")[0]} 👋</h1>
+          <h1 className="large-title">Hola {getGreetingName(user?.name)} 👋</h1>
           <p className="caption">Elegí tu traslado de ida</p>
         </header>
 
