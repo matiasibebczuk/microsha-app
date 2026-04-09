@@ -670,8 +670,9 @@ export default function AdminTrips() {
         <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => startEditTrip(trip)}>
           <IconEdit />
         </button>
-        <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => exportPassengersToCSV(trip)}>
+        <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => exportPassengersToCSV(trip)} title="Descargar lista de anotados">
           <IconDownload />
+          <span>Descargar</span>
         </button>
         <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px' }} onClick={() => void openForcedReinforcement(trip)} disabled={loadingReinforcementStops || forcingReinforcementTripId === trip.id}>
           {forcingReinforcementTripId === trip.id ? "Creando..." : "Refuerzo"}
