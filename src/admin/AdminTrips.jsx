@@ -582,7 +582,7 @@ export default function AdminTrips() {
       const headers = ["Nombre", "Rol", "Parada"];
       const rows = reservations.map(r => [
         r.users?.name || "Sin nombre",
-        r.status === "confirmed" ? "Confirmado" : "En espera",
+        r.users?.description || "Sin rol",
         r.stops?.name || "Sin parada"
       ]);
       
