@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconEdit, IconTrash, IconChevronRight } from "../ui/icons";
+import { IconEdit, IconTrash, IconChevronRight, IconDownload } from "../ui/icons";
 import { apiUrl } from "../api";
 import LoadingState from "../ui/LoadingState";
 import SkeletonCards from "../ui/SkeletonCards";
@@ -566,6 +566,44 @@ export default function AdminTrips() {
     } finally { setPromotingId(null); }
   };
 
+  const exportPassengersToCSV = async (trip) => {
+    const token = await getAccessToken();
+    try {
+      const res = await fetch(apiUrl(`/admin/trips/${trip.id}/reservations`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        setNotice("Error al descargar pasajeros");
+        return;
+      }
+      const reservations = await res.json();
+      
+      // Crear CSV con encabezados
+      const headers = ["Nombre", "Rol", "Parada"];
+      const rows = reservations.map(r => [
+        r.users?.name || "Sin nombre",
+        r.status === "confirmed" ? "Confirmado" : "En espera",
+        r.stops?.name || "Sin parada"
+      ]);
+      
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ].join("\n");
+      
+      // Crear blob y descargar
+      const tripName = formatTripTitle(trip.name, trip.first_time, trip.id).replace(/\s+/g, "_");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.setAttribute('href', URL.createObjectURL(blob));
+      link.setAttribute('download', `anotados_${tripName}.csv`);
+      link.click();
+    } catch (error) {
+      console.error("Error downloading passengers:", error);
+      setNotice("Error al descargar pasajeros");
+    }
+  };
+
   const filteredPassengers = passengers.filter(r => {
     if (!searchText.trim()) return true;
     const v = searchText.toLowerCase();
@@ -631,6 +669,9 @@ export default function AdminTrips() {
         </button>
         <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => startEditTrip(trip)}>
           <IconEdit />
+        </button>
+        <button className="btn-secondary" style={{ fontSize: '14px', padding: '10px' }} onClick={() => exportPassengersToCSV(trip)}>
+          <IconDownload />
         </button>
         <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px' }} onClick={() => void openForcedReinforcement(trip)} disabled={loadingReinforcementStops || forcingReinforcementTripId === trip.id}>
           {forcingReinforcementTripId === trip.id ? "Creando..." : "Refuerzo"}
