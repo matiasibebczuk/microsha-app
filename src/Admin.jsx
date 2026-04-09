@@ -169,13 +169,13 @@ export default function Admin() {
       const normalizedType = String(trip?.type || "").trim().toLowerCase();
       const section = normalizedType.startsWith("ida") ? "ida" : "vuelta";
       const orderedStops = [...stops].sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0));
-      const firstTime = orderedStops[0]?.time || trip?.first_time || "-";
-      const tripTitle = formatTripTitle(trip?.name, firstTime, trip?.id);
+      const titleTime = trip?.first_time || orderedStops[0]?.time || "-";
+      const tripTitle = formatTripTitle(trip?.name, titleTime, trip?.id);
 
       const lines = [
         tripTitle,
         "Encargado:",
-        ...orderedStops.map((stop) => `${stop?.name || "Sin parada"} - ${formatTimeLabel(stop?.time)}`),
+        ...orderedStops.map((stop) => `${formatTimeLabel(stop?.time)} - ${stop?.name || "Sin parada"}`),
         "",
       ];
 
