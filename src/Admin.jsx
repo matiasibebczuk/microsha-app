@@ -76,7 +76,7 @@ export default function Admin() {
         },
         body: JSON.stringify({
           tripsPaused: !tripsPaused,
-          pauseMessage: "En mantenimiento, prueba mas tarde",
+          pauseMessage: "Traslados pausados, a partir de los jueves a las 18 se activara la lista de espera",
         }),
       });
       const json = await res.json().catch(() => ({}));
