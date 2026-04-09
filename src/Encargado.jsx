@@ -90,7 +90,7 @@ export default function Encargado() {
         setLocationLastUpdate(locationJson?.last_update_at || null);
         setLocationLastStop(locationJson?.last_stop_name || null);
       }
-      setGroups(Array.isArray(passengersJson) ? passengersJson : []);
+      setGroups(Array.isArray(passengersJson) ? sortGroupsByTime(passengersJson) : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
     } finally {
       setLoadingList(false);
@@ -142,6 +142,27 @@ export default function Encargado() {
       }
     };
   }, []);
+
+  const parseTimeToMinutes = (value) => {
+    const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return Number.MAX_SAFE_INTEGER;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return Number.MAX_SAFE_INTEGER;
+    return hours * 60 + minutes;
+  };
+
+  const sortGroupsByTime = (groupsArray) => {
+    return [...groupsArray].sort((a, b) => {
+      const aMinutes = parseTimeToMinutes(a.time);
+      const bMinutes = parseTimeToMinutes(b.time);
+      if (aMinutes !== bMinutes) return aMinutes - bMinutes;
+      return String(a.stop || "").localeCompare(String(b.stop || ""), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+  };
 
   const stopLocationSharing = async () => {
     if (!selectedTrip || locationBusy) return;
@@ -296,6 +317,8 @@ export default function Encargado() {
     return normalized.startsWith("vuelta") || normalized.startsWith("regreso");
   }));
 
+  const sortedGroups = sortGroupsByTime(groups);
+
   if (!selectedTrip) {
     return (
       <div className="page fade-up">
@@ -422,10 +445,10 @@ export default function Encargado() {
           <div className="inset-group">
             <SkeletonCards count={2} />
           </div>
-        ) : groups.length === 0 ? (
+        ) : sortedGroups.length === 0 ? (
           <EmptyState title="Sin pasajeros" subtitle="Nadie se anotó para este viaje todavía." />
         ) : (
-          groups.map((group) => (
+          sortedGroups.map((group) => (
             <div key={group.stopId} className="inset-group">
               <div className="row-between">
                 <h3 className="subheadline">{group.stop} {group.time ? `· ${group.time}` : ""}</h3>
