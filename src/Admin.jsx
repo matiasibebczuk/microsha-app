@@ -5,7 +5,7 @@ import AdminCreateTrip from "./admin/AdminCreateTrip";
 import AdminSanctions from "./admin/AdminSanctions";
 import TemplateManager from "./TemplateManager";
 import { supabase } from "./supabase";
-import { IconLogout } from "./ui/icons";
+import { IconLogout, IconSettings } from "./ui/icons";
 import { apiUrl } from "./api";
 import { useSessionToken } from "./hooks/useSessionToken";
 import MessageBanner from "./ui/MessageBanner";
@@ -36,6 +36,13 @@ export default function Admin() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
   const [copyingTrips, setCopyingTrips] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [cfgLastname, setCfgLastname] = useState("");
+  const [cfgFirstname, setCfgFirstname] = useState("");
+  const [cfgDni, setCfgDni] = useState("");
+  const [cfgMemberNumber, setCfgMemberNumber] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
+  const [userNotice, setUserNotice] = useState("");
   const getAccessToken = useSessionToken();
 
   const scheduledDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledPauseDay))?.label || "-";
@@ -339,6 +346,41 @@ export default function Admin() {
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
 
+  const addUser = async (e) => {
+    e.preventDefault();
+    if (savingUser) return;
+    setUserNotice("");
+    const ln = cfgLastname.trim();
+    const fn = cfgFirstname.trim();
+    const dni = cfgDni.trim();
+    const mn = cfgMemberNumber.trim();
+    if (!ln || !fn || !dni) {
+      setUserNotice("Completá apellido, nombre y DNI");
+      return;
+    }
+    setSavingUser(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) { setUserNotice("Sesión expirada"); return; }
+      const res = await fetch(apiUrl("/admin/users"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lastname: ln, firstname: fn, dni, memberNumber: mn || "0" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setUserNotice(json?.error || "No se pudo agregar la persona"); return; }
+      setCfgLastname("");
+      setCfgFirstname("");
+      setCfgDni("");
+      setCfgMemberNumber("");
+      setUserNotice("Persona agregada correctamente");
+    } catch {
+      setUserNotice("Error de red");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
   useEffect(() => {
     void loadFlags();
   }, []);
@@ -366,10 +408,16 @@ export default function Admin() {
           <h1 className="large-title">Panel Admin</h1>
           <p className="caption">Gestioná traslados y recorridos</p>
         </div>
-        <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
-          <IconLogout />
-          Salir
-        </button>
+        <div className="row" style={{ gap: "0.5rem" }}>
+          <button className="btn-secondary btn-with-icon" onClick={() => { setShowConfigModal(true); setUserNotice(""); }}>
+            <IconSettings />
+            Config
+          </button>
+          <button className="btn-secondary btn-with-icon" onClick={() => supabase.auth.signOut()}>
+            <IconLogout />
+            Salir
+          </button>
+        </div>
       </header>
 
       <MessageBanner message={notice} variant="info" />
@@ -419,6 +467,77 @@ export default function Admin() {
           <AdminTrips />
         </div>
       </div>
+
+      {showConfigModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="page fade-up"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 55,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={() => setShowConfigModal(false)}
+        >
+          <div
+            className="card glass-card stack-sm"
+            style={{ width: "100%", maxWidth: "420px", padding: "20px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between">
+              <h3 className="headline" style={{ margin: 0 }}>Configuración</h3>
+              <button className="btn-secondary" type="button" onClick={() => setShowConfigModal(false)} disabled={savingUser}>
+                Cerrar
+              </button>
+            </div>
+            <div className="divider" />
+            <h4 className="subheadline" style={{ margin: 0 }}>Agregar persona</h4>
+            <form className="stack-sm" onSubmit={addUser}>
+              <input
+                type="text"
+                placeholder="Apellido"
+                value={cfgLastname}
+                onChange={(e) => setCfgLastname(e.target.value)}
+                disabled={savingUser}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={cfgFirstname}
+                onChange={(e) => setCfgFirstname(e.target.value)}
+                disabled={savingUser}
+                required
+              />
+              <input
+                type="text"
+                placeholder="DNI"
+                value={cfgDni}
+                onChange={(e) => setCfgDni(e.target.value)}
+                disabled={savingUser}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Nro. de socio (0 o 6 dígitos)"
+                value={cfgMemberNumber}
+                onChange={(e) => setCfgMemberNumber(e.target.value)}
+                disabled={savingUser}
+              />
+              {userNotice ? <p className="caption" style={{ margin: 0 }}>{userNotice}</p> : null}
+              <button className="btn-primary" type="submit" disabled={savingUser}>
+                {savingUser ? "Guardando..." : "Agregar"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       {showScheduleModal ? (
         <div
