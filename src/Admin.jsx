@@ -29,6 +29,9 @@ export default function Admin() {
   const [scheduledPauseEnabled, setScheduledPauseEnabled] = useState(false);
   const [scheduledPauseDay, setScheduledPauseDay] = useState("1");
   const [scheduledPauseTime, setScheduledPauseTime] = useState("08:00");
+  const [scheduledOpenEnabled, setScheduledOpenEnabled] = useState(false);
+  const [scheduledOpenDay, setScheduledOpenDay] = useState("1");
+  const [scheduledOpenTime, setScheduledOpenTime] = useState("08:00");
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
@@ -37,6 +40,8 @@ export default function Admin() {
 
   const scheduledDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledPauseDay))?.label || "-";
   const scheduledLabel = `Programado para los ${scheduledDayLabel} - ${formatTimeLabel(scheduledPauseTime)}`;
+  const scheduledOpenDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledOpenDay))?.label || "-";
+  const scheduledOpenLabel = `Programado para abrirse los ${scheduledOpenDayLabel} - ${formatTimeLabel(scheduledOpenTime)}`;
 
   const loadFlags = async () => {
     try {
@@ -51,6 +56,9 @@ export default function Admin() {
         setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
         setScheduledPauseDay(String(json?.scheduledPauseDay ?? "1"));
         setScheduledPauseTime(String(json?.scheduledPauseTime || "08:00").slice(0, 5));
+        setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
+        setScheduledOpenDay(String(json?.scheduledOpenDay ?? "1"));
+        setScheduledOpenTime(String(json?.scheduledOpenTime || "08:00").slice(0, 5));
       }
     } catch {
       return;
@@ -236,6 +244,9 @@ export default function Admin() {
       setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
       setScheduledPauseDay(String(json?.scheduledPauseDay ?? scheduledPauseDay));
       setScheduledPauseTime(String(json?.scheduledPauseTime || scheduledPauseTime).slice(0, 5));
+      setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
+      setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
+      setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
       setShowScheduleModal(false);
       setNotice("Pausa semanal programada");
     } catch {
@@ -274,6 +285,9 @@ export default function Admin() {
       }
 
       setScheduledPauseEnabled(Boolean(json?.scheduledPauseEnabled));
+      setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
+      setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
+      setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
       setShowScheduleModal(false);
       setNotice("Programación de pausa desactivada");
     } catch {
@@ -281,6 +295,48 @@ export default function Admin() {
     } finally {
       setSavingSchedule(false);
     }
+  };
+
+  const saveScheduledOpen = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetch(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ scheduledOpenEnabled: true, scheduledOpenDay: Number(scheduledOpenDay), scheduledOpenTime }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "No se pudo programar la apertura"); return; }
+      setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
+      setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
+      setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
+      setShowScheduleModal(false);
+      setNotice("Apertura semanal programada");
+    } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
+  };
+
+  const disableScheduledOpen = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetch(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ scheduledOpenEnabled: false }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "No se pudo quitar la apertura"); return; }
+      setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
+      setShowScheduleModal(false);
+      setNotice("Programación de apertura desactivada");
+    } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
 
   useEffect(() => {
@@ -350,7 +406,10 @@ export default function Admin() {
           <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
             Programar pausa de traslados
           </button>
-          {scheduledPauseEnabled ? <p className="caption">{scheduledLabel}</p> : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {scheduledPauseEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledLabel}</p> : null}
+            {scheduledOpenEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledOpenLabel}</p> : null}
+          </div>
         </div>
       </div>
 
@@ -401,10 +460,29 @@ export default function Admin() {
             <p className="caption">{scheduledLabel}</p>
             <div className="row" style={{ gap: 8 }}>
               <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
-                {savingSchedule ? "Guardando..." : "Guardar programación"}
+                {savingSchedule ? "Guardando..." : "Guardar"}
               </button>
               <button className="btn-secondary" type="button" onClick={disableScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
-                Quitar programación
+                Quitar
+              </button>
+            </div>
+            <div className="divider" />
+            <h3 className="subheadline" style={{ margin: 0 }}>Apertura semanal</h3>
+            <div className="row">
+              <select style={{ flex: 1 }} value={scheduledOpenDay} onChange={(e) => setScheduledOpenDay(e.target.value)}>
+                {WEEK_DAYS.map((day) => (
+                  <option key={day.value} value={String(day.value)}>{day.label}</option>
+                ))}
+              </select>
+              <input style={{ flex: 1 }} type="time" value={scheduledOpenTime} onChange={(e) => setScheduledOpenTime(e.target.value)} />
+            </div>
+            <p className="caption">{scheduledOpenLabel}</p>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn-primary" type="button" onClick={saveScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>
+                {savingSchedule ? "Guardando..." : "Guardar"}
+              </button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>
+                Quitar
               </button>
             </div>
           </div>

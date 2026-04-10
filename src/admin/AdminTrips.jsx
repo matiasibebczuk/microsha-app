@@ -875,6 +875,12 @@ export default function AdminTrips() {
               </div>
             ))
           )}
+          <Pager
+            page={passengerPage}
+            totalPages={Math.ceil(filteredPassengers.length / passengerPageSize)}
+            onPrev={() => setPassengerPage(p => Math.max(1, p - 1))}
+            onNext={() => setPassengerPage(p => p + 1)}
+          />
         </div>
       )}
 
