@@ -43,6 +43,9 @@ export default function Admin() {
   const [cfgMemberNumber, setCfgMemberNumber] = useState("");
   const [savingUser, setSavingUser] = useState(false);
   const [userNotice, setUserNotice] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
   const getAccessToken = useSessionToken();
 
   const scheduledDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledPauseDay))?.label || "-";
@@ -346,6 +349,28 @@ export default function Admin() {
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
 
+  const searchUser = async (e) => {
+    e.preventDefault();
+    if (searching) return;
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearching(true);
+    setSearchResults(null);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const res = await fetch(apiUrl(`/admin/users/search?q=${encodeURIComponent(q)}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ([]));
+      setSearchResults(Array.isArray(json) ? json : []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const addUser = async (e) => {
     e.preventDefault();
     if (savingUser) return;
@@ -498,6 +523,35 @@ export default function Admin() {
                 Cerrar
               </button>
             </div>
+            <div className="divider" />
+            <h4 className="subheadline" style={{ margin: 0 }}>Buscar persona</h4>
+            <form className="row" style={{ gap: "0.5rem" }} onSubmit={searchUser}>
+              <input
+                type="text"
+                placeholder="Nombre, DNI o nro. de socio"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setSearchResults(null); }}
+                disabled={searching}
+                style={{ flex: 1 }}
+              />
+              <button className="btn-secondary" type="submit" disabled={searching}>
+                {searching ? "..." : "Buscar"}
+              </button>
+            </form>
+            {searchResults !== null ? (
+              searchResults.length === 0 ? (
+                <p className="caption" style={{ margin: 0 }}>Sin resultados</p>
+              ) : (
+                <div className="stack-sm">
+                  {searchResults.map((u) => (
+                    <div key={u.id} className="list-item" style={{ fontSize: "0.85rem" }}>
+                      <span>{u.name}</span>
+                      <span className="caption">DNI: {u.dni} · Socio: {u.member_number}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : null}
             <div className="divider" />
             <h4 className="subheadline" style={{ margin: 0 }}>Agregar persona</h4>
             <form className="stack-sm" onSubmit={addUser}>
