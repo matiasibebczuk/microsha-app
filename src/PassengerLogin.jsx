@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 import LoadingState from "./ui/LoadingState";
 import MessageBanner from "./ui/MessageBanner";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
@@ -17,7 +18,7 @@ export default function PassengerLogin({ onLogin, onBack }) {
     setSubmitting(true);
 
     try {
-      const res = await fetch(apiUrl("/auth/passenger-login"), {
+      const res = await fetchWithRetry(apiUrl("/auth/passenger-login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,7 +38,7 @@ export default function PassengerLogin({ onLogin, onBack }) {
       const user = await res.json();
       onLogin(user);
     } catch {
-      setError("No se pudo conectar con el servidor. Intentá nuevamente.");
+      setError("El servidor está despertando. Esperá unos segundos e intentá de nuevo.");
     } finally {
       setSubmitting(false);
     }
