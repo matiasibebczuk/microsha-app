@@ -349,16 +349,19 @@ function App() {
   }
 
   if (backendFailed) {
+    setTimeout(() => window.location.reload(), 8000);
     return (
       <div className="loading-screen fade-up">
-        <div className="card stack" style={{ textAlign: "center", width: "min(420px, calc(100% - 2rem))" }}>
-          <div className="ios-logo-container" style={{ margin: "0 auto" }}>
+        <div className="stack" style={{ textAlign: "center" }}>
+          <div className="ios-logo-container">
             <img src={microshaLogo} alt="MicroSHA Logo" />
           </div>
-          <h2 className="headline">Servidor no disponible</h2>
-          <p className="caption">No se pudo conectar con el servidor. Intentá recargar la página en unos minutos.</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Reintentar
+          <LoadingState compact label="Reconectando con el servidor..." />
+          <p className="caption" style={{ maxWidth: 260, margin: "0 auto" }}>
+            El servidor tardó en responder. Reintentando automáticamente...
+          </p>
+          <button className="btn-secondary" style={{ marginTop: "0.5rem" }} onClick={() => window.location.reload()}>
+            Reintentar ahora
           </button>
         </div>
       </div>
