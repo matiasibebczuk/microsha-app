@@ -16,6 +16,7 @@ const PassengerLogin = lazy(() => import("./PassengerLogin"));
 const PassengerProfileSetup = lazy(() => import("./PassengerProfileSetup"));
 const GroupSetup = lazy(() => import("./GroupSetup"));
 const ResetPassword = lazy(() => import("./ResetPassword"));
+const ConfirmAccount = lazy(() => import("./ConfirmAccount"));
 
 function LazyFallback({ label = "Cargando..." }) {
   return (
@@ -30,6 +31,7 @@ function App() {
   const [authReady, setAuthReady] = useState(false);
   const [session, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [confirmMode, setConfirmMode] = useState(false);
 
   const [view, setView] = useState("login");
   const [passengerUser, setPassengerUser] = useState(
@@ -66,14 +68,15 @@ function App() {
   useEffect(() => {
     let active = true;
 
-    const hasRecoveryInUrl = () => {
+    const hasTypeInUrl = (type) => {
       if (typeof window === "undefined") return false;
       const hash = String(window.location.hash || "").toLowerCase();
       const search = String(window.location.search || "").toLowerCase();
-      return hash.includes("type=recovery") || search.includes("type=recovery");
+      return hash.includes(`type=${type}`) || search.includes(`type=${type}`);
     };
 
-    setRecoveryMode(hasRecoveryInUrl());
+    setRecoveryMode(hasTypeInUrl("recovery"));
+    setConfirmMode(hasTypeInUrl("signup") || hasTypeInUrl("email_change"));
 
     const boot = async () => {
       try {
@@ -121,8 +124,13 @@ function App() {
           setRecoveryMode(true);
         }
 
+        if (event === "SIGNED_IN" && hasTypeInUrl("signup")) {
+          setConfirmMode(true);
+        }
+
         if (event === "SIGNED_OUT") {
           setRecoveryMode(false);
+          setConfirmMode(false);
         }
 
         // Avoid remount loops in staff screens caused by periodic token refresh events.
@@ -370,6 +378,19 @@ function App() {
           <LoadingState compact label="Iniciando sesión..." />
         </div>
       </div>
+    );
+  }
+
+  if (confirmMode) {
+    return (
+      <Suspense fallback={<LazyFallback label="Cargando..." />}>
+        <ConfirmAccount
+          onDone={() => {
+            setConfirmMode(false);
+            void supabase.auth.signOut();
+          }}
+        />
+      </Suspense>
     );
   }
 
