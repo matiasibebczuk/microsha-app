@@ -373,7 +373,9 @@ export default function Admin() {
       setCfgFirstname("");
       setCfgDni("");
       setCfgMemberNumber("");
-      setUserNotice("Persona agregada correctamente");
+      setUserNotice("");
+      setShowConfigModal(false);
+      setNotice("Persona agregada correctamente");
     } catch {
       setUserNotice("Error de red");
     } finally {
