@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { API_BASE_URL, apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 
 export default function GroupSetup({ role, onDone }) {
   const [mode, setMode] = useState(role === "admin" ? "choose" : "join");
@@ -66,7 +67,7 @@ export default function GroupSetup({ role, onDone }) {
         body.groupId = groupId.trim();
       }
 
-      const res = await fetch(apiUrl(`/groups/${endpoint}`), {
+      const res = await fetchWithRetry(apiUrl(`/groups/${endpoint}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

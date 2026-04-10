@@ -114,7 +114,7 @@ export default function Encargado() {
     });
 
     const { latitude, longitude, accuracy, heading, speed } = position.coords;
-    const res = await fetch(apiUrl(`/encargado/trips/${tripId}/location/update`), {
+    const res = await fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/location/update`), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -172,7 +172,7 @@ export default function Encargado() {
     setLocationBusy(true);
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/location/stop`), {
+      const res = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/location/stop`), {
         method: "POST",
         headers: authHeader,
       });
@@ -201,7 +201,7 @@ export default function Encargado() {
     setLocationBusy(true);
     try {
       const authHeader = await getAuthHeader();
-      const startRes = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/location/start`), {
+      const startRes = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/location/start`), {
         method: "POST",
         headers: authHeader,
       });
@@ -238,7 +238,7 @@ export default function Encargado() {
     let authHeader;
     try {
       try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/start`), { method: "POST", headers: authHeader });
+      const res = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/start`), { method: "POST", headers: authHeader });
       const json = await res.json();
       if (!res.ok) { alert(json?.error || "No se pudo iniciar el recorrido"); return; }
       setStarted(true);
@@ -258,7 +258,7 @@ export default function Encargado() {
     let authHeader;
     try {
       try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-      const res = await fetch(apiUrl(`/encargado/reservations/${reservationId}/boarded`), {
+      const res = await fetchWithRetry(apiUrl(`/encargado/reservations/${reservationId}/boarded`), {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({ boarded }),
@@ -282,7 +282,7 @@ export default function Encargado() {
     let authHeader;
     try {
       try { authHeader = await getAuthHeader(); } catch (err) { alert(err.message); return; }
-      const res = await fetch(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
+      const res = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
       const json = await res.json();
       if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
       alert(`Recorrido finalizado. Historial run #${json.runId}`);

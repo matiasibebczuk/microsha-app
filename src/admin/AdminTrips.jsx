@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IconEdit, IconTrash, IconChevronRight, IconDownload } from "../ui/icons";
 import { apiUrl } from "../api";
+import { fetchWithRetry } from "../lib/fetchWithRetry";
 import LoadingState from "../ui/LoadingState";
 import SkeletonCards from "../ui/SkeletonCards";
 import MessageBanner from "../ui/MessageBanner";
@@ -315,9 +316,9 @@ export default function AdminTrips() {
       body.waitlist_end_time = editWaitlistEnabled && editWaitlistHasEnd ? editWaitlistEndTime : null;
       body.waitlist_start_at = null;
       body.waitlist_end_at = null;
-      const res = await fetch(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const res = await fetchWithRetry(apiUrl(`/trips/${editingTripId}`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       if (!res.ok) { alert("Error guardando traslado"); return; }
-      const busesRes = await fetch(apiUrl(`/trips/${editingTripId}/buses/sync`), {
+      const busesRes = await fetchWithRetry(apiUrl(`/trips/${editingTripId}/buses/sync`), {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ buses: editBuses }),
@@ -328,7 +329,7 @@ export default function AdminTrips() {
         return;
       }
 
-      const stopsRes = await fetch(apiUrl(`/trips/${editingTripId}/stops/sync`), {
+      const stopsRes = await fetchWithRetry(apiUrl(`/trips/${editingTripId}/stops/sync`), {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ stops: editStops }),
@@ -352,7 +353,7 @@ export default function AdminTrips() {
     setDeletingTripId(id);
     const token = await getAccessToken();
     try {
-      const res = await fetch(apiUrl(`/trips/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetchWithRetry(apiUrl(`/trips/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) { alert("Error"); return; }
       if (selectedTripId === id) setSelectedTripId(null);
       await loadTrips();
@@ -366,7 +367,7 @@ export default function AdminTrips() {
     setStatusUpdatingId(id);
     const token = await getAccessToken();
     try {
-      const res = await fetch(apiUrl(`/trips/${id}/status`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) });
+      const res = await fetchWithRetry(apiUrl(`/trips/${id}/status`), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) });
       if (!res.ok) { alert("Error"); return; }
       setTrips(p => p.map(t => t.id === id ? { ...t, status } : t));
     } finally {
@@ -519,7 +520,7 @@ export default function AdminTrips() {
         return;
       }
 
-      const createRes = await fetch(apiUrl(`/trips/${reinforcementTargetTrip.id}/reinforcement`), {
+      const createRes = await fetchWithRetry(apiUrl(`/trips/${reinforcementTargetTrip.id}/reinforcement`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -562,7 +563,7 @@ export default function AdminTrips() {
     setPassengerPage(1);
     try {
       const q = passengerFilter === "all" ? "" : `?status=${passengerFilter}`;
-      const res = await fetch(apiUrl(`/admin/trips/${id}/reservations${q}`), { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetchWithRetry(apiUrl(`/admin/trips/${id}/reservations${q}`), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
       if (!res.ok) { setNotice("Error"); return; }
       setPassengers(json);
@@ -573,7 +574,7 @@ export default function AdminTrips() {
     const token = await getAccessToken();
     setPromotingId(rId);
     try {
-      const res = await fetch(apiUrl(`/admin/trips/${tId}/promote/${rId}`), { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetchWithRetry(apiUrl(`/admin/trips/${tId}/promote/${rId}`), { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { await loadPassengers(tId); await loadTrips(); }
     } finally { setPromotingId(null); }
   };
@@ -581,7 +582,7 @@ export default function AdminTrips() {
   const exportPassengersToCSV = async (trip) => {
     const token = await getAccessToken();
     try {
-      const res = await fetch(apiUrl(`/admin/trips/${trip.id}/reservations`), {
+      const res = await fetchWithRetry(apiUrl(`/admin/trips/${trip.id}/reservations`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) {

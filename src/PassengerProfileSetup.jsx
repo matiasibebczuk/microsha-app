@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 import LoadingState from "./ui/LoadingState";
 import MessageBanner from "./ui/MessageBanner";
 
@@ -57,7 +58,7 @@ export default function PassengerProfileSetup({ user, onCompleted, onSessionExpi
     setError("");
 
     try {
-      const res = await fetch(apiUrl("/auth/passenger-profile"), {
+      const res = await fetchWithRetry(apiUrl("/auth/passenger-profile"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

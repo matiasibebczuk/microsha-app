@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { IconTrash } from "./ui/icons";
 import { apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 
 export default function TemplateManager({ onBack }) {
   const [templates, setTemplates] = useState([]);
@@ -28,7 +29,7 @@ export default function TemplateManager({ onBack }) {
 
   async function loadTemplates() {
     const { data } = await supabase.auth.getSession();
-    const res = await fetch(apiUrl("/templates"), {
+    const res = await fetchWithRetry(apiUrl("/templates"), {
       headers: { Authorization: `Bearer ${data.session.access_token}` },
     });
     const json = await res.json();
@@ -40,7 +41,7 @@ export default function TemplateManager({ onBack }) {
 
     void (async () => {
       const { data } = await supabase.auth.getSession();
-      const res = await fetch(apiUrl("/templates"), {
+      const res = await fetchWithRetry(apiUrl("/templates"), {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       const json = await res.json();
@@ -60,7 +61,7 @@ export default function TemplateManager({ onBack }) {
     setCreatingTemplate(true);
     try {
       const { data } = await supabase.auth.getSession();
-      const res = await fetch(apiUrl("/templates"), {
+      const res = await fetchWithRetry(apiUrl("/templates"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
         body: JSON.stringify({ name, type }),
@@ -83,7 +84,7 @@ export default function TemplateManager({ onBack }) {
     const { data } = await supabase.auth.getSession();
     setSelected(template);
     try {
-      const res = await fetch(apiUrl(`/templates/${template.id}/stops`), {
+      const res = await fetchWithRetry(apiUrl(`/templates/${template.id}/stops`), {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       const json = await res.json();
@@ -154,7 +155,7 @@ export default function TemplateManager({ onBack }) {
     setSavingStops(true);
     const { data } = await supabase.auth.getSession();
     try {
-      const res = await fetch(apiUrl(`/templates/${selected.id}/stops`), {
+      const res = await fetchWithRetry(apiUrl(`/templates/${selected.id}/stops`), {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
         body: JSON.stringify({ stops: normalized }),
@@ -180,7 +181,7 @@ export default function TemplateManager({ onBack }) {
     setDeletingTemplateId(id);
     const { data } = await supabase.auth.getSession();
     try {
-      await fetch(apiUrl(`/templates/${id}`), {
+      await fetchWithRetry(apiUrl(`/templates/${id}`), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
@@ -204,7 +205,7 @@ export default function TemplateManager({ onBack }) {
     }
 
     try {
-      const createRes = await fetch(apiUrl("/templates"), {
+      const createRes = await fetchWithRetry(apiUrl("/templates"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -222,7 +223,7 @@ export default function TemplateManager({ onBack }) {
         return;
       }
 
-      const stopsRes = await fetch(apiUrl(`/templates/${template.id}/stops`), {
+      const stopsRes = await fetchWithRetry(apiUrl(`/templates/${template.id}/stops`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const stopsJson = await stopsRes.json().catch(() => ([]));
@@ -239,7 +240,7 @@ export default function TemplateManager({ onBack }) {
       }));
 
       if (normalizedStops.length > 0) {
-        const saveStopsRes = await fetch(apiUrl(`/templates/${createJson.id}/stops`), {
+        const saveStopsRes = await fetchWithRetry(apiUrl(`/templates/${createJson.id}/stops`), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

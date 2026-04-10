@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
 import { clearSessionWindow, getSessionWindowRemainingMs, readSessionWindow, saveSessionWindow } from "./lib/sessionWindow";
@@ -305,7 +306,7 @@ function App() {
           return;
         }
 
-        const res = await fetch(apiUrl("/groups/me"), {
+        const res = await fetchWithRetry(apiUrl("/groups/me"), {
           headers: {
             Authorization: `Bearer ${token}`,
           },

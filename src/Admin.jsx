@@ -6,6 +6,7 @@ import AdminSanctions from "./admin/AdminSanctions";
 import TemplateManager from "./TemplateManager";
 import { supabase } from "./supabase";
 import { IconLogout, IconSettings } from "./ui/icons";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 import { apiUrl } from "./api";
 import { useSessionToken } from "./hooks/useSessionToken";
 import MessageBanner from "./ui/MessageBanner";
@@ -57,7 +58,7 @@ export default function Admin() {
     try {
       const token = await getAccessToken();
       if (!token) return;
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json().catch(() => ({}));
@@ -86,7 +87,7 @@ export default function Admin() {
         return;
       }
 
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -115,7 +116,7 @@ export default function Admin() {
     const token = await getAccessToken();
     if (!token) throw new Error("Sesión expirada");
 
-    const tripsRes = await fetch(apiUrl("/trips"), {
+    const tripsRes = await fetchWithRetry(apiUrl("/trips"), {
       headers: { Authorization: `Bearer ${token}` },
     });
     const tripsJson = await tripsRes.json().catch(() => ([]));
@@ -232,7 +233,7 @@ export default function Admin() {
         return;
       }
 
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -277,7 +278,7 @@ export default function Admin() {
         return;
       }
 
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -314,7 +315,7 @@ export default function Admin() {
     try {
       const token = await getAccessToken();
       if (!token) { setNotice("Sesión expirada"); return; }
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ scheduledOpenEnabled: true, scheduledOpenDay: Number(scheduledOpenDay), scheduledOpenTime }),
@@ -336,7 +337,7 @@ export default function Admin() {
     try {
       const token = await getAccessToken();
       if (!token) { setNotice("Sesión expirada"); return; }
-      const res = await fetch(apiUrl("/admin/system/flags"), {
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ scheduledOpenEnabled: false }),
@@ -359,7 +360,7 @@ export default function Admin() {
     try {
       const token = await getAccessToken();
       if (!token) return;
-      const res = await fetch(apiUrl(`/admin/users/search?q=${encodeURIComponent(q)}`), {
+      const res = await fetchWithRetry(apiUrl(`/admin/users/search?q=${encodeURIComponent(q)}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json().catch(() => ([]));
@@ -387,7 +388,7 @@ export default function Admin() {
     try {
       const token = await getAccessToken();
       if (!token) { setUserNotice("Sesión expirada"); return; }
-      const res = await fetch(apiUrl("/admin/users"), {
+      const res = await fetchWithRetry(apiUrl("/admin/users"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ lastname: ln, firstname: fn, dni, memberNumber: mn || "0" }),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { apiUrl } from "../api";
+import { fetchWithRetry } from "../lib/fetchWithRetry";
 import { IconTrash } from "../ui/icons";
 import { formatTripTitle } from "../utils/format";
 
@@ -63,7 +64,7 @@ export default function AdminCreateTrip({ onCreated }) {
     let alive = true;
     void (async () => {
       const { data } = await supabase.auth.getSession();
-      const res = await fetch(apiUrl("/templates"), {
+      const res = await fetchWithRetry(apiUrl("/templates"), {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       const json = await res.json();
@@ -111,7 +112,7 @@ export default function AdminCreateTrip({ onCreated }) {
 
   const loadFromTemplate = async (templateId) => {
     const { data } = await supabase.auth.getSession();
-    const res = await fetch(apiUrl(`/templates/${templateId}/stops`), {
+    const res = await fetchWithRetry(apiUrl(`/templates/${templateId}/stops`), {
       headers: { Authorization: `Bearer ${data.session.access_token}` },
     });
     const json = await res.json();
@@ -176,7 +177,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const shouldConfigureReinforcement = enableReinforcement;
 
   const createOneTrip = async (token, tripName, tripStops, tripBuses) => {
-    const tripRes = await fetch(apiUrl("/trips"), {
+    const tripRes = await fetchWithRetry(apiUrl("/trips"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
@@ -198,7 +199,7 @@ export default function AdminCreateTrip({ onCreated }) {
 
     for (let i = 0; i < tripStops.length; i++) {
       const stop = tripStops[i];
-      const stopRes = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
+      const stopRes = await fetchWithRetry(apiUrl(`/trips/${trip.id}/stops`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: stop.name, time: stop.time, order: i + 1 }),
@@ -211,7 +212,7 @@ export default function AdminCreateTrip({ onCreated }) {
     }
 
     for (const bus of tripBuses) {
-      const busRes = await fetch(apiUrl(`/trips/${trip.id}/buses`), {
+      const busRes = await fetchWithRetry(apiUrl(`/trips/${trip.id}/buses`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(bus),
@@ -260,7 +261,7 @@ export default function AdminCreateTrip({ onCreated }) {
       setCreatedTripName(formatTripTitle(createdTrip?.name || name || "Traslado", startTime, createdTrip?.id));
 
       if (shouldConfigureReinforcement) {
-        const configRes = await fetch(apiUrl(`/trips/${createdTrip.id}/reinforcement-config`), {
+        const configRes = await fetchWithRetry(apiUrl(`/trips/${createdTrip.id}/reinforcement-config`), {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({

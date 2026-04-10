@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiUrl } from "../api";
+import { fetchWithRetry } from "../lib/fetchWithRetry";
 import LoadingState from "../ui/LoadingState";
 import SkeletonCards from "../ui/SkeletonCards";
 import MessageBanner from "../ui/MessageBanner";
@@ -27,7 +28,7 @@ export default function AdminHistory({ onBack }) {
       try {
         const token = await getToken();
         if (!token) { if (alive) setRuns([]); if (alive) setError("Sesión expirada"); return; }
-        const res = await fetch(apiUrl("/admin/history"), { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetchWithRetry(apiUrl("/admin/history"), { headers: { Authorization: `Bearer ${token}` } });
         const json = await res.json();
         if (!res.ok) { if (alive) setRuns([]); if (alive) setError(json?.error || "Error"); return; }
         if (alive) { setRuns(Array.isArray(json) ? json : []); setPage(1); }
@@ -41,7 +42,7 @@ export default function AdminHistory({ onBack }) {
     try {
       const token = await getToken();
       if (!token) { setError("Sesión expirada"); return; }
-      const res = await fetch(apiUrl(`/admin/history/${runId}`), { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetchWithRetry(apiUrl(`/admin/history/${runId}`), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
       if (!res.ok) { setError(json?.error || "Error"); return; }
       setError(""); setSelected(json);
@@ -50,7 +51,7 @@ export default function AdminHistory({ onBack }) {
 
   const downloadExcel = async (runId) => {
     const token = await getToken();
-    const res = await fetch(apiUrl(`/admin/history/${runId}/excel`), { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetchWithRetry(apiUrl(`/admin/history/${runId}/excel`), { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) { setError("No se pudo descargar Excel"); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

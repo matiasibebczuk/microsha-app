@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl } from "../api";
+import { fetchWithRetry } from "../lib/fetchWithRetry";
 import MessageBanner from "../ui/MessageBanner";
 import LoadingState from "../ui/LoadingState";
 import EmptyState from "../ui/EmptyState";
@@ -36,7 +37,7 @@ export default function AdminSanctions({ onBack }) {
         return;
       }
 
-      const res = await fetch(apiUrl("/admin/sanctions"), {
+      const res = await fetchWithRetry(apiUrl("/admin/sanctions"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json().catch(() => []);
@@ -73,7 +74,7 @@ export default function AdminSanctions({ onBack }) {
         return;
       }
 
-      const res = await fetch(apiUrl(`/admin/sanctions/search?q=${encodeURIComponent(q)}`), {
+      const res = await fetchWithRetry(apiUrl(`/admin/sanctions/search?q=${encodeURIComponent(q)}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json().catch(() => []);
@@ -106,7 +107,7 @@ export default function AdminSanctions({ onBack }) {
       }
 
       const reason = formatReason(reasonDraft[userId]);
-      const res = await fetch(apiUrl("/admin/sanctions"), {
+      const res = await fetchWithRetry(apiUrl("/admin/sanctions"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +145,7 @@ export default function AdminSanctions({ onBack }) {
         return;
       }
 
-      const res = await fetch(apiUrl(`/admin/sanctions/${userId}`), {
+      const res = await fetchWithRetry(apiUrl(`/admin/sanctions/${userId}`), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
