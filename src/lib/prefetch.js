@@ -16,16 +16,31 @@ async function fetchJson(path, { headers = {}, signal } = {}) {
   return res.json();
 }
 
-export async function prewarmApi(signal) {
-  try {
-    await fetch(apiUrl("/ping"), {
-      method: "GET",
-      cache: "no-store",
-      signal,
-    });
-  } catch {
-    return;
+const PREWARM_MAX_ATTEMPTS = 15;
+const PREWARM_INTERVAL_MS = 4000;
+
+export async function prewarmApi(signal, onAttempt) {
+  for (let attempt = 1; attempt <= PREWARM_MAX_ATTEMPTS; attempt++) {
+    if (signal?.aborted) return false;
+    try {
+      const res = await fetch(apiUrl("/ping"), {
+        method: "GET",
+        cache: "no-store",
+        signal,
+      });
+      if (res.ok) return true;
+    } catch {
+      // backend dormido o red caída — reintenta
+    }
+    onAttempt?.(attempt);
+    if (attempt < PREWARM_MAX_ATTEMPTS) {
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, PREWARM_INTERVAL_MS);
+        signal?.addEventListener("abort", () => { clearTimeout(t); resolve(); }, { once: true });
+      });
+    }
   }
+  return false;
 }
 
 export async function prefetchStaffData(role, token, signal) {

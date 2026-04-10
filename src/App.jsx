@@ -32,6 +32,8 @@ function App() {
   const [session, setSession] = useState(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [confirmMode, setConfirmMode] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
+  const [backendAttempt, setBackendAttempt] = useState(0);
 
   const [view, setView] = useState("login");
   const [passengerUser, setPassengerUser] = useState(
@@ -222,11 +224,10 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void prewarmApi(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
+    void prewarmApi(controller.signal, (attempt) => setBackendAttempt(attempt)).then((ok) => {
+      if (!controller.signal.aborted) setBackendReady(ok !== false);
+    });
+    return () => { controller.abort(); };
   }, []);
 
   useEffect(() => {
@@ -362,6 +363,22 @@ function App() {
           onBack={() => setView("login")}
         />
       </Suspense>
+    );
+  }
+
+  // ========================
+  // BACKEND DURMIENDO
+  // ========================
+  if (!backendReady) {
+    return (
+      <div className="loading-screen fade-up">
+        <div className="stack" style={{ textAlign: "center" }}>
+          <div className="ios-logo-container">
+            <img src={microshaLogo} alt="MicroSHA Logo" />
+          </div>
+          <LoadingState compact label={backendAttempt > 1 ? `Iniciando servidor... (${backendAttempt})` : "Conectando..."} />
+        </div>
+      </div>
     );
   }
 
