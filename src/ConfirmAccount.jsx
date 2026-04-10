@@ -2,8 +2,8 @@ import microshaLogo from "./assets/MicroSHA_LOGO.png";
 
 export default function ConfirmAccount({ onDone }) {
   return (
-    <div className="page-narrow fade-up">
-      <div className="card stack" style={{ textAlign: "center" }}>
+    <div className="loading-screen fade-up">
+      <div className="card stack" style={{ textAlign: "center", width: "min(480px, calc(100% - 2rem))" }}>
         <div className="ios-logo-container" style={{ margin: "0 auto" }}>
           <img src={microshaLogo} alt="MicroSHA Logo" />
         </div>
@@ -19,3 +19,4 @@ export default function ConfirmAccount({ onDone }) {
     </div>
   );
 }
+

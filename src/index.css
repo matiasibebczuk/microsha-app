@@ -84,7 +84,7 @@ p {
   background: var(--bg-elev-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow);
 }
 
@@ -199,7 +199,7 @@ button.list-item:hover {
 .divider {
   border: 0;
   border-top: 1px solid #2d3a62;
-  margin: 0.2rem 0;
+  margin: 0.5rem 0;
 }
 
 input,
@@ -336,7 +336,7 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.18rem 0.58rem;
+  padding: 0.25rem 0.65rem;
   font-size: 0.78rem;
   border: 1px solid rgba(138, 180, 248, 0.5);
   background: rgba(138, 180, 248, 0.2);
@@ -360,7 +360,7 @@ button:disabled {
   border: 1px solid #475a94;
   background: #1b2446;
   color: #e9f1ff;
-  padding: 0.72rem 0.86rem;
+  padding: 0.8rem;
   margin-bottom: 0.8rem;
   animation: fadeUp 180ms ease-out;
 }
@@ -469,7 +469,7 @@ button:disabled {
   border: 1px solid #3f4f80;
   background: #1a2140;
   color: #deebff;
-  padding: 0.68rem 0.78rem;
+  padding: 0.75rem 0.9rem;
 }
 
 .message-error {
@@ -488,9 +488,9 @@ button:disabled {
   border-radius: var(--radius-md);
   border: 1px dashed #41548b;
   background: #1a2140;
-  padding: 0.95rem;
+  padding: 1.75rem 1rem;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
   text-align: center;
 }
 
