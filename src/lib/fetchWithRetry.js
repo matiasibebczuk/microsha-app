@@ -1,7 +1,9 @@
-const RETRY_DELAYS_MS = [2000, 4000, 6000];
+const RETRY_DELAYS_MS = [1500, 3000, 5000, 8000, 12000];
 
 export async function fetchWithRetry(url, options = {}) {
   let lastError;
+  const method = String(options?.method || "GET").toUpperCase();
+  const isSafeMethod = method === "GET" || method === "HEAD";
 
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     try {
@@ -21,6 +23,13 @@ export async function fetchWithRetry(url, options = {}) {
         await delay(RETRY_DELAYS_MS[attempt]);
       }
     }
+  }
+
+  // Agotó todos los reintentos — si es GET, recarga la página
+  if (isSafeMethod && typeof window !== "undefined") {
+    window.location.reload();
+    // Devuelve una promesa que nunca resuelve para no propagar el error
+    return new Promise(() => {});
   }
 
   throw lastError ?? new Error("Failed to fetch after retries");
