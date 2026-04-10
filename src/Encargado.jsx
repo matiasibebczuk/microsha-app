@@ -8,6 +8,7 @@ import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
 import { useSessionToken } from "./hooks/useSessionToken";
 import { formatDateTime, formatTripStatus, formatTripTitle, sortTrasladosByHora } from "./utils/format";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 
 export default function Encargado() {
   const LOCATION_INTERVAL_MS = 30000;
@@ -44,7 +45,7 @@ export default function Encargado() {
     setLoadingTrips(true);
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetch(apiUrl("/trips"), { headers: authHeader });
+      const res = await fetchWithRetry(apiUrl("/trips"), { headers: authHeader });
       const data = await res.json();
       if (!res.ok) {
         setNotice(data?.error || "No se pudieron cargar los viajes");
@@ -69,10 +70,10 @@ export default function Encargado() {
     try {
       const authHeader = await getAuthHeader();
       const [stateRes, passengersRes, dashboardRes, locationRes] = await Promise.all([
-        fetch(apiUrl(`/encargado/trips/${tripId}/state`), { headers: authHeader }),
-        fetch(apiUrl(`/encargado/trips/${tripId}/passengers`), { headers: authHeader }),
-        fetch(apiUrl(`/encargado/trips/${tripId}/dashboard`), { headers: authHeader }),
-        fetch(apiUrl(`/encargado/trips/${tripId}/location/state`), { headers: authHeader }),
+        fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/state`), { headers: authHeader }),
+        fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/passengers`), { headers: authHeader }),
+        fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/dashboard`), { headers: authHeader }),
+        fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/location/state`), { headers: authHeader }),
       ]);
       const stateJson = await stateRes.json();
       const passengersJson = await passengersRes.json();
@@ -92,6 +93,8 @@ export default function Encargado() {
       }
       setGroups(Array.isArray(passengersJson) ? sortGroupsByTime(passengersJson) : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
+    } catch (err) {
+      setNotice(err?.message || "Error de red. Intentá de nuevo.");
     } finally {
       setLoadingList(false);
     }
