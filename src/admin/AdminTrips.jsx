@@ -554,6 +554,9 @@ export default function AdminTrips() {
       const json = await res.json();
       if (!res.ok) { setNotice("Error"); return; }
       setPassengers(json); setSelectedTripId(id); setPassengerPage(1);
+      setTimeout(() => {
+        passengersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
     } finally { setPassengersLoading(false); }
   };
 
