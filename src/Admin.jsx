@@ -530,7 +530,7 @@ export default function Admin() {
                 type="text"
                 placeholder="Nombre, DNI o nro. de socio"
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setSearchResults(null); }}
+                onChange={(e) => { setSearchQuery(e.target.value.toUpperCase()); setSearchResults(null); }}
                 disabled={searching}
                 style={{ flex: 1 }}
               />
@@ -542,11 +542,11 @@ export default function Admin() {
               searchResults.length === 0 ? (
                 <p className="caption" style={{ margin: 0 }}>Sin resultados</p>
               ) : (
-                <div className="stack-sm">
+                <div className="stack-sm" style={{ maxHeight: "220px", overflowY: "auto" }}>
                   {searchResults.map((u) => (
-                    <div key={u.id} className="list-item" style={{ fontSize: "0.85rem" }}>
-                      <span>{u.name}</span>
-                      <span className="caption">DNI: {u.dni} · Socio: {u.member_number}</span>
+                    <div key={u.id} className="list-item" style={{ display: "flex", flexDirection: "column", gap: "0.15rem", alignItems: "flex-start" }}>
+                      <span className="body" style={{ fontWeight: 600 }}>{u.name}</span>
+                      <span className="caption" style={{ margin: 0 }}>DNI: {u.dni} · Socio: {u.member_number}</span>
                     </div>
                   ))}
                 </div>
