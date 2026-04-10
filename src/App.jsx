@@ -328,6 +328,44 @@ function App() {
   }, [sessionUserId, sessionRole, groupCheckVersion]);
 
   // ========================
+  // BACKEND DURMIENDO
+  // ========================
+  if (!backendReady) {
+    return (
+      <div className="loading-screen fade-up">
+        <div className="stack" style={{ textAlign: "center" }}>
+          <div className="ios-logo-container">
+            <img src={microshaLogo} alt="MicroSHA Logo" />
+          </div>
+          <LoadingState compact label={backendAttempt > 1 ? `Iniciando servidor... (${backendAttempt}/${15})` : "Conectando..."} />
+          {backendAttempt > 3 && (
+            <p className="caption" style={{ maxWidth: 260, margin: "0 auto" }}>
+              El servidor está despertando, esto puede tardar hasta 60 segundos.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (backendFailed) {
+    return (
+      <div className="loading-screen fade-up">
+        <div className="card stack" style={{ textAlign: "center", width: "min(420px, calc(100% - 2rem))" }}>
+          <div className="ios-logo-container" style={{ margin: "0 auto" }}>
+            <img src={microshaLogo} alt="MicroSHA Logo" />
+          </div>
+          <h2 className="headline">Servidor no disponible</h2>
+          <p className="caption">No se pudo conectar con el servidor. Intentá recargar la página en unos minutos.</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ========================
   // PASAJERO SIN SUPABASE
   // ========================
   if (passengerUser) {
@@ -375,44 +413,6 @@ function App() {
           onBack={() => setView("login")}
         />
       </Suspense>
-    );
-  }
-
-  // ========================
-  // BACKEND DURMIENDO
-  // ========================
-  if (!backendReady) {
-    return (
-      <div className="loading-screen fade-up">
-        <div className="stack" style={{ textAlign: "center" }}>
-          <div className="ios-logo-container">
-            <img src={microshaLogo} alt="MicroSHA Logo" />
-          </div>
-          <LoadingState compact label={backendAttempt > 1 ? `Iniciando servidor... (${backendAttempt}/${15})` : "Conectando..."} />
-          {backendAttempt > 3 && (
-            <p className="caption" style={{ maxWidth: 260, margin: "0 auto" }}>
-              El servidor está despertando, esto puede tardar hasta 60 segundos.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (backendFailed) {
-    return (
-      <div className="loading-screen fade-up">
-        <div className="card stack" style={{ textAlign: "center", width: "min(420px, calc(100% - 2rem))" }}>
-          <div className="ios-logo-container" style={{ margin: "0 auto" }}>
-            <img src={microshaLogo} alt="MicroSHA Logo" />
-          </div>
-          <h2 className="headline">Servidor no disponible</h2>
-          <p className="caption">No se pudo conectar con el servidor. Intentá recargar la página en unos minutos.</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Reintentar
-          </button>
-        </div>
-      </div>
     );
   }
 
