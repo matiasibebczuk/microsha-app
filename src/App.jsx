@@ -228,9 +228,17 @@ function App() {
     void prewarmApi(controller.signal, (attempt) => setBackendAttempt(attempt)).then((ok) => {
       if (controller.signal.aborted) return;
       if (!ok) setBackendFailed(true);
-      setBackendReady(true); // mostrar app siempre, incluso si backend no responde
+      setBackendReady(true);
     });
     return () => { controller.abort(); };
+  }, []);
+
+  useEffect(() => {
+    const KEEP_ALIVE_MS = 12 * 60 * 1000; // 12 minutos
+    const id = setInterval(() => {
+      fetch(apiUrl("/ping"), { method: "GET", cache: "no-store" }).catch(() => {});
+    }, KEEP_ALIVE_MS);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
