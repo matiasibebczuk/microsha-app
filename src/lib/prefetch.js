@@ -1,8 +1,9 @@
 import { apiUrl } from "../api";
 import { getOrSetCached } from "./cache";
+import { fetchWithRetry } from "./fetchWithRetry";
 
 async function fetchJson(path, { headers = {}, signal } = {}) {
-  const res = await fetch(apiUrl(path), {
+  const res = await fetchWithRetry(apiUrl(path), {
     method: "GET",
     cache: "no-store",
     headers,

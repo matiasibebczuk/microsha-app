@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconLogout, IconChevronRight } from "./ui/icons";
 import { apiUrl } from "./api";
+import { fetchWithRetry } from "./lib/fetchWithRetry";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
 import MessageBanner from "./ui/MessageBanner";
@@ -161,7 +162,7 @@ export default function Passenger({ user, onSessionExpired }) {
           getOrSetCached(
             `passenger:trips:${user.passengerToken}`,
             async () => {
-              const res = await fetch(apiUrl("/trips"), {
+              const res = await fetchWithRetry(apiUrl("/trips"), {
                 headers: {
                   "x-passenger-token": user.passengerToken,
                 },
@@ -175,7 +176,7 @@ export default function Passenger({ user, onSessionExpired }) {
             },
             20_000
           ),
-          fetch(apiUrl("/reservations/mine"), {
+          fetchWithRetry(apiUrl("/reservations/mine"), {
             headers: {
               "x-passenger-token": user.passengerToken,
             },
@@ -248,7 +249,7 @@ export default function Passenger({ user, onSessionExpired }) {
 
     const pollNotifications = async () => {
       try {
-        const res = await fetch(apiUrl("/reservations/notifications"), {
+        const res = await fetchWithRetry(apiUrl("/reservations/notifications"), {
           headers: {
             "x-passenger-token": user.passengerToken,
           },
@@ -302,7 +303,7 @@ export default function Passenger({ user, onSessionExpired }) {
   const openTripLocation = async (trip) => {
     setLocationLoading(true);
     try {
-      const res = await fetch(apiUrl(`/trips/${trip.id}/location`), {
+      const res = await fetchWithRetry(apiUrl(`/trips/${trip.id}/location`), {
         headers: {
           "x-passenger-token": user.passengerToken,
         },
@@ -747,7 +748,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
       setError("");
 
       try {
-        const stopsRes = await fetch(apiUrl(`/trips/${trip.id}/stops`), {
+        const stopsRes = await fetchWithRetry(apiUrl(`/trips/${trip.id}/stops`), {
           headers: {
             "x-passenger-token": user.passengerToken,
           },
@@ -757,7 +758,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
           return;
         }
 
-        const existingRes = await fetch(
+        const existingRes = await fetchWithRetry(
           apiUrl(`/reservations/me?tripId=${trip.id}`),
           {
             headers: {
