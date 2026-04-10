@@ -34,6 +34,7 @@ function App() {
   const [confirmMode, setConfirmMode] = useState(false);
   const [backendReady, setBackendReady] = useState(false);
   const [backendAttempt, setBackendAttempt] = useState(0);
+  const [backendFailed, setBackendFailed] = useState(false);
 
   const [view, setView] = useState("login");
   const [passengerUser, setPassengerUser] = useState(
@@ -225,7 +226,9 @@ function App() {
   useEffect(() => {
     const controller = new AbortController();
     void prewarmApi(controller.signal, (attempt) => setBackendAttempt(attempt)).then((ok) => {
-      if (!controller.signal.aborted) setBackendReady(ok !== false);
+      if (controller.signal.aborted) return;
+      if (!ok) setBackendFailed(true);
+      setBackendReady(true); // mostrar app siempre, incluso si backend no responde
     });
     return () => { controller.abort(); };
   }, []);
@@ -376,7 +379,29 @@ function App() {
           <div className="ios-logo-container">
             <img src={microshaLogo} alt="MicroSHA Logo" />
           </div>
-          <LoadingState compact label={backendAttempt > 1 ? `Iniciando servidor... (${backendAttempt})` : "Conectando..."} />
+          <LoadingState compact label={backendAttempt > 1 ? `Iniciando servidor... (${backendAttempt}/${15})` : "Conectando..."} />
+          {backendAttempt > 3 && (
+            <p className="caption" style={{ maxWidth: 260, margin: "0 auto" }}>
+              El servidor está despertando, esto puede tardar hasta 60 segundos.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (backendFailed) {
+    return (
+      <div className="loading-screen fade-up">
+        <div className="card stack" style={{ textAlign: "center", width: "min(420px, calc(100% - 2rem))" }}>
+          <div className="ios-logo-container" style={{ margin: "0 auto" }}>
+            <img src={microshaLogo} alt="MicroSHA Logo" />
+          </div>
+          <h2 className="headline">Servidor no disponible</h2>
+          <p className="caption">No se pudo conectar con el servidor. Intentá recargar la página en unos minutos.</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Reintentar
+          </button>
         </div>
       </div>
     );
