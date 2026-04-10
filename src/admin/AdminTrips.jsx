@@ -113,6 +113,7 @@ export default function AdminTrips() {
   const passengersSectionRef = useRef(null);
   const initialLoadDoneRef = useRef(false);
   const forcingReinforcementRef = useRef(false);
+  const scrollToPassengersRef = useRef(false);
 
   const getTokenWithRetry = useCallback(async () => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -545,18 +546,26 @@ export default function AdminTrips() {
     }
   };
 
+  useEffect(() => {
+    if (selectedTripId && scrollToPassengersRef.current) {
+      scrollToPassengersRef.current = false;
+      passengersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedTripId, passengers]);
+
   const loadPassengers = async (id) => {
     const token = await getAccessToken();
+    scrollToPassengersRef.current = true;
     setPassengersLoading(true);
+    setPassengers([]);
+    setSelectedTripId(id);
+    setPassengerPage(1);
     try {
       const q = passengerFilter === "all" ? "" : `?status=${passengerFilter}`;
       const res = await fetch(apiUrl(`/admin/trips/${id}/reservations${q}`), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
       if (!res.ok) { setNotice("Error"); return; }
-      setPassengers(json); setSelectedTripId(id); setPassengerPage(1);
-      setTimeout(() => {
-        passengersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
+      setPassengers(json);
     } finally { setPassengersLoading(false); }
   };
 
