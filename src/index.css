@@ -484,6 +484,13 @@ button:disabled {
   color: #e6efff;
 }
 
+.message-warning {
+  border-color: rgba(255, 170, 0, 0.6);
+  background: rgba(180, 100, 0, 0.25);
+  color: #ffe0a0;
+  font-weight: 600;
+}
+
 .empty-state {
   border-radius: var(--radius-md);
   border: 1px dashed #41548b;

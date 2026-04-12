@@ -447,7 +447,7 @@ export default function Passenger({ user, onSessionExpired }) {
         ) : null}
 
         <MessageBanner message={tripsError} />
-        <MessageBanner message={maintenanceMessage} variant="info" />
+        <MessageBanner message={maintenanceMessage} variant="warning" />
 
         <div className="stack">
           {tripsLoading ? (
@@ -555,7 +555,7 @@ export default function Passenger({ user, onSessionExpired }) {
         ) : null}
 
         <MessageBanner message={tripsError} />
-        <MessageBanner message={maintenanceMessage} variant="info" />
+        <MessageBanner message={maintenanceMessage} variant="warning" />
 
         <div className="stack">
           {tripsLoading ? (
