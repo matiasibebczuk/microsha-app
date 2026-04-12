@@ -25,13 +25,6 @@ export async function fetchWithRetry(url, options = {}) {
     }
   }
 
-  // Agotó todos los reintentos — si es GET, recarga la página
-  if (isSafeMethod && typeof window !== "undefined") {
-    window.location.reload();
-    // Devuelve una promesa que nunca resuelve para no propagar el error
-    return new Promise(() => {});
-  }
-
   throw lastError ?? new Error("Failed to fetch after retries");
 }
 

@@ -554,6 +554,21 @@ export default function AdminTrips() {
     }
   }, [selectedTripId, passengers]);
 
+  const clearReservations = async (trip) => {
+    if (!window.confirm(`¿Vaciar TODOS los anotados del traslado "${trip.name}"? Esta acción no se puede deshacer.`)) return;
+    const token = await getAccessToken();
+    try {
+      const res = await fetchWithRetry(apiUrl(`/admin/trips/${trip.id}/reservations`), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); setNotice(j?.error || "Error al vaciar traslado"); return; }
+      setNotice("Traslado vaciado");
+      await loadTrips();
+      if (selectedTripId === trip.id) setPassengers([]);
+    } catch { setNotice("Error de red"); }
+  };
+
   const loadPassengers = async (id) => {
     const token = await getAccessToken();
     scrollToPassengersRef.current = true;
@@ -689,6 +704,9 @@ export default function AdminTrips() {
         </button>
         <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px' }} onClick={() => void openForcedReinforcement(trip)} disabled={loadingReinforcementStops || forcingReinforcementTripId === trip.id}>
           {forcingReinforcementTripId === trip.id ? "Creando..." : "Refuerzo"}
+        </button>
+        <button className="btn-secondary" style={{ fontSize: '12px', padding: '10px', color: 'var(--ios-system-orange)' }} onClick={() => clearReservations(trip)}>
+          Vaciar
         </button>
         <button className="btn-plain" style={{ color: 'var(--ios-system-red)', padding: '10px' }} onClick={() => deleteTrip(trip.id)} disabled={deletingTripId === trip.id}>
           <IconTrash />

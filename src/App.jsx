@@ -235,6 +235,12 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!backendFailed) return;
+    const id = setTimeout(() => window.location.reload(), 15000);
+    return () => clearTimeout(id);
+  }, [backendFailed]);
+
+  useEffect(() => {
     const KEEP_ALIVE_MS = 12 * 60 * 1000; // 12 minutos
     const id = setInterval(() => {
       fetch(apiUrl("/ping"), { method: "GET", cache: "no-store" }).catch(() => {});
@@ -349,7 +355,6 @@ function App() {
   }
 
   if (backendFailed) {
-    setTimeout(() => window.location.reload(), 8000);
     return (
       <div className="loading-screen fade-up">
         <div className="stack" style={{ textAlign: "center" }}>
