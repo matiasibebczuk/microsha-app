@@ -271,7 +271,6 @@ export default function Admin() {
       setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
       setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
       setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
-      setShowScheduleModal(false);
       setNotice("Pausa semanal programada");
     } catch {
       setNotice("Error de red");
@@ -312,7 +311,6 @@ export default function Admin() {
       setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
       setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
       setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
-      setShowScheduleModal(false);
       setNotice("Programación de pausa desactivada");
     } catch {
       setNotice("Error de red");
@@ -338,7 +336,6 @@ export default function Admin() {
       setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
       setScheduledOpenDay(String(json?.scheduledOpenDay ?? scheduledOpenDay));
       setScheduledOpenTime(String(json?.scheduledOpenTime || scheduledOpenTime).slice(0, 5));
-      setShowScheduleModal(false);
       setNotice("Apertura semanal programada");
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
@@ -358,7 +355,6 @@ export default function Admin() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setNotice(json?.error || "No se pudo quitar la apertura"); return; }
       setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
-      setShowScheduleModal(false);
       setNotice("Programación de apertura desactivada");
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
@@ -401,7 +397,6 @@ export default function Admin() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setNotice(json?.error || "Error al actualizar capacidad"); return; }
       setBusCapacityOverride(json?.capacity != null ? String(json.capacity) : "");
-      setShowScheduleModal(false);
       setNotice(parsed ? `Capacidad de micros actualizada a ${parsed}` : "Capacidad de micros restablecida");
     } catch { setNotice("Error de red"); } finally { setSavingCapacity(false); }
   };
@@ -424,7 +419,6 @@ export default function Admin() {
       setScheduledStopBlockDay(String(json?.scheduledStopBlockDay ?? scheduledStopBlockDay));
       setScheduledStopBlockTime(String(json?.scheduledStopBlockTime || scheduledStopBlockTime).slice(0, 5));
       setStopBlockActive(Boolean(json?.stopBlockActive));
-      setShowScheduleModal(false);
       setNotice("Bloqueo de paradas programado");
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
@@ -445,7 +439,6 @@ export default function Admin() {
       if (!res.ok) { setNotice(json?.error || "No se pudo quitar el bloqueo"); return; }
       setScheduledStopBlockEnabled(Boolean(json?.scheduledStopBlockEnabled));
       setStopBlockActive(Boolean(json?.stopBlockActive));
-      setShowScheduleModal(false);
       setNotice("Bloqueo de paradas desactivado");
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
