@@ -454,7 +454,7 @@ export default function AdminTrips() {
       if (configJson?.reinforcement_bus_name) {
         setReinforcementBusName(configJson.reinforcement_bus_name);
       }
-      if (configJson?.reinforcement_bus_capacity) {
+      if (configJson?.reinforcement_bus_capacity && configJson.reinforcement_bus_capacity !== 20) {
         setReinforcementBusCapacity(String(configJson.reinforcement_bus_capacity));
       }
 
