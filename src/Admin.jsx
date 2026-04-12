@@ -224,19 +224,6 @@ export default function Admin() {
     try {
       const text = await buildTripCopyText();
       await navigator.clipboard.writeText(text);
-      // Resetear bloqueo de paradas al enviar lista
-      if (stopBlockActive) {
-        const token = await getAccessToken();
-        if (token) {
-          const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ stopBlockActive: false }),
-          });
-          const json = await res.json().catch(() => ({}));
-          if (res.ok) setStopBlockActive(Boolean(json?.stopBlockActive));
-        }
-      }
       setNotice("Traslados copiados al portapapeles");
     } catch (err) {
       setNotice(err?.message || "No se pudieron copiar los traslados");
@@ -668,11 +655,11 @@ export default function Admin() {
         <div
           role="dialog"
           aria-modal="true"
-          className="page fade-up"
+          className="fade-up"
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.45)",
+            background: "rgba(0,0,0,0.55)",
             zIndex: 55,
             display: "flex",
             alignItems: "center",
@@ -682,75 +669,70 @@ export default function Admin() {
           onClick={() => setShowScheduleModal(false)}
         >
           <div
-            className="card glass-card stack-sm"
-            style={{ width: "100%", maxWidth: "520px", padding: "20px" }}
+            className="card glass-card"
+            style={{ width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "1rem" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="row-between">
-              <h3 className="headline" style={{ margin: 0 }}>Programar pausa semanal</h3>
-              <button className="btn-secondary" type="button" onClick={() => setShowScheduleModal(false)} disabled={savingSchedule}>
-                Cerrar
-              </button>
+            {/* Header */}
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <h3 className="headline" style={{ margin: 0 }}>Programación semanal</h3>
+              <button className="btn-secondary" type="button" onClick={() => setShowScheduleModal(false)} disabled={savingSchedule}>Cerrar</button>
             </div>
+
+            {/* Pausa */}
             <div className="divider" />
-            <div className="row">
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <span className="subheadline" style={{ margin: 0 }}>Pausa semanal</span>
+              {scheduledPauseEnabled ? <span className="badge">{scheduledLabel}</span> : <span className="caption" style={{ margin: 0 }}>Sin programar</span>}
+            </div>
+            <div className="row" style={{ gap: 8 }}>
               <select style={{ flex: 1 }} value={scheduledPauseDay} onChange={(e) => setScheduledPauseDay(e.target.value)}>
-                {WEEK_DAYS.map((day) => (
-                  <option key={day.value} value={String(day.value)}>{day.label}</option>
-                ))}
+                {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
               </select>
               <input style={{ flex: 1 }} type="time" value={scheduledPauseTime} onChange={(e) => setScheduledPauseTime(e.target.value)} />
             </div>
-            <p className="caption">{scheduledLabel}</p>
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
-                {savingSchedule ? "Guardando..." : "Guardar"}
-              </button>
-              <button className="btn-secondary" type="button" onClick={disableScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>
-                Quitar
-              </button>
+              <button className="btn-primary" type="button" onClick={saveScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>{savingSchedule ? "Guardando..." : "Guardar"}</button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledPause} disabled={savingSchedule} style={{ flex: 1 }}>Quitar</button>
             </div>
+
+            {/* Apertura */}
             <div className="divider" />
-            <h3 className="subheadline" style={{ margin: 0 }}>Apertura semanal</h3>
-            <div className="row">
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <span className="subheadline" style={{ margin: 0 }}>Apertura semanal</span>
+              {scheduledOpenEnabled ? <span className="badge">{scheduledOpenLabel}</span> : <span className="caption" style={{ margin: 0 }}>Sin programar</span>}
+            </div>
+            <div className="row" style={{ gap: 8 }}>
               <select style={{ flex: 1 }} value={scheduledOpenDay} onChange={(e) => setScheduledOpenDay(e.target.value)}>
-                {WEEK_DAYS.map((day) => (
-                  <option key={day.value} value={String(day.value)}>{day.label}</option>
-                ))}
+                {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
               </select>
               <input style={{ flex: 1 }} type="time" value={scheduledOpenTime} onChange={(e) => setScheduledOpenTime(e.target.value)} />
             </div>
-            <p className="caption">{scheduledOpenLabel}</p>
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn-primary" type="button" onClick={saveScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>
-                {savingSchedule ? "Guardando..." : "Guardar"}
-              </button>
-              <button className="btn-secondary" type="button" onClick={disableScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>
-                Quitar
-              </button>
+              <button className="btn-primary" type="button" onClick={saveScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>{savingSchedule ? "Guardando..." : "Guardar"}</button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>Quitar</button>
             </div>
+
+            {/* Bloqueo de paradas */}
             <div className="divider" />
             <div className="row-between" style={{ alignItems: "center" }}>
-              <h3 className="subheadline" style={{ margin: 0 }}>Bloqueo de paradas</h3>
-              {stopBlockActive ? <span className="badge" style={{ background: "var(--ios-system-orange)", color: "#fff" }}>Activo</span> : null}
+              <span className="subheadline" style={{ margin: 0 }}>Bloqueo de paradas</span>
+              {stopBlockActive
+                ? <span className="badge" style={{ background: "var(--ios-system-orange)", color: "#fff" }}>Activo</span>
+                : scheduledStopBlockEnabled
+                  ? <span className="badge">{scheduledStopBlockLabel}</span>
+                  : <span className="caption" style={{ margin: 0 }}>Sin programar</span>}
             </div>
-            <p className="caption" style={{ margin: 0 }}>Bloquea las primeras paradas sin anotados. Se desactiva al copiar la lista.</p>
-            <div className="row">
+            <p className="caption" style={{ margin: 0 }}>Bloquea paradas iniciales sin anotados. Se desactiva al finalizar el traslado.</p>
+            <div className="row" style={{ gap: 8 }}>
               <select style={{ flex: 1 }} value={scheduledStopBlockDay} onChange={(e) => setScheduledStopBlockDay(e.target.value)}>
-                {WEEK_DAYS.map((day) => (
-                  <option key={day.value} value={String(day.value)}>{day.label}</option>
-                ))}
+                {WEEK_DAYS.map((day) => <option key={day.value} value={String(day.value)}>{day.label}</option>)}
               </select>
               <input style={{ flex: 1 }} type="time" value={scheduledStopBlockTime} onChange={(e) => setScheduledStopBlockTime(e.target.value)} />
             </div>
-            <p className="caption">{scheduledStopBlockLabel}</p>
             <div className="row" style={{ gap: 8 }}>
-              <button className="btn-primary" type="button" onClick={saveScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>
-                {savingSchedule ? "Guardando..." : "Guardar"}
-              </button>
-              <button className="btn-secondary" type="button" onClick={disableScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>
-                Quitar
-              </button>
+              <button className="btn-primary" type="button" onClick={saveScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>{savingSchedule ? "Guardando..." : "Guardar"}</button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>Quitar</button>
             </div>
           </div>
         </div>
