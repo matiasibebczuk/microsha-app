@@ -37,6 +37,8 @@ export default function Admin() {
   const [scheduledStopBlockDay, setScheduledStopBlockDay] = useState("1");
   const [scheduledStopBlockTime, setScheduledStopBlockTime] = useState("08:00");
   const [stopBlockActive, setStopBlockActive] = useState(false);
+  const [busCapacityOverride, setBusCapacityOverride] = useState("");
+  const [savingCapacity, setSavingCapacity] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
@@ -80,6 +82,7 @@ export default function Admin() {
         setScheduledStopBlockDay(String(json?.scheduledStopBlockDay ?? "1"));
         setScheduledStopBlockTime(String(json?.scheduledStopBlockTime || "08:00").slice(0, 5));
         setStopBlockActive(Boolean(json?.stopBlockActive));
+        setBusCapacityOverride(json?.busCapacityOverride != null ? String(json.busCapacityOverride) : "");
       }
     } catch {
       return;
@@ -380,6 +383,27 @@ export default function Admin() {
     } finally {
       setSearching(false);
     }
+  };
+
+  const saveCapacityOverride = async (value) => {
+    if (savingCapacity) return;
+    setSavingCapacity(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const parsed = value === "" || value === null ? null : Number(value);
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ busCapacityOverride: parsed }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "Error al actualizar capacidad"); return; }
+      setBusCapacityOverride(json?.busCapacityOverride != null ? String(json.busCapacityOverride) : "");
+      setShowScheduleModal(false);
+      setNotice(parsed ? `Capacidad de micros actualizada a ${parsed}` : "Capacidad de micros restablecida");
+    } catch { setNotice("Error de red"); } finally { setSavingCapacity(false); }
   };
 
   const saveScheduledStopBlock = async () => {
@@ -733,6 +757,27 @@ export default function Admin() {
             <div className="row" style={{ gap: 8 }}>
               <button className="btn-primary" type="button" onClick={saveScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>{savingSchedule ? "Guardando..." : "Guardar"}</button>
               <button className="btn-secondary" type="button" onClick={disableScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>Quitar</button>
+            </div>
+
+            {/* Capacidad de micros */}
+            <div className="divider" />
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <span className="subheadline" style={{ margin: 0 }}>Capacidad de micros</span>
+              {busCapacityOverride ? <span className="badge">{busCapacityOverride} pasajeros</span> : <span className="caption" style={{ margin: 0 }}>Capacidad original</span>}
+            </div>
+            <p className="caption" style={{ margin: 0 }}>Aplica a todos los micros a la vez. Se reinicia al finalizar cada traslado.</p>
+            <div className="row" style={{ gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                placeholder="Ej: 45"
+                value={busCapacityOverride}
+                onChange={(e) => setBusCapacityOverride(e.target.value)}
+                disabled={savingCapacity}
+                style={{ flex: 1 }}
+              />
+              <button className="btn-primary" type="button" onClick={() => saveCapacityOverride(busCapacityOverride)} disabled={savingCapacity || !busCapacityOverride} style={{ flex: 1 }}>{savingCapacity ? "Guardando..." : "Aplicar"}</button>
+              <button className="btn-secondary" type="button" onClick={() => saveCapacityOverride(null)} disabled={savingCapacity} style={{ flex: 1 }}>Restablecer</button>
             </div>
           </div>
         </div>
