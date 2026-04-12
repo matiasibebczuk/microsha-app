@@ -48,7 +48,7 @@ export default function AdminCreateTrip({ onCreated }) {
   const [maxAvailability, setMaxAvailability] = useState("50");
   const [reinforcementTripName, setReinforcementTripName] = useState("");
   const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
-  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
+  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("45");
   const [quickReinforcementCount, setQuickReinforcementCount] = useState("2");
 
   const [stops, setStops] = useState([]);

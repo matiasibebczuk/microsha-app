@@ -104,7 +104,7 @@ export default function AdminTrips() {
   const [reinforcementStopStats, setReinforcementStopStats] = useState({});
   const [reinforcementName, setReinforcementName] = useState("");
   const [reinforcementBusName, setReinforcementBusName] = useState("Refuerzo 1");
-  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("20");
+  const [reinforcementBusCapacity, setReinforcementBusCapacity] = useState("45");
   const [loadingReinforcementStops, setLoadingReinforcementStops] = useState(false);
   const [notice, setNotice] = useState("");
   const [groupLabel, setGroupLabel] = useState("-");
