@@ -998,20 +998,23 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
                   key={s.id}
                   type="button"
                   className="card glass-card row-between stop-choice-card"
-                  onClick={() => reserve(s.id)}
-                  disabled={submittingStopId !== null}
+                  onClick={() => !s.blocked && reserve(s.id)}
+                  disabled={submittingStopId !== null || s.blocked}
+                  style={s.blocked ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 >
                   <div className="stack-sm stop-choice-main">
                     <span className="body"><b>{s.name}</b></span>
                     <span className="caption stop-choice-caption-row">
-                      <span>Pasa a las {formatTimeNoSeconds(s.time)}</span>
-                      <span className="stop-choice-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>
+                      <span>{s.blocked ? "No disponible" : `Pasa a las ${formatTimeNoSeconds(s.time)}`}</span>
+                      {!s.blocked && <span className="stop-choice-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>}
                     </span>
                   </div>
-                  <div className="row stop-choice-side">
-                    <span className="stop-time-pill">{formatTimeNoSeconds(s.time)}</span>
-                    <IconChevronRight />
-                  </div>
+                  {!s.blocked && (
+                    <div className="row stop-choice-side">
+                      <span className="stop-time-pill">{formatTimeNoSeconds(s.time)}</span>
+                      <IconChevronRight />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>

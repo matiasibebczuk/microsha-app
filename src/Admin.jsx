@@ -33,6 +33,10 @@ export default function Admin() {
   const [scheduledOpenEnabled, setScheduledOpenEnabled] = useState(false);
   const [scheduledOpenDay, setScheduledOpenDay] = useState("1");
   const [scheduledOpenTime, setScheduledOpenTime] = useState("08:00");
+  const [scheduledStopBlockEnabled, setScheduledStopBlockEnabled] = useState(false);
+  const [scheduledStopBlockDay, setScheduledStopBlockDay] = useState("1");
+  const [scheduledStopBlockTime, setScheduledStopBlockTime] = useState("08:00");
+  const [stopBlockActive, setStopBlockActive] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
@@ -53,6 +57,8 @@ export default function Admin() {
   const scheduledLabel = `Programado para los ${scheduledDayLabel} - ${formatTimeLabel(scheduledPauseTime)}`;
   const scheduledOpenDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledOpenDay))?.label || "-";
   const scheduledOpenLabel = `Programado para abrirse los ${scheduledOpenDayLabel} - ${formatTimeLabel(scheduledOpenTime)}`;
+  const scheduledStopBlockDayLabel = WEEK_DAYS.find((day) => String(day.value) === String(scheduledStopBlockDay))?.label || "-";
+  const scheduledStopBlockLabel = `Bloqueo los ${scheduledStopBlockDayLabel} - ${formatTimeLabel(scheduledStopBlockTime)}`;
 
   const loadFlags = async () => {
     try {
@@ -70,6 +76,10 @@ export default function Admin() {
         setScheduledOpenEnabled(Boolean(json?.scheduledOpenEnabled));
         setScheduledOpenDay(String(json?.scheduledOpenDay ?? "1"));
         setScheduledOpenTime(String(json?.scheduledOpenTime || "08:00").slice(0, 5));
+        setScheduledStopBlockEnabled(Boolean(json?.scheduledStopBlockEnabled));
+        setScheduledStopBlockDay(String(json?.scheduledStopBlockDay ?? "1"));
+        setScheduledStopBlockTime(String(json?.scheduledStopBlockTime || "08:00").slice(0, 5));
+        setStopBlockActive(Boolean(json?.stopBlockActive));
       }
     } catch {
       return;
@@ -214,6 +224,19 @@ export default function Admin() {
     try {
       const text = await buildTripCopyText();
       await navigator.clipboard.writeText(text);
+      // Resetear bloqueo de paradas al enviar lista
+      if (stopBlockActive) {
+        const token = await getAccessToken();
+        if (token) {
+          const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ stopBlockActive: false }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (res.ok) setStopBlockActive(Boolean(json?.stopBlockActive));
+        }
+      }
       setNotice("Traslados copiados al portapapeles");
     } catch (err) {
       setNotice(err?.message || "No se pudieron copiar los traslados");
@@ -372,6 +395,50 @@ export default function Admin() {
     }
   };
 
+  const saveScheduledStopBlock = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ scheduledStopBlockEnabled: true, scheduledStopBlockDay: Number(scheduledStopBlockDay), scheduledStopBlockTime }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "No se pudo programar el bloqueo"); return; }
+      setScheduledStopBlockEnabled(Boolean(json?.scheduledStopBlockEnabled));
+      setScheduledStopBlockDay(String(json?.scheduledStopBlockDay ?? scheduledStopBlockDay));
+      setScheduledStopBlockTime(String(json?.scheduledStopBlockTime || scheduledStopBlockTime).slice(0, 5));
+      setStopBlockActive(Boolean(json?.stopBlockActive));
+      setShowScheduleModal(false);
+      setNotice("Bloqueo de paradas programado");
+    } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
+  };
+
+  const disableScheduledStopBlock = async () => {
+    if (savingSchedule) return;
+    setSavingSchedule(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ scheduledStopBlockEnabled: false, stopBlockActive: false }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "No se pudo quitar el bloqueo"); return; }
+      setScheduledStopBlockEnabled(Boolean(json?.scheduledStopBlockEnabled));
+      setStopBlockActive(Boolean(json?.stopBlockActive));
+      setShowScheduleModal(false);
+      setNotice("Bloqueo de paradas desactivado");
+    } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
+  };
+
   const addUser = async (e) => {
     e.preventDefault();
     if (savingUser) return;
@@ -480,11 +547,12 @@ export default function Admin() {
             </button>
           </div>
           <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
-            Programar pausa de traslados
+            Programación semanal
           </button>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {scheduledPauseEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledLabel}</p> : null}
             {scheduledOpenEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledOpenLabel}</p> : null}
+            {scheduledStopBlockEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledStopBlockLabel}{stopBlockActive ? " · Activo" : ""}</p> : null}
           </div>
         </div>
       </div>
@@ -658,6 +726,29 @@ export default function Admin() {
                 {savingSchedule ? "Guardando..." : "Guardar"}
               </button>
               <button className="btn-secondary" type="button" onClick={disableScheduledOpen} disabled={savingSchedule} style={{ flex: 1 }}>
+                Quitar
+              </button>
+            </div>
+            <div className="divider" />
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <h3 className="subheadline" style={{ margin: 0 }}>Bloqueo de paradas</h3>
+              {stopBlockActive ? <span className="badge" style={{ background: "var(--ios-system-orange)", color: "#fff" }}>Activo</span> : null}
+            </div>
+            <p className="caption" style={{ margin: 0 }}>Bloquea las primeras paradas sin anotados. Se desactiva al copiar la lista.</p>
+            <div className="row">
+              <select style={{ flex: 1 }} value={scheduledStopBlockDay} onChange={(e) => setScheduledStopBlockDay(e.target.value)}>
+                {WEEK_DAYS.map((day) => (
+                  <option key={day.value} value={String(day.value)}>{day.label}</option>
+                ))}
+              </select>
+              <input style={{ flex: 1 }} type="time" value={scheduledStopBlockTime} onChange={(e) => setScheduledStopBlockTime(e.target.value)} />
+            </div>
+            <p className="caption">{scheduledStopBlockLabel}</p>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn-primary" type="button" onClick={saveScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>
+                {savingSchedule ? "Guardando..." : "Guardar"}
+              </button>
+              <button className="btn-secondary" type="button" onClick={disableScheduledStopBlock} disabled={savingSchedule} style={{ flex: 1 }}>
                 Quitar
               </button>
             </div>
