@@ -100,7 +100,7 @@ export default function Encargado() {
     }
   };
 
-  const sendCurrentLocation = useCallback(async (tripId, authHeader) => {
+  const sendCurrentLocation = useCallback(async (tripId) => {
     if (!navigator.geolocation) {
       throw new Error("Tu navegador no soporta geolocalización");
     }
@@ -112,6 +112,9 @@ export default function Encargado() {
         maximumAge: 5000,
       });
     });
+
+    // Token fresco en cada envío para evitar token vencido durante el viaje
+    const authHeader = await getAuthHeader();
 
     const { latitude, longitude, accuracy, heading, speed } = position.coords;
     const res = await fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/location/update`), {
@@ -135,8 +138,9 @@ export default function Encargado() {
     }
 
     setLocationLastUpdate(json?.last_update_at || new Date().toISOString());
-  }, []);
+  }, [getAuthHeader]);
 
+  // Cleanup timer al desmontar
   useEffect(() => {
     return () => {
       if (locationTimerRef.current) {
@@ -145,6 +149,15 @@ export default function Encargado() {
       }
     };
   }, []);
+
+  // Cleanup timer al cambiar de viaje seleccionado
+  useEffect(() => {
+    if (locationTimerRef.current) {
+      window.clearInterval(locationTimerRef.current);
+      locationTimerRef.current = null;
+      setLocationSharing(false);
+    }
+  }, [selectedTrip?.id]);
 
   const parseTimeToMinutes = (value) => {
     const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
@@ -211,14 +224,15 @@ export default function Encargado() {
         return;
       }
 
-      await sendCurrentLocation(selectedTrip.id, authHeader);
+      await sendCurrentLocation(selectedTrip.id);
 
       if (locationTimerRef.current) {
         window.clearInterval(locationTimerRef.current);
       }
 
+      const tripId = selectedTrip.id;
       locationTimerRef.current = window.setInterval(() => {
-        void sendCurrentLocation(selectedTrip.id, authHeader).catch((err) => {
+        void sendCurrentLocation(tripId).catch((err) => {
           console.error("[location] update error", err);
         });
       }, LOCATION_INTERVAL_MS);

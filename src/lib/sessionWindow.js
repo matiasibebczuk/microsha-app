@@ -1,5 +1,7 @@
 const SESSION_STORAGE_KEY = "microsha-session-window";
-export const SESSION_WINDOW_MS = 10 * 60 * 1000;
+export const SESSION_WINDOW_MS = 10 * 60 * 1000; // legacy, no usar directamente
+export const SESSION_WINDOW_PASSENGER_MS = 30 * 60 * 1000;  // 30 min
+export const SESSION_WINDOW_STAFF_MS = 90 * 60 * 1000;       // 90 min
 
 function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
@@ -21,9 +23,13 @@ export function clearSessionWindow() {
 export function saveSessionWindow(payload) {
   if (!canUseStorage()) return;
 
+  const durationMs = payload.kind === "passenger"
+    ? SESSION_WINDOW_PASSENGER_MS
+    : SESSION_WINDOW_STAFF_MS;
+
   const next = {
     ...payload,
-    expiresAt: Date.now() + SESSION_WINDOW_MS,
+    expiresAt: Date.now() + durationMs,
   };
 
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
