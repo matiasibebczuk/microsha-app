@@ -393,14 +393,14 @@ export default function Admin() {
       const token = await getAccessToken();
       if (!token) { setNotice("Sesión expirada"); return; }
       const parsed = value === "" || value === null ? null : Number(value);
-      const res = await fetchWithRetry(apiUrl("/admin/system/flags"), {
-        method: "PUT",
+      const res = await fetchWithRetry(apiUrl("/admin/buses/capacity"), {
+        method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ busCapacityOverride: parsed }),
+        body: JSON.stringify({ capacity: parsed }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { setNotice(json?.error || "Error al actualizar capacidad"); return; }
-      setBusCapacityOverride(json?.busCapacityOverride != null ? String(json.busCapacityOverride) : "");
+      setBusCapacityOverride(json?.capacity != null ? String(json.capacity) : "");
       setShowScheduleModal(false);
       setNotice(parsed ? `Capacidad de micros actualizada a ${parsed}` : "Capacidad de micros restablecida");
     } catch { setNotice("Error de red"); } finally { setSavingCapacity(false); }
