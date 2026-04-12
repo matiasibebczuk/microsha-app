@@ -108,7 +108,7 @@ export default function Admin() {
         },
         body: JSON.stringify({
           tripsPaused: !tripsPaused,
-          pauseMessage: "Traslados pausados, a partir del jueves a las 18hs podras anotarte en lista de espera",
+          pauseMessage: "Traslados pausados, a partir del jueves a las 18hs podrás anotarte en lista de espera",
         }),
       });
       const json = await res.json().catch(() => ({}));
