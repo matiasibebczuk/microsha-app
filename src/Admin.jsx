@@ -39,6 +39,7 @@ export default function Admin() {
   const [stopBlockActive, setStopBlockActive] = useState(false);
   const [busCapacityOverride, setBusCapacityOverride] = useState("");
   const [savingCapacity, setSavingCapacity] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
@@ -443,6 +444,24 @@ export default function Admin() {
     } catch { setNotice("Error de red"); } finally { setSavingSchedule(false); }
   };
 
+  const sendTestEmail = async () => {
+    if (sendingTestEmail) return;
+    setSendingTestEmail(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetchWithRetry(apiUrl("/admin/test-email"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ label: "Test manual desde panel admin" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "Error al enviar test"); return; }
+      setNotice(json?.sent ? `Email enviado a: ${(json?.to || []).join(", ")}` : `No enviado: ${json?.reason || "desconocido"}`);
+    } catch { setNotice("Error de red"); } finally { setSendingTestEmail(false); }
+  };
+
   const addUser = async (e) => {
     e.preventDefault();
     if (savingUser) return;
@@ -550,9 +569,14 @@ export default function Admin() {
               {copyingTrips ? "Copiando..." : "Copiar traslados"}
             </button>
           </div>
-          <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
-            Programación semanal
-          </button>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
+              Programación semanal
+            </button>
+            <button className="btn-secondary" onClick={sendTestEmail} disabled={sendingTestEmail}>
+              {sendingTestEmail ? "Enviando..." : "Test email"}
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {scheduledPauseEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledLabel}</p> : null}
             {scheduledOpenEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledOpenLabel}</p> : null}
