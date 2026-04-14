@@ -569,14 +569,9 @@ export default function Admin() {
               {copyingTrips ? "Copiando..." : "Copiar traslados"}
             </button>
           </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
-              Programación semanal
-            </button>
-            <button className="btn-secondary" onClick={sendTestEmail} disabled={sendingTestEmail}>
-              {sendingTestEmail ? "Enviando..." : "Test email"}
-            </button>
-          </div>
+          <button className="btn-secondary" onClick={() => setShowScheduleModal(true)}>
+            Programación semanal
+          </button>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {scheduledPauseEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledLabel}</p> : null}
             {scheduledOpenEnabled ? <p className="caption" style={{ margin: 0 }}>{scheduledOpenLabel}</p> : null}
