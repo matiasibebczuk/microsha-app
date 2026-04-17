@@ -704,9 +704,24 @@ export default function Passenger({ user, onSessionExpired }) {
           <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
             <div className="row-between">
               <span className="body"><b>Ida</b></span>
-              <span className={`badge ${effectiveIdaReservation?.status === 'confirmed' ? 'badge-success' : 'badge-warning'}`}>
-                {toSpanishStatus(effectiveIdaReservation?.status)}
-              </span>
+              {(() => {
+  const status = String(effectiveIdaReservation?.status || "")
+    .toLowerCase()
+    .trim();
+
+  const badgeClass =
+    status === "confirmed"
+      ? "badge badge-success"
+      : status === "waiting"
+      ? "badge badge-warning"
+      : "badge";
+
+  return (
+    <span className={badgeClass}>
+      {toSpanishStatus(status)}
+    </span>
+  );
+})()}
             </div>
             <p className="caption">Parada: {formatSummaryItem(effectiveIdaReservation?.stopName)} · {formatSummaryItem(formatTimeNoSeconds(effectiveIdaReservation?.stopTime))}</p>
           </div>
@@ -714,9 +729,24 @@ export default function Passenger({ user, onSessionExpired }) {
           <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none' }}>
             <div className="row-between">
               <span className="body"><b>Vuelta</b></span>
-              <span className={`badge ${effectiveVueltaReservation?.status === 'confirmed' ? 'badge-success' : 'badge-warning'}`}>
-                {toSpanishStatus(effectiveVueltaReservation?.status)}
-              </span>
+              {(() => {
+  const status = String(effectiveVueltaReservation?.status || "")
+    .toLowerCase()
+    .trim();
+
+  const badgeClass =
+    status === "confirmed"
+      ? "badge badge-success"
+      : status === "waiting"
+      ? "badge badge-warning"
+      : "badge";
+
+  return (
+    <span className={badgeClass}>
+      {toSpanishStatus(status)}
+    </span>
+  );
+})()}
             </div>
             <p className="caption">Parada: {formatSummaryItem(effectiveVueltaReservation?.stopName)} · {formatSummaryItem(formatTimeNoSeconds(effectiveVueltaReservation?.stopTime))}</p>
           </div>
@@ -963,8 +993,22 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
           <div className="card glass-card stack" style={{ padding: '24px' }}>
             <div className="row-between">
               <h2 className="headline">Ya estás anotado</h2>
-              <span className="badge badge-success">{toSpanishStatus(existing.status)}</span>
-            </div>
+{(() => {
+  const status = String(existing?.status || "").toLowerCase().trim();
+
+  const badgeClass =
+    status === "confirmed"
+      ? "badge badge-success"
+      : status === "waiting"
+      ? "badge badge-warning"
+      : "badge";
+
+  return (
+    <span className={badgeClass}>
+      {toSpanishStatus(status)}
+    </span>
+  );
+})()}            </div>
             
             <div className="stack-sm">
               <p className="body">Parada: <b>{existing.stops?.name}</b></p>
