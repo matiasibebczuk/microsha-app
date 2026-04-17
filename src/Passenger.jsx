@@ -485,8 +485,24 @@ export default function Passenger({ user, onSessionExpired }) {
                           {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
                         <div className="row passenger-trip-side">
-                          {hasReservation && <span className="badge badge-success">Anotado</span>}
-                          {t.location_active ? (
+{(() => {
+  const status = String(myReservationsByTrip[String(t.id)]?.status || "")
+    .toLowerCase()
+    .trim();
+
+  const badgeClass =
+    status === "confirmed"
+      ? "badge badge-success"
+      : status === "waiting"
+      ? "badge badge-warning"
+      : "badge";
+
+  return status ? (
+    <span className={badgeClass}>
+      {toSpanishStatus(status)}
+    </span>
+  ) : null;
+})()}                          {t.location_active ? (
                             <span
                               className="btn-secondary"
                               role="button"
@@ -593,8 +609,24 @@ export default function Passenger({ user, onSessionExpired }) {
                           {hasActiveWaitlist(t) ? <span className="badge badge-warning">Lista de espera activa</span> : null}
                         </div>
                         <div className="row passenger-trip-side">
-                          {hasReservation && <span className="badge badge-success">Anotado</span>}
-                          {t.location_active ? (
+{(() => {
+  const status = String(myReservationsByTrip[String(t.id)]?.status || "")
+    .toLowerCase()
+    .trim();
+
+  const badgeClass =
+    status === "confirmed"
+      ? "badge badge-success"
+      : status === "waiting"
+      ? "badge badge-warning"
+      : "badge";
+
+  return status ? (
+    <span className={badgeClass}>
+      {toSpanishStatus(status)}
+    </span>
+  ) : null;
+})()}                          {t.location_active ? (
                             <span
                               className="btn-secondary"
                               role="button"
