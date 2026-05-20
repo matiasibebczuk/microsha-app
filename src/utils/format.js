@@ -121,6 +121,9 @@ function parseClockToMinutes(value) {
 }
 
 function resolveTripSortMinutes(trip) {
+  const startTimeMinutes = parseClockToMinutes(formatTimeLabel(trip?.start_time));
+  if (startTimeMinutes !== null) return startTimeMinutes;
+
   const firstTimeMinutes = parseClockToMinutes(formatTimeLabel(trip?.first_time));
   if (firstTimeMinutes !== null) return firstTimeMinutes;
 

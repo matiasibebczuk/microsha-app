@@ -183,6 +183,7 @@ export default function AdminCreateTrip({ onCreated }) {
       body: JSON.stringify({
         name: tripName,
         type,
+        start_time: startTime,
         waitlist_start_day: waitlistEnabled ? Number(waitlistStartDay) : null,
         waitlist_start_time: waitlistEnabled ? waitlistStartTime : null,
         waitlist_end_day: waitlistEnabled && waitlistHasEnd ? Number(waitlistEndDay) : null,

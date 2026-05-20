@@ -620,7 +620,7 @@ export default function AdminTrips() {
       ].join("\n");
       
       // Crear blob y descargar
-      const tripName = formatTripTitle(trip.name, trip.first_time, trip.id).replace(/\s+/g, "_");
+      const tripName = formatTripTitle(trip.name, trip.start_time, trip.id).replace(/\s+/g, "_");
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.setAttribute('href', URL.createObjectURL(blob));
@@ -643,7 +643,7 @@ export default function AdminTrips() {
   const confirmedCount = filteredPassengers.filter(p => p.status === "confirmed").length;
   const waitingCount = filteredPassengers.filter(p => p.status === "waiting").length;
   const selectedTripRef = trips.find((trip) => Number(trip?.id) === Number(selectedTripId));
-  const selectedTripLabel = formatTripTitle(selectedTripRef?.name, selectedTripRef?.first_time, selectedTripId);
+  const selectedTripLabel = formatTripTitle(selectedTripRef?.name, selectedTripRef?.start_time, selectedTripId);
   const reinforcementSelectedSummary = reinforcementStops.reduce(
     (acc, stop) => {
       if (!stop?.selected) return acc;
@@ -660,7 +660,7 @@ export default function AdminTrips() {
   const renderTripCard = (trip) => (
     <div key={trip.id} className="card glass-card stack-sm" style={{ padding: '20px', marginBottom: '16px' }}>
       <div className="row-between">
-        <h2 className="headline">{formatTripTitle(trip.name, trip.first_time, trip.id)}</h2>
+        <h2 className="headline">{formatTripTitle(trip.name, trip.start_time, trip.id)}</h2>
         <span className={`badge ${trip.status === 'open' ? 'badge-success' : 'badge-warning'}`}>{formatTripStatus(trip.status)}</span>
       </div>
       
@@ -988,7 +988,7 @@ export default function AdminTrips() {
                 Cerrar
               </button>
             </div>
-            <p className="caption">Traslado original: <b>{formatTripTitle(reinforcementTargetTrip.name, reinforcementTargetTrip.first_time, reinforcementTargetTrip.id)}</b></p>
+            <p className="caption">Traslado original: <b>{formatTripTitle(reinforcementTargetTrip.name, reinforcementTargetTrip.start_time, reinforcementTargetTrip.id)}</b></p>
             <div className="divider" />
 
             <div className="stack-sm">

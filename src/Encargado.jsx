@@ -363,13 +363,13 @@ export default function Encargado() {
               idaTrips.map((trip) => (
                 <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
-                    <span className="body"><b>{formatTripTitle(trip.name, trip.first_time, trip.id)}</b></span>
+                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time, trip.id)}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
                 </button>
               ))
-            )}
+            )}}
           </div>
         </div>
 
@@ -384,7 +384,7 @@ export default function Encargado() {
               vueltaTrips.map((trip) => (
                 <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
-                    <span className="body"><b>{formatTripTitle(trip.name, trip.first_time, trip.id)}</b></span>
+                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time, trip.id)}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
@@ -407,7 +407,7 @@ export default function Encargado() {
       </header>
 
       <section className="stack-sm">
-        <h1 className="large-title">{formatTripTitle(selectedTrip.name, selectedTrip.first_time, selectedTrip.id)}</h1>
+        <h1 className="large-title">{formatTripTitle(selectedTrip.name, selectedTrip.start_time, selectedTrip.id)}</h1>
         <p className="caption">{selectedTrip.type === "ida" ? "Ida" : "Vuelta"} · {started ? "En curso" : "Listo para iniciar"}</p>
       </section>
 

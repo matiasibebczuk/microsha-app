@@ -202,7 +202,7 @@ export default function Admin() {
       const normalizedType = String(trip?.type || "").trim().toLowerCase();
       const section = normalizedType.startsWith("ida") ? "ida" : "vuelta";
       const orderedStops = [...stops].sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0));
-      const titleTime = trip?.first_time || orderedStops[0]?.time || "-";
+      const titleTime = trip?.start_time || orderedStops[0]?.time || "-";
       const tripTitle = formatTripTitle(trip?.name, titleTime, trip?.id);
 
       const lines = [
