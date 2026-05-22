@@ -337,7 +337,7 @@ export default function Passenger({ user, onSessionExpired }) {
       <div className="page fade-up">
         <header className="stack-sm" style={{ marginBottom: 24 }}>
           <h1 className="large-title">Ubicación en tiempo real</h1>
-          <p className="caption">{formatTripTitle(locationTrip.name, locationTrip.start_time, locationTrip.id)}</p>
+          <p className="caption">{formatTripTitle(locationTrip.name, locationTrip.start_time || locationTrip.first_time, locationTrip.id)}</p>
         </header>
 
         <div className="inset-group stack-sm">
@@ -477,7 +477,7 @@ export default function Passenger({ user, onSessionExpired }) {
                         disabled={action.disabled}
                       >
                         <div className="stack-sm passenger-trip-main">
-                          <span className="body"><b>{formatTripTitle(t.name, t.start_time, t.id)}</b></span>
+                          <span className="body"><b>{formatTripTitle(t.name, t.start_time || t.first_time, t.id)}</b></span>
                           <span className="caption passenger-trip-caption-row">
                             <span>Inicia {formatTimeNoSeconds(t.start_time)} {t.status === "closed" ? "· Cerrado" : ""}</span>
                             <span className="passenger-trip-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>
@@ -601,7 +601,7 @@ export default function Passenger({ user, onSessionExpired }) {
                         disabled={action.disabled}
                       >
                         <div className="stack-sm passenger-trip-main">
-                          <span className="body"><b>{formatTripTitle(t.name, t.start_time, t.id)}</b></span>
+                          <span className="body"><b>{formatTripTitle(t.name, t.start_time || t.first_time, t.id)}</b></span>
                           <span className="caption passenger-trip-caption-row">
                             <span>Inicia {formatTimeNoSeconds(t.start_time)}</span>
                             <span className="passenger-trip-mobile-chevron" aria-hidden="true"><IconChevronRight /></span>
@@ -985,7 +985,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     return (
       <div className="page fade-up">
         <header className="stack-sm" style={{ marginBottom: 32 }}>
-          <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time, trip.id)}</h1>
+          <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time || trip.first_time, trip.id)}</h1>
           <p className="caption">Información de tu viaje</p>
         </header>
 
