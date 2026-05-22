@@ -40,6 +40,7 @@ export default function Admin() {
   const [busCapacityOverride, setBusCapacityOverride] = useState("");
   const [savingCapacity, setSavingCapacity] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [sendingResumenTest, setSendingResumenTest] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
@@ -462,6 +463,23 @@ export default function Admin() {
     } catch { setNotice("Error de red"); } finally { setSendingTestEmail(false); }
   };
 
+  const sendTestMailResumen = async () => {
+    if (sendingResumenTest) return;
+    setSendingResumenTest(true);
+    setNotice("");
+    try {
+      const token = await getAccessToken();
+      if (!token) { setNotice("Sesión expirada"); return; }
+      const res = await fetchWithRetry(apiUrl("/admin/test-mail-resumen"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setNotice(json?.error || "Error al enviar resumen"); return; }
+      setNotice(json?.success ? `Resumen enviado a: ${(json?.to || []).join(", ")} (${json?.tripCount} traslados)` : `No enviado: ${json?.reason || "desconocido"}`);
+    } catch { setNotice("Error de red"); } finally { setSendingResumenTest(false); }
+  };
+
   const addUser = async (e) => {
     e.preventDefault();
     if (savingUser) return;
@@ -791,6 +809,16 @@ export default function Admin() {
               <button className="btn-primary" type="button" onClick={() => saveCapacityOverride(busCapacityOverride)} disabled={savingCapacity || !busCapacityOverride} style={{ flex: 1 }}>{savingCapacity ? "Guardando..." : "Aplicar"}</button>
               <button className="btn-secondary" type="button" onClick={() => saveCapacityOverride(null)} disabled={savingCapacity} style={{ flex: 1 }}>Restablecer</button>
             </div>
+
+            {/* Resumen semanal */}
+            <div className="divider" />
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <span className="subheadline" style={{ margin: 0 }}>Resumen de traslados</span>
+            </div>
+            <p className="caption" style={{ margin: 0 }}>Se envía automáticamente todos los jueves y viernes a las 14:00.</p>
+            <button className="btn-secondary" type="button" onClick={sendTestMailResumen} disabled={sendingResumenTest} style={{ width: "100%" }}>
+              {sendingResumenTest ? "Enviando..." : "Probar envío lista semanal"}
+            </button>
           </div>
         </div>
       ) : null}
