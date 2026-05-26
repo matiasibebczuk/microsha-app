@@ -985,7 +985,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
     return (
       <div className="page fade-up">
         <header className="stack-sm" style={{ marginBottom: 32 }}>
-          <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time || trip.first_time, trip.id)}</h1>
+          <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time, trip.id)}</h1>
           <p className="caption">Información de tu viaje</p>
         </header>
 

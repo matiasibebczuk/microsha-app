@@ -363,7 +363,7 @@ export default function Encargado() {
               idaTrips.map((trip) => (
                 <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
-                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time || trip.first_time, trip.id)}</b></span>
+                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time, trip.id)}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
@@ -384,7 +384,7 @@ export default function Encargado() {
               vueltaTrips.map((trip) => (
                 <button key={trip.id} className="list-item row-between" onClick={() => selectTrip(trip)}>
                   <div className="stack-sm">
-                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time || trip.first_time, trip.id)}</b></span>
+                    <span className="body"><b>{formatTripTitle(trip.name, trip.start_time, trip.id)}</b></span>
                     <span className="caption">{formatTripStatus(trip.status)}</span>
                   </div>
                   <IconChevronRight />
