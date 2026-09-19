@@ -883,3 +883,34 @@ button:disabled {
     width: calc(100% - 1rem);
   }
 }
+
+/* Sileo Toast Overrides */
+[data-sileo-viewport] {
+  z-index: 99999 !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  box-sizing: border-box !important;
+  padding: 0.5rem !important;
+}
+
+[data-sileo-viewport][data-position^="top"] {
+  top: max(12px, env(safe-area-inset-top)) !important;
+}
+
+[data-sileo-toast] {
+  max-width: calc(100vw - 2rem) !important;
+  box-sizing: border-box !important;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+}
+
+[data-sileo-title] {
+  font-family: var(--font) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-sileo-description] {
+  font-family: var(--font) !important;
+  font-size: 13px !important;
+  color: #ecf1ff !important;
+}

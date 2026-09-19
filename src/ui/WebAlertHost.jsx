@@ -29,5 +29,14 @@ export default function WebAlertHost() {
     installWebAlertOverride();
   }, []);
 
-  return <Toaster position="top-center" theme="dark" />;
+  return (
+    <Toaster
+      position="top-center"
+      theme="light"
+      options={{
+        fill: "#132453",
+        roundness: 14,
+      }}
+    />
+  );
 }
