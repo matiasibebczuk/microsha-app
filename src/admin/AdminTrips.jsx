@@ -325,7 +325,7 @@ export default function AdminTrips() {
       });
       const busesJson = await busesRes.json().catch(() => ({}));
       if (!busesRes.ok) {
-        alert(busesJson?.error || "No se pudo guardar la capacidad/vehículos del traslado");
+        alert(busesJson?.error || "Error guardando vehículos.");
         return;
       }
 
@@ -336,7 +336,7 @@ export default function AdminTrips() {
       });
       const stopsJson = await stopsRes.json().catch(() => ({}));
       if (!stopsRes.ok) {
-        alert(stopsJson?.error || "No se pudieron guardar las paradas del traslado");
+        alert(stopsJson?.error || "Error guardando paradas.");
         return;
       }
 
@@ -444,7 +444,7 @@ export default function AdminTrips() {
         .sort((a, b) => a.order - b.order);
 
       if (normalized.length < 2) {
-        alert("El traslado necesita al menos 2 paradas para crear refuerzo.");
+        alert("Mínimo 2 paradas para crear refuerzo.");
         return;
       }
 
@@ -489,25 +489,25 @@ export default function AdminTrips() {
     if (!reinforcementTargetTrip || forcingReinforcementTripId || forcingReinforcementRef.current) return;
     const busCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
     if (!reinforcementName.trim()) {
-      alert("Ingresá el nombre del nuevo traslado de refuerzo.");
+      alert("Ingresá el nombre del refuerzo.");
       return;
     }
     if (!reinforcementBusName.trim()) {
-      alert("Ingresá el nombre del vehículo de refuerzo.");
+      alert("Ingresá el nombre del vehículo.");
       return;
     }
     if (busCapacity <= 0) {
-      alert("Ingresá una capacidad válida para el vehículo de refuerzo.");
+      alert("Ingresá una capacidad válida.");
       return;
     }
 
     const toReinforcement = reinforcementStops.filter((stop) => stop.selected);
     if (toReinforcement.length === 0) {
-      alert("Seleccioná al menos una parada para el refuerzo.");
+      alert("Seleccioná al menos 1 parada para el refuerzo.");
       return;
     }
     if (toReinforcement.length === reinforcementStops.length) {
-      alert("Debe quedar al menos una parada en el traslado original.");
+      alert("Debe quedar al menos 1 parada en el traslado original.");
       return;
     }
 

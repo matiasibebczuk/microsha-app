@@ -147,7 +147,7 @@ export default function TemplateManager({ onBack }) {
     }));
 
     if (normalized.some((stop) => !stop.name)) {
-      alert("Todas las paradas deben tener nombre");
+      alert("Completá los nombres de las paradas.");
       return;
     }
 
@@ -165,7 +165,7 @@ export default function TemplateManager({ onBack }) {
         alert(err.error || "No se pudo guardar");
         return;
       }
-      alert("Paradas guardadas");
+      alert("Paradas guardadas.");
       loadStops(selected);
     } finally {
       savingStopsRef.current = false;
@@ -228,7 +228,7 @@ export default function TemplateManager({ onBack }) {
       });
       const stopsJson = await stopsRes.json().catch(() => ([]));
       if (!stopsRes.ok) {
-        alert("La plantilla se creó, pero no se pudieron copiar las paradas");
+        alert("Plantilla creada sin paradas.");
         await loadTemplates();
         return;
       }
@@ -251,12 +251,12 @@ export default function TemplateManager({ onBack }) {
 
         const saveStopsJson = await saveStopsRes.json().catch(() => ({}));
         if (!saveStopsRes.ok) {
-          alert(saveStopsJson?.error || "La plantilla se creó, pero no se pudieron copiar las paradas");
+          alert(saveStopsJson?.error || "Error al copiar paradas.");
         }
       }
 
       await loadTemplates();
-      alert("Plantilla duplicada");
+      alert("Plantilla duplicada.");
     } finally {
       setDuplicatingTemplateId(null);
     }

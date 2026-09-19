@@ -45,7 +45,7 @@ export default function PassengerProfileSetup({ user, onCompleted, onSessionExpi
     const normalizedDescription = `${normalizedRole} - ${normalizedMercaz}`;
 
     if (!PHONE_REGEX.test(normalizedPhone)) {
-      setError("El teléfono debe empezar con 11 y tener 10 dígitos. Ejemplo: 1155685941");
+      setError("Teléfono inválido. Usá 10 dígitos (ej: 1155685941).");
       return;
     }
 

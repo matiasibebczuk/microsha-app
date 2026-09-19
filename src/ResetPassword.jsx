@@ -32,7 +32,7 @@ export default function ResetPassword({ onDone }) {
         return;
       }
 
-      alert("Contraseña actualizada. Iniciá sesión con tu nueva contraseña.");
+      alert("Contraseña actualizada correctamente.");
       await supabase.auth.signOut();
       onDone?.();
     } catch (err) {

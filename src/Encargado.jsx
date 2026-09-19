@@ -238,7 +238,7 @@ export default function Encargado() {
       }, LOCATION_INTERVAL_MS);
 
       setLocationSharing(true);
-      setNotice("Ubicación compartida cada 30 segundos");
+      setNotice("Ubicación compartida (cada 30s)");
     } catch (err) {
       alert(err?.message || "No se pudo iniciar la ubicación");
     } finally {
@@ -299,7 +299,7 @@ export default function Encargado() {
       const res = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/finish`), { method: "POST", headers: authHeader });
       const json = await res.json();
       if (!res.ok) { alert(json?.error || "No se pudo finalizar el recorrido"); return; }
-      alert(`Recorrido finalizado. Historial run #${json.runId}`);
+      alert(`Recorrido finalizado (Run #${json.runId})`);
       if (locationTimerRef.current) {
         window.clearInterval(locationTimerRef.current);
         locationTimerRef.current = null;
@@ -369,7 +369,7 @@ export default function Encargado() {
                   <IconChevronRight />
                 </button>
               ))
-            )}}
+            )}
           </div>
         </div>
 

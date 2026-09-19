@@ -145,7 +145,7 @@ export default function Passenger({ user, onSessionExpired }) {
 
   useEffect(() => {
     if (!user?.passengerToken) {
-      alert("Tu sesión de pasajero expiró. Iniciá sesión nuevamente.");
+      alert("Sesión expirada. Ingresá nuevamente.");
       onSessionExpired?.();
     }
   }, [user?.passengerToken, onSessionExpired]);
@@ -922,12 +922,12 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
       if (json.status === "confirmed") {
         if (json.irregularByWaitlist) {
-          alert("Hay lugar y fuiste anotado. Tu ingreso quedó registrado como no regular por haberte anotado durante la ventana de lista de espera.");
+          alert("Lugar confirmado (registro no regular por lista de espera).");
         } else {
-          alert("Hay lugar y fuiste anotado correctamente.");
+          alert("Lugar confirmado correctamente.");
         }
       } else {
-        alert("No hay lugar por ahora. Quedaste en lista de espera; ingresá más tarde para ver si se liberó un cupo y fuiste aceptado.");
+        alert("Sin cupo. Quedaste en lista de espera.");
       }
 
       const feedbackText =

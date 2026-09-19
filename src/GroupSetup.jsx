@@ -90,8 +90,8 @@ export default function GroupSetup({ role, onDone }) {
     } catch (err) {
       alert(
         err?.message?.includes("Failed to fetch")
-          ? `No se pudo conectar al backend. Verificá que esté corriendo en ${API_BASE_URL}`
-          : err.message || "No se pudo completar la operación de grupo"
+          ? "Error de conexión con el servidor."
+          : err.message || "Error al configurar grupo"
       );
     } finally {
       setLoading(false);

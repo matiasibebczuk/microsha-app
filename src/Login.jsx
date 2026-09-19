@@ -88,7 +88,7 @@ export default function Login({ onPassenger }) {
     }
 
     setResendCooldown((prev) => Math.max(prev, 60));
-    alert("Límite de emails alcanzado. Esperá 60 segundos antes de volver a intentar.");
+    alert("Límite alcanzado. Esperá 60s antes de reintentar.");
     return true;
   };
 
@@ -115,7 +115,7 @@ export default function Login({ onPassenger }) {
       const confirmedAt = data?.user?.email_confirmed_at || null;
       if (!confirmedAt) {
         await supabase.auth.signOut();
-        alert("Tenés que confirmar tu correo antes de iniciar sesión.");
+        alert("Confirmá tu correo para ingresar.");
       }
     } catch (err) {
       const probe = await probeSupabaseConnection();
@@ -123,7 +123,7 @@ export default function Login({ onPassenger }) {
         message: err?.message || "unknown",
         probe,
       });
-      alert("No se pudo iniciar sesión. Revisá conexión con Supabase e intentá nuevamente.");
+      alert("Error al iniciar sesión. Verificá tu conexión.");
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ export default function Login({ onPassenger }) {
 
     if (role === "admin") {
       if (adminClubMode !== "create" && adminClubMode !== "join") {
-        alert("Elegí si querés crear un club nuevo o unirte a uno existente.");
+        alert("Elegí si crear o unirte a un club.");
         return;
       }
 
@@ -147,7 +147,7 @@ export default function Login({ onPassenger }) {
       }
 
       if (adminClubMode === "create" && !adminClubId.trim()) {
-        alert("Completá el ID del club para crearlo.");
+        alert("Completá el ID del club.");
         return;
       }
     }
@@ -175,7 +175,7 @@ export default function Login({ onPassenger }) {
 
       if (error) {
         if (handleRateLimitError(error.message)) return;
-        alert(error.message || "No se pudo registrar");
+        alert(error.message || "Error al registrar");
         return;
       }
 
@@ -197,7 +197,7 @@ export default function Login({ onPassenger }) {
         }
       }
 
-      alert("Te enviamos un correo de confirmación. Confirmá tu cuenta para ingresar.");
+      alert("Correo de confirmación enviado.");
       setResendCooldown(60);
       setMode("login");
       setStaffOpen(true);
@@ -212,12 +212,12 @@ export default function Login({ onPassenger }) {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
-      alert("Ingresá tu email para reenviar la confirmación.");
+      alert("Ingresá tu email.");
       return;
     }
 
     if (resendCooldown > 0) {
-      alert(`Esperá ${resendCooldown}s para reenviar el correo.`);
+      alert(`Esperá ${resendCooldown}s para reenviar.`);
       return;
     }
 
@@ -237,15 +237,15 @@ export default function Login({ onPassenger }) {
 
       if (error) {
         if (handleRateLimitError(error.message)) return;
-        alert(error.message || "No se pudo reenviar la confirmación");
+        alert(error.message || "Error al reenviar correo");
         return;
       }
 
-      alert("Reenviamos el email de confirmación.");
+      alert("Correo de confirmación reenviado.");
       setResendCooldown(60);
     } catch (err) {
       if (handleRateLimitError(err?.message)) return;
-      alert(err.message || "No se pudo reenviar la confirmación");
+      alert(err.message || "Error al reenviar correo");
     } finally {
       setLoading(false);
     }
@@ -254,12 +254,12 @@ export default function Login({ onPassenger }) {
   const sendPasswordReset = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      alert("Ingresá tu email para recuperar la contraseña.");
+      alert("Ingresá tu email.");
       return;
     }
 
     if (resetCooldown > 0) {
-      alert(`Esperá ${resetCooldown}s para volver a enviar el link.`);
+      alert(`Esperá ${resetCooldown}s para reenviar link.`);
       return;
     }
 
@@ -274,15 +274,15 @@ export default function Login({ onPassenger }) {
 
       if (error) {
         if (handleRateLimitError(error.message)) return;
-        alert(error.message || "No se pudo enviar el link de recuperación");
+        alert(error.message || "Error al enviar link");
         return;
       }
 
-      alert("Te enviamos un link para restablecer tu contraseña.");
+      alert("Link de recuperación enviado.");
       setResetCooldown(60);
     } catch (err) {
       if (handleRateLimitError(err?.message)) return;
-      alert(err.message || "No se pudo enviar el link de recuperación");
+      alert(err.message || "Error al enviar link");
     } finally {
       setLoading(false);
     }

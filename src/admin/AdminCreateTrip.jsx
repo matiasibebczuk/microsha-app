@@ -230,20 +230,20 @@ export default function AdminCreateTrip({ onCreated }) {
 
   const createTrip = async () => {
     if (submittingRef.current || submitting) return;
-    if (buses.length === 0) { alert("Agregá al menos un vehículo."); return; }
-    if (stops.length === 0) { alert("Agregá al menos una parada."); return; }
+    if (buses.length === 0) { alert("Agregá al menos 1 vehículo."); return; }
+    if (stops.length === 0) { alert("Agregá al menos 1 parada."); return; }
 
     if (shouldConfigureReinforcement) {
       const reinforcementCapacity = Number.parseInt(reinforcementBusCapacity, 10) || 0;
       if (reinforcementCapacity <= 0) {
-        alert("Definí una capacidad válida para el vehículo de refuerzo.");
+        alert("Ingresá una capacidad válida.");
         return;
       }
 
       const mainStops = stops.filter((stop) => stop.split_target !== "reinforcement");
       const reinforcementStops = stops.filter((stop) => stop.split_target === "reinforcement");
       if (mainStops.length === 0 || reinforcementStops.length === 0) {
-        alert("Asigná al menos una parada al traslado principal y una al refuerzo.");
+        alert("Asigná al menos 1 parada a cada traslado.");
         return;
       }
     }
