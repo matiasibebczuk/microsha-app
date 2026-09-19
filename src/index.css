@@ -884,27 +884,49 @@ button:disabled {
   }
 }
 
-/* Sileo Toast Overrides */
+/* Sileo Toast Overrides & Mobile Fixes */
+:root {
+  --sileo-width: 320px;
+}
+
 [data-sileo-viewport] {
   z-index: 99999 !important;
-  max-width: calc(100vw - 1.5rem) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: auto !important;
+  max-width: 100vw !important;
+  padding: 0.25rem !important;
+  margin: 0 auto !important;
   box-sizing: border-box !important;
-  padding: 0.5rem !important;
 }
 
 [data-sileo-viewport][data-position^="top"] {
-  top: max(12px, env(safe-area-inset-top)) !important;
+  top: max(8px, env(safe-area-inset-top)) !important;
 }
 
 [data-sileo-toast] {
-  max-width: calc(100vw - 2rem) !important;
-  box-sizing: border-box !important;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+  width: min(320px, calc(100vw - 1.5rem)) !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.5));
+}
+
+[data-sileo-header] {
+  padding: 0.4rem 0.65rem !important;
+}
+
+[data-sileo-header-inner] {
+  gap: 0.45rem !important;
+}
+
+[data-sileo-badge] {
+  height: 20px !important;
+  width: 20px !important;
+  flex-shrink: 0 !important;
 }
 
 [data-sileo-title] {
   font-family: var(--font) !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
 }
