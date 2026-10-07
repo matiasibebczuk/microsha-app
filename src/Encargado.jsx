@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
-import { IconLogout, IconChevronRight } from "./ui/icons";
+import { IconLogout, IconChevronRight, IconUserPlus } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
@@ -18,6 +18,7 @@ export default function Encargado() {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [started, setStarted] = useState(false);
   const [groups, setGroups] = useState([]);
+  const [unregisteredPassengers, setUnregisteredPassengers] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [loadingList, setLoadingList] = useState(false);
   const [tripClosed, setTripClosed] = useState(false);
@@ -34,6 +35,15 @@ export default function Encargado() {
   const [locationLastUpdate, setLocationLastUpdate] = useState(null);
   const [locationLastStop, setLocationLastStop] = useState(null);
   const locationTimerRef = useRef(null);
+
+  // Estados para modal "+ Agregar persona"
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState(null);
+  const [addingUser, setAddingUser] = useState(false);
+  const [addModalError, setAddModalError] = useState("");
 
   const getAuthHeader = useCallback(async () => {
     const token = await getAuthToken();
@@ -69,14 +79,16 @@ export default function Encargado() {
     setLoadingList(true);
     try {
       const authHeader = await getAuthHeader();
-      const [stateRes, passengersRes, dashboardRes, locationRes] = await Promise.all([
+      const [stateRes, passengersRes, unregisteredRes, dashboardRes, locationRes] = await Promise.all([
         fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/state`), { headers: authHeader }),
         fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/passengers`), { headers: authHeader }),
+        fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/unregistered`), { headers: authHeader }),
         fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/dashboard`), { headers: authHeader }),
         fetchWithRetry(apiUrl(`/encargado/trips/${tripId}/location/state`), { headers: authHeader }),
       ]);
       const stateJson = await stateRes.json();
       const passengersJson = await passengersRes.json();
+      const unregisteredJson = unregisteredRes.ok ? await unregisteredRes.json() : [];
       const dashboardJson = await dashboardRes.json();
       const locationJson = await locationRes.json().catch(() => ({}));
       if (stateRes.ok) {
@@ -92,6 +104,7 @@ export default function Encargado() {
         setLocationLastStop(locationJson?.last_stop_name || null);
       }
       setGroups(Array.isArray(passengersJson) ? sortGroupsByTime(passengersJson) : []);
+      setUnregisteredPassengers(Array.isArray(unregisteredJson) ? unregisteredJson : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
     } catch (err) {
       setNotice(err?.message || "Error de red. Intentá de nuevo.");
@@ -285,6 +298,69 @@ export default function Encargado() {
     }
   };
 
+  const handleSearchUsers = async (query) => {
+    setUserSearchQuery(query);
+    setAddModalError("");
+    setSelectedUserToAdd(null);
+    if (!query || query.trim().length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    setSearchingUsers(true);
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetchWithRetry(apiUrl(`/encargado/users/search?q=${encodeURIComponent(query.trim())}`), {
+        headers: authHeader,
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setUserSearchResults(Array.isArray(json) ? json : []);
+      } else {
+        setUserSearchResults([]);
+      }
+    } catch {
+      setUserSearchResults([]);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const handleConfirmAddPerson = async () => {
+    if (!selectedTrip || !selectedUserToAdd || addingUser) return;
+    setAddingUser(true);
+    setAddModalError("");
+
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetchWithRetry(apiUrl(`/encargado/trips/${selectedTrip.id}/unregistered`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader },
+        body: JSON.stringify({
+          userId: selectedUserToAdd.id,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        setAddModalError(json?.error || "No se pudo agregar a la persona.");
+        return;
+      }
+
+      // Éxito: cerrar modal y recargar lista de pasajeros
+      setShowAddModal(false);
+      setUserSearchQuery("");
+      setUserSearchResults([]);
+      setSelectedUserToAdd(null);
+      setAddModalError("");
+      await loadTripData(selectedTrip.id);
+    } catch (err) {
+      setAddModalError(err?.message || "Error al agregar a la persona.");
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
   const finishTrip = async () => {
     if (!selectedTrip || finishingTrip) return;
     if (!started && !tripClosed) { alert("Primero iniciá el recorrido."); return; }
@@ -310,6 +386,8 @@ export default function Encargado() {
       setStarted(false);
       setTripClosed(false);
       setGroups([]);
+      setUnregisteredPassengers([]);
+      setShowAddModal(false);
       setDashboard(null);
       await loadTrips();
     } finally {
@@ -458,12 +536,22 @@ export default function Encargado() {
       <MessageBanner message={notice} />
 
       <div className="stack">
+        {/* ENCABEZADO DE SECCIÓN: ANOTADOS */}
+        <div className="row-between" style={{ marginTop: 12, marginBottom: 4, padding: "0 4px" }}>
+          <h2 className="title" style={{ fontSize: "1.15rem", fontWeight: 700, letterSpacing: "-0.01em" }}>
+            ANOTADOS
+          </h2>
+          <span className="badge">
+            {dashboard ? (dashboard.registeredTotal ?? dashboard.total - (dashboard.unregisteredCount || 0)) : (sortedGroups.reduce((acc, g) => acc + g.passengers.length, 0))}
+          </span>
+        </div>
+
         {loadingList && groups.length === 0 ? (
           <div className="inset-group">
             <SkeletonCards count={2} />
           </div>
         ) : sortedGroups.length === 0 ? (
-          <EmptyState title="Sin pasajeros" subtitle="Nadie se anotó para este viaje todavía." />
+          <EmptyState title="Sin pasajeros anotados" subtitle="Nadie se anotó para este viaje originalmente." />
         ) : (
           sortedGroups.map((group) => (
             <div key={group.stopId} className="inset-group">
@@ -526,9 +614,204 @@ export default function Encargado() {
             </div>
           ))
         )}
+
+        {/* SECCIÓN: AGREGADOS AL SUBIR */}
+        <div className="row-between" style={{ marginTop: 28, marginBottom: 4, padding: "0 4px" }}>
+          <h2 className="title" style={{ fontSize: "1.15rem", fontWeight: 700, letterSpacing: "-0.01em", color: "var(--primary)" }}>
+            AGREGADOS AL SUBIR
+          </h2>
+          <span className="unregistered-badge">
+            {unregisteredPassengers.length}
+          </span>
+        </div>
+
+        {unregisteredPassengers.length === 0 ? (
+          <div className="card-soft stack-sm" style={{ padding: "16px 20px", textAlign: "center", color: "var(--muted)" }}>
+            <p className="caption">No se agregaron personas manualmente todavía.</p>
+          </div>
+        ) : (
+          <div className="inset-group">
+            <div className="grid">
+              {unregisteredPassengers.map((u) => (
+                <div key={u.id || u.userId} className="list-item stack-sm" style={{ borderLeft: "3px solid #3b82f6" }}>
+                  <div className="row-between">
+                    <span className="body">
+                      <b style={{ color: "var(--primary)" }}>➕ {u.name}</b>
+                    </span>
+                    <div className="row">
+                      {u.phone ? (
+                        <a className="btn-secondary" href={`tel:${u.phone}`}>
+                          Llamar
+                        </a>
+                      ) : null}
+                      <span className="badge badge-success">Presente</span>
+                    </div>
+                  </div>
+                  <div className="stack-sm">
+                    {u.dni ? <p className="caption">DNI: {u.dni}</p> : null}
+                    {u.description ? <p className="caption">{u.description}</p> : null}
+                    <p className="caption" style={{ color: "var(--muted)", fontSize: "11px" }}>
+                      Agregada al subir {u.addedAt ? `· ${formatDateTime(u.addedAt)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {startedAt && <p className="caption">Inicio: {formatDateTime(startedAt)}</p>}
+      {startedAt && <p className="caption" style={{ marginTop: 16 }}>Inicio: {formatDateTime(startedAt)}</p>}
+
+      {/* BOTÓN FLOTANTE "+ AGREGAR PERSONA" */}
+      {started && canManage && !finished ? (
+        <button
+          type="button"
+          className="fab-add-person"
+          onClick={() => {
+            setShowAddModal(true);
+            setUserSearchQuery("");
+            setUserSearchResults([]);
+            setSelectedUserToAdd(null);
+            setAddModalError("");
+          }}
+        >
+          <IconUserPlus />
+          <span>+ Agregar persona</span>
+        </button>
+      ) : null}
+
+      {/* MODAL DE BÚSQUEDA Y AGREGAR PERSONA */}
+      {showAddModal ? (
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !addingUser) {
+              setShowAddModal(false);
+            }
+          }}
+        >
+          <div className="modal-content fade-up" role="dialog" aria-modal="true">
+            <div className="modal-header row-between">
+              <div className="stack-sm">
+                <h2 className="headline" style={{ fontSize: "1.15rem", fontWeight: 700 }}>
+                  Agregar persona al traslado
+                </h2>
+                <p className="caption">Registrá a una persona que subió pero no estaba anotada.</p>
+              </div>
+              <button
+                type="button"
+                className="btn-plain"
+                style={{ fontSize: "20px", padding: "4px 8px" }}
+                onClick={() => !addingUser && setShowAddModal(false)}
+                disabled={addingUser}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {addModalError ? (
+                <div className="status-alert-card status-alert-error">
+                  {addModalError}
+                </div>
+              ) : null}
+
+              <div className="stack-sm">
+                <label className="caption" htmlFor="userSearchInput">
+                  Buscar por nombre, apellido o DNI:
+                </label>
+                <input
+                  id="userSearchInput"
+                  type="search"
+                  className="input"
+                  placeholder="Ej: Pérez o 12345678"
+                  value={userSearchQuery}
+                  onChange={(e) => handleSearchUsers(e.target.value)}
+                  autoFocus
+                  disabled={addingUser}
+                />
+              </div>
+
+              {searchingUsers ? (
+                <LoadingState compact label="Buscando usuarios..." />
+              ) : null}
+
+              {!searchingUsers && userSearchQuery.trim().length >= 2 && userSearchResults.length === 0 ? (
+                <EmptyState
+                  title="No se encontraron personas"
+                  subtitle="Verificá que el nombre o DNI sea correcto."
+                />
+              ) : null}
+
+              {userSearchResults.length > 0 ? (
+                <div className="stack-sm" style={{ maxHeight: "260px", overflowY: "auto" }}>
+                  <p className="caption">Seleccioná a la persona:</p>
+                  <div className="inset-list">
+                    {userSearchResults.map((u) => {
+                      const isSelected = selectedUserToAdd?.id === u.id;
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className={`user-search-result-item ${isSelected ? "selected" : ""}`}
+                          onClick={() => setSelectedUserToAdd(u)}
+                          disabled={addingUser}
+                        >
+                          <div className="row-between">
+                            <span className="body"><b>{u.name}</b></span>
+                            {isSelected ? (
+                              <span className="badge badge-success">Seleccionado</span>
+                            ) : null}
+                          </div>
+                          <div className="row" style={{ marginTop: 4, gap: 12 }}>
+                            {u.dni ? <span className="caption">DNI: {u.dni}</span> : null}
+                            {u.member_number ? <span className="caption">Socio: {u.member_number}</span> : null}
+                          </div>
+                          {u.description ? (
+                            <p className="caption" style={{ marginTop: 2, color: "var(--muted)" }}>
+                              {u.description}
+                            </p>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedUserToAdd ? (
+                <div className="card-soft stack-sm" style={{ padding: "12px 16px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                  <p className="caption" style={{ color: "var(--primary)" }}><b>Persona a agregar:</b></p>
+                  <p className="body"><b>{selectedUserToAdd.name}</b> {selectedUserToAdd.dni ? `(DNI: ${selectedUserToAdd.dni})` : ""}</p>
+                  <p className="caption" style={{ fontSize: "11px", color: "var(--muted)" }}>
+                    Quedará registrada en este recorrido con el estado <b>"Agregada al subir"</b>.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowAddModal(false)}
+                disabled={addingUser}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleConfirmAddPerson}
+                disabled={!selectedUserToAdd || addingUser}
+              >
+                {addingUser ? "Agregando..." : "Confirmar y agregar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1017,9 +1017,29 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
             <div className="divider" />
 
+            {trip.status === "closed" ? (
+              <div className="status-alert-card status-alert-waiting">
+                El traslado ya ha iniciado. La inscripción y lista de pasajeros se encuentran cerradas.
+              </div>
+            ) : null}
+
             <div className="stack-sm">
-              <button className="btn-primary" onClick={change}>Cambiar mi parada</button>
-              <button className="btn-plain" style={{ color: 'var(--ios-system-red)' }} onClick={cancel} disabled={cancelling}>{cancelling ? "Cancelando..." : "Cancelar lugar"}</button>
+              <button
+                className="btn-primary"
+                onClick={change}
+                disabled={trip.status === "closed"}
+                style={trip.status === "closed" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              >
+                Cambiar mi parada
+              </button>
+              <button
+                className="btn-plain"
+                style={{ color: trip.status === "closed" ? "var(--muted)" : "var(--ios-system-red)", opacity: trip.status === "closed" ? 0.5 : 1, cursor: trip.status === "closed" ? "not-allowed" : "pointer" }}
+                onClick={cancel}
+                disabled={cancelling || trip.status === "closed"}
+              >
+                {cancelling ? "Cancelando..." : "Cancelar lugar"}
+              </button>
             </div>
           </div>
         </div>
@@ -1074,9 +1094,9 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
                   key={s.id}
                   type="button"
                   className="card glass-card row-between stop-choice-card"
-                  onClick={() => !s.blocked && reserve(s.id)}
-                  disabled={submittingStopId !== null || s.blocked}
-                  style={s.blocked ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+                  onClick={() => !s.blocked && trip.status !== "closed" && reserve(s.id)}
+                  disabled={submittingStopId !== null || s.blocked || trip.status === "closed"}
+                  style={s.blocked || trip.status === "closed" ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
                 >
                   <div className="stack-sm stop-choice-main">
                     <span className="body"><b>{s.name}</b></span>

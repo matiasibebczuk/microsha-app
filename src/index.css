@@ -936,3 +936,112 @@ button:disabled {
   font-size: 13px !important;
   color: #ecf1ff !important;
 }
+
+/* Floating Action Button (Encargado: Agregar Persona) */
+.fab-add-person {
+  position: fixed;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  right: 1.5rem;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.35rem;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(37, 99, 235, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.fab-add-person:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(37, 99, 235, 0.5);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.fab-add-person:active {
+  transform: translateY(0);
+}
+
+/* Modal Agregar Persona */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 10, 26, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  width: min(520px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-body {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.user-search-result-item {
+  background: var(--bg-elev-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.user-search-result-item:hover,
+.user-search-result-item.selected {
+  border-color: var(--primary);
+  background: var(--bg-elev-3);
+}
+
+.unregistered-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
