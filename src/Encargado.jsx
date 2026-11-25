@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
-import { IconLogout, IconChevronRight, IconUserPlus } from "./ui/icons";
+import { IconLogout, IconChevronRight, IconUserPlus, IconClose } from "./ui/icons";
 import { apiUrl } from "./api";
 import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
@@ -636,7 +636,7 @@ export default function Encargado() {
                 <div key={u.id || u.userId} className="list-item stack-sm" style={{ borderLeft: "3px solid #3b82f6" }}>
                   <div className="row-between">
                     <span className="body">
-                      <b style={{ color: "var(--primary)" }}>➕ {u.name}</b>
+                      <b style={{ color: "var(--primary)" }}>{u.name}</b>
                     </span>
                     <div className="row">
                       {u.phone ? (
@@ -706,7 +706,7 @@ export default function Encargado() {
                 onClick={() => !addingUser && setShowAddModal(false)}
                 disabled={addingUser}
               >
-                ✕
+                <IconClose />
               </button>
             </div>
 

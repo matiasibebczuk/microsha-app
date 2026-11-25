@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { apiUrl } from "../api";
 import { fetchWithRetry } from "../lib/fetchWithRetry";
-import { IconTrash } from "../ui/icons";
+import { IconTrash, IconCheck } from "../ui/icons";
 import { formatTripTitle } from "../utils/format";
 
 const WEEK_DAYS = [
@@ -296,7 +296,7 @@ export default function AdminCreateTrip({ onCreated }) {
       <div className="page full-center fade-up">
         <div className="card glass-card success-celebration">
           <div className="success-ring">
-            <span className="success-check">✓</span>
+            <span className="success-check"><IconCheck /></span>
           </div>
           <h2 className="large-title">Traslado creado con éxito</h2>
           <p className="body"><b>{createdTripName}</b></p>

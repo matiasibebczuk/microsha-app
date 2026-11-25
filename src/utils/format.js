@@ -99,7 +99,7 @@ export function formatTripTitle(name, startTime, fallbackId = null) {
 }
 
 export function formatTripStatus(status) {
-  return status === "open" ? "🟢 Abierto" : "🔴 Cerrado";
+  return status === "open" ? "Abierto" : "Cerrado";
 }
 
 export function formatOccupancy(confirmed, capacity) {

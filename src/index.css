@@ -1,20 +1,20 @@
 :root {
-  --bg: #081235;
-  --bg-elev-1: #0d1a42;
-  --bg-elev-2: #132453;
-  --bg-elev-3: #1a2f67;
-  --line: #33426f;
+  --bg: #07101f;
+  --bg-elev-1: #101a2d;
+  --bg-elev-2: #152238;
+  --bg-elev-3: #1b2b44;
+  --line: #263a55;
   --text: #ecf1ff;
-  --muted: #aab5d4;
-  --primary: #8ab4f8;
-  --primary-strong: #78a8f5;
+  --muted: #9aa9be;
+  --primary: #84aef4;
+  --primary-strong: #75a2eb;
   --danger: #f28b82;
   --warning: #fbc02d;
   --success: #81c995;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --shadow: 0 8px 24px rgba(4, 10, 26, 0.35);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 10px 28px rgba(2, 8, 20, 0.22);
   --font: "Google Sans", "Roboto", "Segoe UI", sans-serif;
 }
 
@@ -34,7 +34,7 @@ html {
 }
 
 body {
-  background: radial-gradient(1200px 620px at 8% -12%, #1e4f9a 0%, #0f2761 34%, var(--bg) 68%, #060f2d 100%);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   line-height: 1.45;
@@ -250,6 +250,14 @@ button:hover {
   border-color: var(--primary-strong);
 }
 
+button {
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.995);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -397,10 +405,61 @@ button:disabled {
   animation: fadeUp 220ms ease-out;
 }
 
+.passenger-page-header {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1.75rem;
+}
+
+.journey-progress {
+  display: flex;
+  align-items: center;
+  width: min(190px, 46vw);
+  margin: 0 0 1.25rem;
+}
+
+.journey-progress span {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #40577d;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.journey-progress span.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #091125;
+}
+
+.journey-progress span.complete {
+  background: rgba(129, 201, 149, 0.18);
+  border-color: rgba(129, 201, 149, 0.7);
+  color: #bdebc9;
+}
+
+.journey-progress i {
+  height: 1px;
+  flex: 1;
+  background: #40577d;
+}
+
+.journey-progress i.complete {
+  background: rgba(129, 201, 149, 0.7);
+}
+
 .passenger-trip-card:hover,
 .stop-choice-card:hover {
   background: var(--bg-elev-3);
   border-color: #4a5f9b;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(2, 8, 20, 0.18);
 }
 
 .passenger-trip-main,
@@ -462,6 +521,12 @@ button:disabled {
 
 .stop-choice-side svg {
   flex: 0 0 auto;
+}
+
+.summary-card {
+  border-radius: var(--radius-md);
+  border: 1px solid #344969;
+  box-shadow: none;
 }
 
 .message-banner {
@@ -747,10 +812,15 @@ button:disabled {
 }
 
 .success-check {
-  font-size: 2rem;
   color: #dbffe5;
-  font-weight: 800;
-  transform: translateY(-1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-check svg {
+  width: 38px;
+  height: 38px;
 }
 
 .fade-up {
@@ -881,6 +951,20 @@ button:disabled {
     right: 0.5rem;
     bottom: 0.5rem;
     width: calc(100% - 1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

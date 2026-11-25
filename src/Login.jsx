@@ -83,12 +83,18 @@ export default function Login({ onPassenger }) {
 
   const handleRateLimitError = (message) => {
     const text = String(message || "").toLowerCase();
-    if (!text.includes("rate") || !text.includes("limit")) {
+    const isRateLimit =
+      (text.includes("rate") && text.includes("limit")) ||
+      text.includes("demasiadas") ||
+      text.includes("demasiados") ||
+      text.includes("límite");
+
+    if (!isRateLimit) {
       return false;
     }
 
     setResendCooldown((prev) => Math.max(prev, 60));
-    alert("Límite alcanzado. Esperá 60s antes de reintentar.");
+    alert("Demasiadas solicitudes. Esperá unos segundos antes de reintentar.");
     return true;
   };
 

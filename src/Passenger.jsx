@@ -287,9 +287,10 @@ export default function Passenger({ user, onSessionExpired }) {
     };
 
     void pollNotifications();
+    const pollIntervalMs = 30000 + Math.floor(Math.random() * 6000);
     const timerId = window.setInterval(() => {
       void pollNotifications();
-    }, 30000);
+    }, pollIntervalMs);
 
     return () => {
       alive = false;
@@ -435,8 +436,11 @@ export default function Passenger({ user, onSessionExpired }) {
   if (step === "ida") {
     return (
       <div className="page fade-up">
-        <header className="stack-sm" style={{ marginBottom: 32 }}>
-          <h1 className="large-title">Hola {getGreetingName(user?.name)} 👋</h1>
+        <div className="journey-progress" aria-label="Paso 1 de 3">
+          <span className="active">1</span><i /><span>2</span><i /><span>3</span>
+        </div>
+        <header className="passenger-page-header">
+          <h1 className="large-title">Hola {getGreetingName(user?.name)}</h1>
           <p className="caption">Elegí tu traslado de ida</p>
         </header>
 
@@ -559,7 +563,10 @@ export default function Passenger({ user, onSessionExpired }) {
   if (step === "vuelta") {
     return (
       <div className="page fade-up">
-        <header className="stack-sm" style={{ marginBottom: 32 }}>
+        <div className="journey-progress" aria-label="Paso 2 de 3">
+          <span className="complete">1</span><i className="complete" /><span className="active">2</span><i /><span>3</span>
+        </div>
+        <header className="passenger-page-header">
           <h1 className="large-title">Vuelta</h1>
           <p className="caption">¿Cómo querés volver?</p>
         </header>
@@ -687,7 +694,10 @@ export default function Passenger({ user, onSessionExpired }) {
 
   return (
     <div className="page fade-up">
-      <header className="stack-sm" style={{ marginBottom: 32 }}>
+      <div className="journey-progress" aria-label="Paso 3 de 3">
+        <span className="complete">1</span><i className="complete" /><span className="complete">2</span><i className="complete" /><span className="active">3</span>
+      </div>
+      <header className="passenger-page-header">
         <h1 className="large-title">Resumen</h1>
         <p className="caption">Repasá tus inscripciones</p>
       </header>
@@ -701,7 +711,7 @@ export default function Passenger({ user, onSessionExpired }) {
       <div className="inset-group">
         <h3 className="subheadline">Detalles del viaje</h3>
         <div className="inset-list">
-          <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+          <div className="card glass-card stack-sm summary-card">
             <div className="row-between">
               <span className="body"><b>Ida</b></span>
               {(() => {
@@ -726,7 +736,7 @@ export default function Passenger({ user, onSessionExpired }) {
             <p className="caption">Parada: {formatSummaryItem(effectiveIdaReservation?.stopName)} · {formatSummaryItem(formatTimeNoSeconds(effectiveIdaReservation?.stopTime))}</p>
           </div>
 
-          <div className="card glass-card stack-sm" style={{ borderRadius: 0, border: 'none' }}>
+          <div className="card glass-card stack-sm summary-card">
             <div className="row-between">
               <span className="body"><b>Vuelta</b></span>
               {(() => {
@@ -755,7 +765,7 @@ export default function Passenger({ user, onSessionExpired }) {
 
       <div className="inset-group stack" style={{ marginTop: 40 }}>
         <div className="card glass-card" style={{ textAlign: 'center', padding: '24px' }}>
-          <h2 className="headline">¡Todo listo! 🙌</h2>
+          <h2 className="headline">Todo listo</h2>
           <p className="caption" style={{ marginTop: 8 }}>Ya estás anotado. Te avisaremos cuando confirmemos tu lugar.</p>
         </div>
 
@@ -984,7 +994,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
     return (
       <div className="page fade-up">
-        <header className="stack-sm" style={{ marginBottom: 32 }}>
+        <header className="passenger-page-header">
           <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time, trip.id)}</h1>
           <p className="caption">Información de tu viaje</p>
         </header>
@@ -1053,7 +1063,7 @@ function TripStops({ trip, user, onBack, onReserved, onSessionExpired, onReserva
 
   return (
     <div className="page fade-up">
-      <header className="stack-sm" style={{ marginBottom: 32 }}>
+      <header className="passenger-page-header">
         <h1 className="large-title">{formatTripTitle(trip.name, trip.start_time, trip.id)}</h1>
         <p className="caption">Elegí el punto de encuentro</p>
       </header>

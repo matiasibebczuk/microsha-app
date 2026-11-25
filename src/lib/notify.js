@@ -16,7 +16,12 @@ export function toCleanMessage(rawMessage) {
   if (normalized.includes("invalid token") || normalized.includes("no token") || normalized.includes("session expired") || normalized.includes("sesión expirada")) {
     return "Sesión expirada. Ingresá nuevamente.";
   }
-  if (normalized.includes("rate") && normalized.includes("limit")) {
+  if (
+    (normalized.includes("rate") && normalized.includes("limit")) ||
+    normalized.includes("demasiadas") ||
+    normalized.includes("demasiados") ||
+    normalized.includes("límite")
+  ) {
     return "Límite de solicitudes alcanzado. Aguardá unos segundos.";
   }
 
