@@ -143,7 +143,21 @@ export default function BB8Assistant() {
       );
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (response.status === 409 || payload?.executed === true) {
+        if (payload?.retryable === true) {
+          setMessages((current) =>
+            current.map((message) =>
+              message.pendingOperation?.id === operationId
+                ? {
+                    ...message,
+                    pendingOperation: {
+                      ...message.pendingOperation,
+                      retryable: true,
+                    },
+                  }
+                : message
+            )
+          );
+        } else if (response.status === 409 || payload?.executed === true) {
           setMessages((current) =>
             current.map((message) =>
               message.pendingOperation?.id === operationId
@@ -152,7 +166,9 @@ export default function BB8Assistant() {
             )
           );
         }
-        throw new Error(payload?.error || "No se pudo procesar la operación.");
+        throw new Error(
+          payload?.reply || payload?.error || "No se pudo procesar la operación."
+        );
       }
 
       setMessages((current) => [
@@ -275,7 +291,9 @@ export default function BB8Assistant() {
                       >
                         {activeOperationId === message.pendingOperation.id
                           ? "Procesando…"
-                          : "Confirmar y ejecutar"}
+                          : message.pendingOperation.retryable
+                            ? "Reintentar finalización"
+                            : "Confirmar y ejecutar"}
                       </button>
                       <button
                         type="button"
