@@ -6,7 +6,9 @@ import LoadingState from "./ui/LoadingState";
 import SkeletonCards from "./ui/SkeletonCards";
 import MessageBanner from "./ui/MessageBanner";
 import EmptyState from "./ui/EmptyState";
+import LiveSyncIndicator from "./ui/LiveSyncIndicator";
 import { useSessionToken } from "./hooks/useSessionToken";
+import { useRealtimeSync } from "./hooks/useRealtimeSync";
 import { formatDateTime, formatTripStatus, formatTripTitle, sortTrasladosByHora } from "./utils/format";
 import { fetchWithRetry } from "./lib/fetchWithRetry";
 
@@ -14,6 +16,8 @@ export default function Encargado() {
   const LOCATION_INTERVAL_MS = 30000;
   const getAuthToken = useSessionToken();
   const [trips, setTrips] = useState([]);
+  const [realtimeGroupId, setRealtimeGroupId] = useState(null);
+  const groupLoadedRef = useRef(false);
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [started, setStarted] = useState(false);
@@ -51,32 +55,47 @@ export default function Encargado() {
     return { Authorization: `Bearer ${token}` };
   }, [getAuthToken]);
 
-  const loadTrips = useCallback(async () => {
-    setLoadingTrips(true);
+  const loadTrips = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setLoadingTrips(true);
     try {
       const authHeader = await getAuthHeader();
-      const res = await fetchWithRetry(apiUrl("/trips"), { headers: authHeader });
-      const data = await res.json();
+      const groupRequest = groupLoadedRef.current
+        ? null
+        : fetchWithRetry(apiUrl("/groups/me"), { headers: authHeader });
+      const [res, groupRes] = await Promise.all([
+        fetchWithRetry(apiUrl("/trips"), { headers: authHeader }),
+        groupRequest,
+      ]);
+      const [data, groupData] = await Promise.all([
+        res.json(),
+        groupRes ? groupRes.json().catch(() => ({})) : null,
+      ]);
+      if (groupRes?.ok) {
+        groupLoadedRef.current = true;
+        setRealtimeGroupId(groupData?.groupId ? String(groupData.groupId) : null);
+      }
       if (!res.ok) {
-        setNotice(data?.error || "No se pudieron cargar los viajes");
-        setTrips([]);
-        return;
+        if (!quiet) {
+          setNotice(data?.error || "No se pudieron cargar los viajes");
+          setTrips([]);
+        }
+        return false;
       }
       setTrips(Array.isArray(data) ? data : []);
+      return true;
     } catch (err) {
-      setNotice(err.message || "No se pudieron cargar los viajes");
-      setTrips([]);
+      if (!quiet) {
+        setNotice(err.message || "No se pudieron cargar los viajes");
+        setTrips([]);
+      }
+      return false;
     } finally {
-      setLoadingTrips(false);
+      if (!quiet) setLoadingTrips(false);
     }
   }, [getAuthHeader]);
 
-  useEffect(() => {
-    loadTrips();
-  }, [loadTrips]);
-
-  const loadTripData = async (tripId) => {
-    setLoadingList(true);
+  const loadTripData = async (tripId, { quiet = false } = {}) => {
+    if (!quiet) setLoadingList(true);
     try {
       const authHeader = await getAuthHeader();
       const [stateRes, passengersRes, unregisteredRes, dashboardRes, locationRes] = await Promise.all([
@@ -91,6 +110,9 @@ export default function Encargado() {
       const unregisteredJson = unregisteredRes.ok ? await unregisteredRes.json() : [];
       const dashboardJson = await dashboardRes.json();
       const locationJson = await locationRes.json().catch(() => ({}));
+      if (!stateRes.ok || !passengersRes.ok || !dashboardRes.ok) {
+        throw new Error("No se pudieron actualizar los datos del traslado");
+      }
       if (stateRes.ok) {
         setTripClosed(stateJson.tripStatus === "closed");
         setStarted(Boolean(stateJson.hasActiveRun));
@@ -106,12 +128,44 @@ export default function Encargado() {
       setGroups(Array.isArray(passengersJson) ? sortGroupsByTime(passengersJson) : []);
       setUnregisteredPassengers(Array.isArray(unregisteredJson) ? unregisteredJson : []);
       setDashboard(dashboardRes.ok ? dashboardJson : null);
+      return true;
     } catch (err) {
       setNotice(err?.message || "Error de red. Intentá de nuevo.");
+      return false;
     } finally {
-      setLoadingList(false);
+      if (!quiet) setLoadingList(false);
     }
   };
+
+  const { markUpdated, ...liveSync } = useRealtimeSync({
+    groupId: realtimeGroupId,
+    modules: ["trips", "reservations", "attendance"],
+    onChange: async (events = []) => {
+      const fullRefresh = events.some((event) => event.type === "reconnected");
+      const tripEvents = events.filter((event) => event?.trip_id != null);
+      const selectedTripChanged =
+        selectedTrip?.id != null &&
+        (fullRefresh ||
+          tripEvents.some(
+            (event) => String(event.trip_id) === String(selectedTrip.id)
+          ));
+
+      if (fullRefresh || events.some((event) => event.module === "trips")) {
+        const tripsLoaded = await loadTrips({ quiet: true });
+        if (!tripsLoaded) throw new Error("No se pudieron actualizar los traslados");
+      }
+      if (selectedTripChanged) {
+        const tripLoaded = await loadTripData(selectedTrip.id, { quiet: true });
+        if (!tripLoaded) throw new Error("No se pudo actualizar el traslado seleccionado");
+      }
+    },
+  });
+
+  useEffect(() => {
+    void loadTrips().then((loaded) => {
+      if (loaded) markUpdated();
+    });
+  }, [loadTrips, markUpdated]);
 
   const sendCurrentLocation = useCallback(async (tripId) => {
     if (!navigator.geolocation) {
@@ -428,6 +482,7 @@ export default function Encargado() {
           </button>
         </header>
 
+        <LiveSyncIndicator {...liveSync} />
         <MessageBanner message={notice} />
 
         <div className="inset-group">
@@ -484,6 +539,7 @@ export default function Encargado() {
         {loadingList ? <span className="badge">Actualizando lista...</span> : null}
       </header>
 
+      <LiveSyncIndicator {...liveSync} />
       <section className="stack-sm">
         <h1 className="large-title">{formatTripTitle(selectedTrip.name, selectedTrip.start_time, selectedTrip.id)}</h1>
         <p className="caption">{selectedTrip.type === "ida" ? "Ida" : "Vuelta"} · {started ? "En curso" : "Listo para iniciar"}</p>

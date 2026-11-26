@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiUrl } from "../api";
 import { fetchWithRetry } from "../lib/fetchWithRetry";
 import MessageBanner from "../ui/MessageBanner";
 import LoadingState from "../ui/LoadingState";
 import EmptyState from "../ui/EmptyState";
 import { useSessionToken } from "../hooks/useSessionToken";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
+import LiveSyncIndicator from "../ui/LiveSyncIndicator";
 import { formatDateTime } from "../utils/format";
 
 function formatReason(reason) {
@@ -23,18 +25,21 @@ export default function AdminSanctions({ onBack }) {
   const [reasonDraft, setReasonDraft] = useState({});
   const [sanctioningUserId, setSanctioningUserId] = useState(null);
   const [removingUserId, setRemovingUserId] = useState(null);
+  const [realtimeGroupId, setRealtimeGroupId] = useState(null);
 
   const activeIds = useMemo(() => new Set(activeSanctions.map((item) => String(item.id))), [activeSanctions]);
 
-  const loadActiveSanctions = async () => {
-    setLoading(true);
-    setNotice("");
+  const loadActiveSanctions = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) {
+      setLoading(true);
+      setNotice("");
+    }
     try {
       const token = await getToken();
       if (!token) {
         setNotice("Sesión expirada");
         setActiveSanctions([]);
-        return;
+        return false;
       }
 
       const res = await fetchWithRetry(apiUrl("/admin/sanctions"), {
@@ -45,23 +50,25 @@ export default function AdminSanctions({ onBack }) {
       if (!res.ok) {
         setNotice(json?.error || "No se pudieron cargar sanciones");
         setActiveSanctions([]);
-        return;
+        return false;
       }
 
       setActiveSanctions(Array.isArray(json) ? json : []);
+      return true;
     } catch {
       setNotice("Error de red");
       setActiveSanctions([]);
+      return false;
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
-  };
+  }, [getToken]);
 
   const runSearch = async () => {
     const q = String(search || "").trim();
     if (!q) {
       setResults([]);
-      return;
+      return true;
     }
 
     setSearching(true);
@@ -71,7 +78,7 @@ export default function AdminSanctions({ onBack }) {
       if (!token) {
         setNotice("Sesión expirada");
         setResults([]);
-        return;
+        return false;
       }
 
       const res = await fetchWithRetry(apiUrl(`/admin/sanctions/search?q=${encodeURIComponent(q)}`), {
@@ -82,13 +89,15 @@ export default function AdminSanctions({ onBack }) {
       if (!res.ok) {
         setNotice(json?.error || "No se pudo buscar pasajeros");
         setResults([]);
-        return;
+        return false;
       }
 
       setResults(Array.isArray(json) ? json : []);
+      return true;
     } catch {
       setNotice("Error de red");
       setResults([]);
+      return false;
     } finally {
       setSearching(false);
     }
@@ -168,7 +177,49 @@ export default function AdminSanctions({ onBack }) {
 
   useEffect(() => {
     void loadActiveSanctions();
-  }, []);
+  }, [loadActiveSanctions]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const response = await fetchWithRetry(apiUrl("/groups/me"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const group = await response.json().catch(() => ({}));
+        if (active) {
+          if (response.ok && group?.groupId) {
+            setRealtimeGroupId(String(group.groupId));
+          } else {
+            setNotice("No se pudo determinar el grupo para sincronizar.");
+          }
+        }
+      } catch {
+        if (active) {
+          setRealtimeGroupId(null);
+          setNotice("No se pudo conectar la sincronización en vivo.");
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [getToken]);
+
+  const { markUpdated, ...liveSync } = useRealtimeSync({
+    groupId: realtimeGroupId,
+    modules: ["sanctions"],
+    onChange: async () => {
+      const loaded = await loadActiveSanctions({ quiet: true });
+      if (!loaded) throw new Error("No se pudieron actualizar las sanciones");
+      if (String(search || "").trim() && !(await runSearch())) {
+        throw new Error("No se pudo actualizar la búsqueda de pasajeros");
+      }
+    },
+  });
+  useEffect(() => {
+    if (!loading && !notice) markUpdated();
+  }, [loading, notice, markUpdated]);
 
   return (
     <div className="page fade-up">
@@ -177,6 +228,7 @@ export default function AdminSanctions({ onBack }) {
         <button className="btn-secondary" onClick={onBack}>Volver</button>
       </header>
 
+      <LiveSyncIndicator {...liveSync} />
       <MessageBanner message={notice} />
 
       <div className="inset-group">

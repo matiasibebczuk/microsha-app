@@ -7,7 +7,9 @@ import SkeletonCards from "../ui/SkeletonCards";
 import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
+import LiveSyncIndicator from "../ui/LiveSyncIndicator";
 import { useSessionToken } from "../hooks/useSessionToken";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import {
   formatDateTimeShort,
   formatOccupancy,
@@ -108,11 +110,13 @@ export default function AdminTrips() {
   const [loadingReinforcementStops, setLoadingReinforcementStops] = useState(false);
   const [notice, setNotice] = useState("");
   const [groupLabel, setGroupLabel] = useState("-");
+  const [realtimeGroupId, setRealtimeGroupId] = useState(null);
   const [passengerPage, setPassengerPage] = useState(1);
   const [selectedPassenger, setSelectedPassenger] = useState(null);
   const passengerPageSize = 20;
   const passengersSectionRef = useRef(null);
   const initialLoadDoneRef = useRef(false);
+  const groupLoadedRef = useRef(false);
   const forcingReinforcementRef = useRef(false);
   const scrollToPassengersRef = useRef(false);
 
@@ -125,52 +129,63 @@ export default function AdminTrips() {
     return null;
   }, [getAccessToken]);
 
-  const loadTrips = useCallback(async () => {
+  const loadTrips = useCallback(async ({ quiet = false } = {}) => {
     try {
-      setLoading(true);
-      setNotice("");
+      if (!quiet) {
+        setLoading(true);
+        setNotice("");
+      }
       const token = await getTokenWithRetry();
-      if (!token) { setTrips([]); setNotice("Sesión expirada"); return; }
+      if (!token) { setTrips([]); setNotice("Sesión expirada"); return false; }
       const headers = { Authorization: `Bearer ${token}` };
 
+      const groupRequest = groupLoadedRef.current
+        ? null
+        : fetch(apiUrl("/groups/me"), { headers });
       const [tripsRes, groupRes] = await Promise.all([
         fetch(apiUrl("/trips"), { headers }),
-        fetch(apiUrl("/groups/me"), { headers }),
+        groupRequest,
       ]);
 
       const [tripsJson, groupJson] = await Promise.all([
         readJsonSafely(tripsRes),
-        readJsonSafely(groupRes),
+        groupRes ? readJsonSafely(groupRes) : null,
       ]);
 
-      if (groupRes.ok) {
+      if (groupRes?.ok) {
+        groupLoadedRef.current = true;
         const gid = groupJson?.groupId || "-";
+        setRealtimeGroupId(gid === "-" ? null : String(gid));
         const gname = groupJson?.groupName ? ` (${groupJson.groupName})` : "";
         setGroupLabel(`${gid}${gname}`);
-      } else {
+      } else if (groupRes) {
+        setRealtimeGroupId(null);
         setGroupLabel("sin grupo");
       }
 
       if (!tripsRes.ok) {
         setNotice(tripsJson?.error || `Error cargando traslados (${tripsRes.status})`);
         setTrips([]);
-        return;
+        return false;
       }
 
       const normalizedTrips = normalizeTripsPayload(tripsJson).filter((trip) => trip && typeof trip === "object");
       setTrips(normalizedTrips);
 
-      if (normalizedTrips.length === 0) {
+      if (normalizedTrips.length === 0 && !quiet) {
         setNotice("No hay traslados para el grupo actual.");
       }
-    } catch { setNotice("Error de red"); setTrips([]); } finally { setLoading(false); }
+      return true;
+    } catch {
+      if (!quiet) {
+        setNotice("Error de red");
+        setTrips([]);
+      }
+      return false;
+    } finally {
+      if (!quiet) setLoading(false);
+    }
   }, [getTokenWithRetry]);
-
-  useEffect(() => {
-    if (initialLoadDoneRef.current) return;
-    initialLoadDoneRef.current = true;
-    void loadTrips();
-  }, [loadTrips]);
 
   const startEditTrip = async (trip) => {
     if (editingTripId === trip.id) { setEditingTripId(null); setEditLoading(false); return; }
@@ -569,21 +584,45 @@ export default function AdminTrips() {
     } catch { setNotice("Error de red"); }
   };
 
-  const loadPassengers = async (id) => {
+  const loadPassengers = async (id, { quiet = false } = {}) => {
     const token = await getAccessToken();
-    scrollToPassengersRef.current = true;
-    setPassengersLoading(true);
-    setPassengers([]);
-    setSelectedTripId(id);
-    setPassengerPage(1);
+    if (!quiet) {
+      scrollToPassengersRef.current = true;
+      setPassengersLoading(true);
+      setPassengers([]);
+      setSelectedTripId(id);
+      setPassengerPage(1);
+    }
     try {
       const q = passengerFilter === "all" ? "" : `?status=${passengerFilter}`;
       const res = await fetchWithRetry(apiUrl(`/admin/trips/${id}/reservations${q}`), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
-      if (!res.ok) { setNotice("Error"); return; }
+      if (!res.ok) { setNotice("Error"); return false; }
       setPassengers(json);
-    } finally { setPassengersLoading(false); }
+      return true;
+    } finally { if (!quiet) setPassengersLoading(false); }
   };
+
+  const { markUpdated, ...liveSync } = useRealtimeSync({
+    groupId: realtimeGroupId,
+    modules: ["trips", "reservations"],
+    onChange: async () => {
+      const tripsLoaded = await loadTrips({ quiet: true });
+      if (!tripsLoaded) throw new Error("No se pudieron actualizar los traslados");
+      if (selectedTripId != null) {
+        const passengersLoaded = await loadPassengers(selectedTripId, { quiet: true });
+        if (!passengersLoaded) throw new Error("No se pudieron actualizar los pasajeros");
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
+    void loadTrips().then((loaded) => {
+      if (loaded) markUpdated();
+    });
+  }, [loadTrips, markUpdated]);
 
   const promoteWaiting = async (tId, rId) => {
     const token = await getAccessToken();
@@ -803,6 +842,7 @@ export default function AdminTrips() {
 
   return (
     <div className="stack fade-up">
+      <LiveSyncIndicator {...liveSync} />
       <MessageBanner message={notice} />
       
       {loading ? (

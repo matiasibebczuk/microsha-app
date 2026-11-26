@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "../api";
 import { fetchWithRetry } from "../lib/fetchWithRetry";
 import LoadingState from "../ui/LoadingState";
@@ -6,7 +6,9 @@ import SkeletonCards from "../ui/SkeletonCards";
 import MessageBanner from "../ui/MessageBanner";
 import EmptyState from "../ui/EmptyState";
 import Pager from "../ui/Pager";
+import LiveSyncIndicator from "../ui/LiveSyncIndicator";
 import { useSessionToken } from "../hooks/useSessionToken";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { formatDateTime, formatTripTitle } from "../utils/format";
 import { IconChevronRight } from "../ui/icons";
 
@@ -18,34 +20,84 @@ export default function AdminHistory({ onBack }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [realtimeGroupId, setRealtimeGroupId] = useState(null);
+  const pendingRefreshRef = useRef(null);
   const pageSize = 8;
 
   useEffect(() => {
-    let alive = true;
+    let active = true;
     void (async () => {
-      setLoading(true);
-      setError("");
       try {
         const token = await getToken();
-        if (!token) { if (alive) setRuns([]); if (alive) setError("Sesión expirada"); return; }
+        if (!token) return;
+        const response = await fetchWithRetry(apiUrl("/groups/me"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const group = await response.json().catch(() => ({}));
+        if (active) {
+          if (response.ok && group?.groupId) {
+            setRealtimeGroupId(String(group.groupId));
+          } else {
+            setError("No se pudo determinar el grupo para sincronizar.");
+          }
+        }
+      } catch {
+        if (active) {
+          setRealtimeGroupId(null);
+          setError("No se pudo conectar la sincronización en vivo.");
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [getToken]);
+
+  useEffect(() => {
+    let alive = true;
+    let succeeded = false;
+    const quiet = refreshKey > 0;
+    void (async () => {
+      if (!quiet) {
+        setLoading(true);
+        setError("");
+      }
+      try {
+        const token = await getToken();
+        if (!token) { if (alive && !quiet) setRuns([]); if (alive) setError("Sesión expirada"); return; }
         const res = await fetchWithRetry(apiUrl("/admin/history"), { headers: { Authorization: `Bearer ${token}` } });
         const json = await res.json();
-        if (!res.ok) { if (alive) setRuns([]); if (alive) setError(json?.error || "Error"); return; }
-        if (alive) { setRuns(Array.isArray(json) ? json : []); setPage(1); }
-      } catch { if (alive) { setRuns([]); setError("Error de red"); } } finally { if (alive) { setLoading(false); } }
+        if (!res.ok) { if (alive && !quiet) setRuns([]); if (alive) setError(json?.error || "Error"); return; }
+        if (alive) {
+          setRuns(Array.isArray(json) ? json : []);
+          if (!quiet) setPage(1);
+          succeeded = true;
+        }
+      } catch { if (alive) { if (!quiet) setRuns([]); setError("Error de red"); } } finally {
+        if (alive) {
+          if (!quiet) setLoading(false);
+          if (pendingRefreshRef.current) {
+            pendingRefreshRef.current(succeeded);
+            pendingRefreshRef.current = null;
+          }
+        }
+      }
     })();
     return () => { alive = false; };
-  }, [getToken]);
+  }, [getToken, refreshKey]);
 
   const openRun = async (runId) => {
     setDetailLoading(true);
     try {
       const token = await getToken();
-      if (!token) { setError("Sesión expirada"); return; }
+      if (!token) { setError("Sesión expirada"); return false; }
       const res = await fetchWithRetry(apiUrl(`/admin/history/${runId}`), { headers: { Authorization: `Bearer ${token}` } });
       const json = await res.json();
-      if (!res.ok) { setError(json?.error || "Error"); return; }
+      if (!res.ok) { setError(json?.error || "Error"); return false; }
       setError(""); setSelected(json);
+      return true;
+    } catch {
+      setError("Error de red");
+      return false;
     } finally { setDetailLoading(false); }
   };
 
@@ -61,6 +113,24 @@ export default function AdminHistory({ onBack }) {
     URL.revokeObjectURL(url);
   };
 
+  const { markUpdated, ...liveSync } = useRealtimeSync({
+    groupId: realtimeGroupId,
+    modules: ["history"],
+    onChange: async () => {
+      const refreshed = new Promise((resolve) => {
+        pendingRefreshRef.current = resolve;
+      });
+      setRefreshKey((current) => current + 1);
+      if (!(await refreshed)) throw new Error("No se pudo actualizar el historial");
+      if (selected?.run?.id != null && !(await openRun(selected.run.id))) {
+        throw new Error("No se pudo actualizar el detalle del traslado");
+      }
+    },
+  });
+  useEffect(() => {
+    if (!loading && !error) markUpdated();
+  }, [loading, error, markUpdated]);
+
   if (selected) {
     return (
       <div className="page fade-up">
@@ -72,6 +142,7 @@ export default function AdminHistory({ onBack }) {
           <button className="btn-secondary" onClick={() => setSelected(null)}>Atrás</button>
         </header>
 
+        <LiveSyncIndicator {...liveSync} />
         <div className="inset-group">
           <div className="card glass-card stack-sm" style={{ padding: '24px' }}>
             <div className="row-between">
@@ -119,6 +190,7 @@ export default function AdminHistory({ onBack }) {
         {onBack && <button className="btn-secondary" onClick={onBack}>Volver</button>}
       </header>
 
+      <LiveSyncIndicator {...liveSync} />
       <MessageBanner message={error} />
 
       {loading ? (

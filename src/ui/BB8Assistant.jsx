@@ -29,8 +29,10 @@ function tripStatusLabel(status) {
 export default function BB8Assistant() {
   const getAccessToken = useSessionToken();
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("");
   const [activeOperationId, setActiveOperationId] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [messages, setMessages] = useState([
@@ -77,6 +79,7 @@ export default function BB8Assistant() {
 
     setInput("");
     setIsSending(true);
+    setProcessingStatus("Interpretando la solicitud y consultando datos…");
     setMessages((current) => [
       ...current,
       { id: `${Date.now()}-user`, role: "user", text: message, trips: [] },
@@ -124,12 +127,18 @@ export default function BB8Assistant() {
       ]);
     } finally {
       setIsSending(false);
+      setProcessingStatus("");
     }
   };
 
   const respondToOperation = async (operationId, action) => {
     if (activeOperationId) return;
     setActiveOperationId(operationId);
+    setProcessingStatus(
+      action === "confirm"
+        ? "Ejecutando y verificando operación…"
+        : "Cancelando vista previa…"
+    );
     try {
       const token = await getAccessToken();
       if (!token) throw new Error("La sesión expiró. Volvé a iniciar sesión.");
@@ -184,6 +193,7 @@ export default function BB8Assistant() {
           trips: [],
           records: [],
           isError: payload?.verified === false,
+          isSuccess: action === "cancel" || payload?.verified === true,
         },
       ]);
     } catch (error) {
@@ -200,6 +210,7 @@ export default function BB8Assistant() {
       ]);
     } finally {
       setActiveOperationId(null);
+      setProcessingStatus("");
     }
   };
 
@@ -207,8 +218,14 @@ export default function BB8Assistant() {
 
   return (
     <div className="bb8-assistant">
-      {isOpen ? (
-        <section className="bb8-panel" aria-label="Asistente BB8" aria-live="polite">
+      {hasOpened ? (
+        <section
+          className={`bb8-panel${isOpen ? " bb8-panel-open" : ""}`}
+          aria-label="Asistente BB8"
+          aria-live="polite"
+          aria-hidden={!isOpen}
+          inert={!isOpen}
+        >
           <header className="bb8-header">
             <div className="bb8-brand">
               <span className="bb8-avatar" aria-hidden="true">B8</span>
@@ -231,7 +248,7 @@ export default function BB8Assistant() {
           <div className="bb8-messages" role="log" aria-label="Conversación">
             {messages.map((message) => (
               <article
-                className={`bb8-message bb8-message-${message.role}${message.isError ? " bb8-message-error" : ""}`}
+                className={`bb8-message bb8-message-${message.role}${message.isError ? " bb8-message-error" : ""}${message.isSuccess ? " bb8-message-success" : ""}`}
                 key={message.id}
               >
                 <p>{message.text}</p>
@@ -265,6 +282,7 @@ export default function BB8Assistant() {
                 {message.pendingOperation ? (
                   <div className="bb8-preview">
                     <strong>{message.pendingOperation.title}</strong>
+                    <span className="bb8-preview-state">Preparada · pendiente de confirmación</span>
                     {message.pendingOperation.tripName ? (
                       <span>Traslado: {message.pendingOperation.tripName}</span>
                     ) : null}
@@ -310,7 +328,12 @@ export default function BB8Assistant() {
                 ) : null}
               </article>
             ))}
-            {isSending ? <p className="bb8-processing" role="status">Consultando información…</p> : null}
+            {processingStatus ? (
+              <p className="bb8-processing" role="status">
+                <span className="bb8-processing-indicator" aria-hidden="true" />
+                {processingStatus}
+              </p>
+            ) : null}
             <div ref={messageEndRef} />
           </div>
 
@@ -335,7 +358,10 @@ export default function BB8Assistant() {
       <button
         className={`bb8-launcher${isOpen ? " bb8-launcher-open" : ""}`}
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() => {
+          if (!isOpen) setHasOpened(true);
+          setIsOpen((open) => !open);
+        }}
         aria-label={isOpen ? "Cerrar BB8" : "Abrir asistente BB8"}
         aria-expanded={isOpen}
       >

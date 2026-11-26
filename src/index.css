@@ -731,6 +731,42 @@ button:disabled {
   font-family: var(--font);
 }
 
+.live-sync-indicator {
+  display: flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.live-sync-dot {
+  width: 0.48rem;
+  height: 0.48rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e3b341;
+}
+
+.live-sync-connected .live-sync-dot {
+  background: #56b881;
+}
+
+.live-sync-disconnected .live-sync-dot,
+.live-sync-offline .live-sync-dot,
+.live-sync-error .live-sync-dot {
+  background: #e57373;
+}
+
+.live-sync-changed .live-sync-change {
+  color: #56b881;
+  animation: fadeUp 180ms ease-out;
+}
+
+.live-sync-time {
+  font-variant-numeric: tabular-nums;
+}
+
 .bb8-launcher {
   width: 3.75rem;
   height: 3.75rem;
@@ -742,10 +778,12 @@ button:disabled {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 800;
+  transition: filter 160ms ease, transform 160ms ease;
 }
 
 .bb8-launcher:hover {
   filter: brightness(1.08);
+  transform: translateY(-2px);
 }
 
 .bb8-launcher-open {
@@ -764,6 +802,18 @@ button:disabled {
   border-radius: 18px;
   background: var(--bg-elev-1);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  transform: translateY(0.65rem) scale(0.985);
+  transform-origin: bottom right;
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+
+.bb8-panel-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .bb8-header {
@@ -836,6 +886,7 @@ button:disabled {
   background: var(--bg-elev-2);
   font-size: 0.88rem;
   overflow-wrap: anywhere;
+  animation: bb8-message-in 160ms ease-out both;
 }
 
 .bb8-message-user {
@@ -846,6 +897,10 @@ button:disabled {
 
 .bb8-message-error {
   border-color: rgba(242, 139, 130, 0.55);
+}
+
+.bb8-message-success {
+  border-color: rgba(86, 184, 129, 0.55);
 }
 
 .bb8-trip-list {
@@ -878,10 +933,16 @@ button:disabled {
   border-radius: 10px;
   background: rgba(132, 174, 244, 0.08);
   font-size: 0.78rem;
+  animation: bb8-preview-in 180ms ease-out both;
 }
 
 .bb8-preview small {
   color: var(--muted);
+}
+
+.bb8-preview-state {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .bb8-preview-actions {
@@ -914,8 +975,31 @@ button:disabled {
 }
 
 .bb8-processing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.bb8-processing-indicator {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 auto;
+  border: 2px solid var(--line);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes bb8-message-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bb8-preview-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .bb8-composer {
