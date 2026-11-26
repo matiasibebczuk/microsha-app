@@ -6,6 +6,7 @@ import LoadingState from "./ui/LoadingState";
 import { prefetchStaffData, prefetchPassengerData, prewarmApi } from "./lib/prefetch";
 import { clearSessionWindow, getSessionWindowRemainingMs, readSessionWindow, saveSessionWindow } from "./lib/sessionWindow";
 import microshaLogo from "./assets/MicroSHA_LOGO.png";
+import BB8Assistant from "./ui/BB8Assistant";
 
 const AUTH_DEBUG = String(import.meta.env.VITE_DEBUG_AUTH || "").toLowerCase() === "true";
 
@@ -537,9 +538,12 @@ function App() {
 
   if (profile.role === "admin") {
     return (
-      <Suspense fallback={<LazyFallback label="Cargando panel admin..." />}>
-        <Admin />
-      </Suspense>
+      <>
+        <Suspense fallback={<LazyFallback label="Cargando panel admin..." />}>
+          <Admin />
+        </Suspense>
+        <BB8Assistant />
+      </>
     );
   }
   if (profile.role === "encargado") {
